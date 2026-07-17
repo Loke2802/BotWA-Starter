@@ -1,0 +1,9 @@
+flowchart TD
+A[Business Context]-->B[Intent Analyzer]
+B-->C[Rule Evaluator]
+C-->D[Decision Maker]
+D-->E[Confidence Evaluator]
+E-->|Alta|F[Action Planner]
+E-->|Media|G[Solicitar Información]
+E-->|Baja|H[Escalar a Humano]
+F-->I[Event Publisher]

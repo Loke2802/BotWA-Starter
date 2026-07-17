@@ -1,0 +1,14 @@
+flowchart TD
+A[Integration Request]
+B[Integration Gateway]
+C[Provider Resolver]
+D[Integration Adapter]
+E[External System]
+F[Response Normalizer]
+G[Integration Response]
+A-->B
+B-->C
+C-->D
+D-->E
+E-->F
+F-->G

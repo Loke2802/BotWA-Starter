@@ -1,0 +1,30 @@
+flowchart TB
+EMP["🏢 Empresa"]
+CLI["👤 Cliente"]
+CONV["💬 Conversación"]
+CASE["📂 Caso de Negocio"]
+ACTION["⚙️ Acción"]
+EVENT["📢 Evento de Dominio"]
+RESULT["✅ Resultado"]
+KNOW["📚 Conocimiento"]
+AI["🤖 Agente IA"]
+CHANNEL["📱 Canal"]
+AUTO["⏰ Automatización"]
+BB["🧠 Business Brain\n(Domain Service)"]
+
+EMP --> CLI
+EMP --> KNOW
+EMP --> AI
+EMP --> CHANNEL
+EMP --> AUTO
+CLI --> CONV
+CONV --> CASE
+CASE --> ACTION
+CASE --> EVENT
+CASE --> RESULT
+
+BB -. Analiza .-> CASE
+BB -. Consulta .-> KNOW
+BB -. Decide .-> ACTION
+BB -. Utiliza .-> AI
+BB -. Ejecuta .-> AUTO

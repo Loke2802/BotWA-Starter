@@ -1,0 +1,11 @@
+flowchart TD
+A[Provider Context]
+B[Integration Adapter]
+C[Provider Request]
+D[External Provider]
+E[Canonical Integration Response]
+A-->B
+B-->C
+C-->D
+D-->B
+B-->E

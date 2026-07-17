@@ -1,0 +1,10 @@
+stateDiagram-v2
+[*] --> Nueva
+Nueva --> En_Progreso
+En_Progreso --> Esperando_Informacion
+Esperando_Informacion --> En_Progreso
+En_Progreso --> Esperando_Business_Brain
+Esperando_Business_Brain --> En_Progreso
+En_Progreso --> Finalizada
+En_Progreso --> Escalada
+En_Progreso --> Cancelada

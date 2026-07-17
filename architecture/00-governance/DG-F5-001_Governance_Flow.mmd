@@ -1,0 +1,33 @@
+flowchart TD
+
+A[CTO-RES-001<br/>Architecture Freeze Authorization]
+-->B[CAB-001<br/>Core Architecture Baseline v1.0]
+
+B-->C[AGR-001<br/>Architecture Governance Rules]
+
+C-->D[Core Architecture Review]
+
+D-->E[Architecture Consolidation]
+
+E-->F[Architecture Handoff]
+
+F-->G[Gate Review]
+
+G-->H[Approved for Phase 6]
+
+subgraph Governance
+A
+B
+C
+end
+
+subgraph Review
+D
+E
+F
+G
+end
+
+subgraph Development
+H
+end

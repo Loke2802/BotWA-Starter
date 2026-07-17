@@ -1,0 +1,13 @@
+stateDiagram-v2
+[*]-->Nueva
+Nueva-->Comprendiendo
+Comprendiendo-->Analizando
+Analizando-->Ejecutando
+Ejecutando-->Esperando
+Esperando-->Seguimiento
+Seguimiento-->Ejecutando
+Ejecutando-->Escalada
+Escalada-->Finalizada
+Ejecutando-->Finalizada
+Finalizada-->Reabierta
+Reabierta-->Comprendiendo

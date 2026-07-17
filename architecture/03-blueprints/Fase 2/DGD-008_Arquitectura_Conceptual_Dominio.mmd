@@ -1,0 +1,24 @@
+flowchart TB
+subgraph Empresa
+CLI[Cliente]
+KNOW[Conocimiento]
+AI[Agentes IA]
+CH[Canales]
+AUTO[Automatizaciones]
+end
+subgraph Dominio
+CONV[Conversación]
+CASE[Caso]
+ACT[Acciones]
+EV[Eventos]
+RES[Resultado]
+end
+BB((Business Brain))
+CLI-->CONV-->CASE
+CASE-->ACT
+CASE-->EV
+CASE-->RES
+BB-.Coordina.->CASE
+BB-.Consulta.->KNOW
+BB-.Usa.->AI
+BB-.Ejecuta.->AUTO

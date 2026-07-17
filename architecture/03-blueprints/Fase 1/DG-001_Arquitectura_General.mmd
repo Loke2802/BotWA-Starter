@@ -1,0 +1,20 @@
+flowchart TB
+C[Cliente]-->GC[Gestión Conversacional]
+GC-->BB[Business Brain]
+BB-->GK[Gestión del Conocimiento]
+BB-->GCOM[Gestión Comercial]
+BB-->GA[Gestión de Automatizaciones]
+GCOM-->GC
+GA-->GC
+GC-->C
+GC-->GAN[Gestión Analítica]
+BB-->GAN
+GK-->GAN
+GCOM-->GAN
+GA-->GAN
+ADM[Administración de la Plataforma]-. Configuración .->GC
+ADM-.->BB
+ADM-.->GK
+ADM-.->GCOM
+ADM-.->GA
+ADM-.->GAN

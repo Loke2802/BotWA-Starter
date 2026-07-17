@@ -1,0 +1,9 @@
+flowchart TD
+A[Message]-->B[Message Receiver]
+B-->C[Conversation Context Builder]
+C-->D[Topic Detector]
+D-->E[Conversation State Manager]
+E-->F[Business Brain]
+F-->G[Response Composer]
+G-->H[Channel Adapter]
+H-->I[Response]

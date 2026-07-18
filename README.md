@@ -160,20 +160,27 @@ app/
 
 ## Configuración (variables de entorno)
 
+El archivo `.env.example` es el **contrato oficial de configuración** del proyecto.
+Copiar a `.env` y ajustar según el entorno:
+
+```bash
+cp .env.example .env
+```
+
 Todas las variables usan prefijo `BOTWA_`:
 
-| Variable | Default | Descripción |
-|----------|---------|-------------|
-| `BOTWA_APP_NAME` | `BotWA Starter` | Nombre de la aplicación |
-| `BOTWA_ENVIRONMENT` | `local` | Entorno (local, dev, prod) |
-| `BOTWA_LOG_LEVEL` | `INFO` | Nivel de log |
-| `BOTWA_API_VERSION` | `v1` | Versión de la API |
-| `BOTWA_DATABASE_URL` | `postgresql+psycopg://botwa:botwa@localhost:5432/botwa` | URL de base de datos |
-| `BOTWA_USE_DATABASE` | `false` | Habilita persistencia en DB |
-| `BOTWA_WHATSAPP_WEBHOOK_VERIFY_TOKEN` | `botwa_verify_token` | Token de verificación Meta |
-| `BOTWA_WHATSAPP_ACCESS_TOKEN` | `""` | Token de acceso a Meta Graph API |
-| `BOTWA_WHATSAPP_PHONE_NUMBER_ID` | `""` | ID del número de teléfono en Meta |
-| `BOTWA_WHATSAPP_API_VERSION` | `v22.0` | Versión de Meta Graph API |
+| Sección | Variable | Default | Descripción |
+|---------|----------|---------|-------------|
+| App | `BOTWA_APP_NAME` | `BotWA Starter` | Nombre de la aplicación |
+| App | `BOTWA_ENVIRONMENT` | `local` | Entorno (local, dev, prod) |
+| App | `BOTWA_LOG_LEVEL` | `INFO` | Nivel de log |
+| App | `BOTWA_API_VERSION` | `v1` | Versión de la API |
+| DB | `BOTWA_DATABASE_URL` | `postgresql+psycopg://botwa:botwa@db:5432/botwa` | URL de base de datos |
+| DB | `BOTWA_USE_DATABASE` | `false` | Habilita persistencia en DB |
+| WhatsApp | `BOTWA_WHATSAPP_WEBHOOK_VERIFY_TOKEN` | `botwa_verify_token` | Token de verificación Meta |
+| WhatsApp | `BOTWA_WHATSAPP_ACCESS_TOKEN` | (vacío) | Token de acceso a Meta Graph API |
+| WhatsApp | `BOTWA_WHATSAPP_PHONE_NUMBER_ID` | (vacío) | ID del número de teléfono en Meta |
+| WhatsApp | `BOTWA_WHATSAPP_API_VERSION` | `v22.0` | Versión de Meta Graph API |
 
 ## Persistencia (Opcional)
 
@@ -236,7 +243,8 @@ WhatsAppSender.send(response, to=wa_id)
 ### Requisitos
 
 - Python 3.13+
-- PostgreSQL (opcional, para persistencia)
+- Docker Desktop
+- PostgreSQL (opcional, para persistencia local)
 
 ### Instalación
 
@@ -246,7 +254,19 @@ python -m venv .venv
 pip install -e ".[dev]"
 ```
 
-### Ejecutar
+### Ejecutar (producción)
+
+```bash
+scripts/start.ps1
+```
+
+Esto ejecuta el flujo estándar:
+
+1. `docker compose up -d db` → inicia PostgreSQL
+2. `docker compose run --rm api alembic upgrade head` → migraciones
+3. `docker compose up` → inicia BotWA + base de datos
+
+### Ejecutar (desarrollo local, sin Docker)
 
 ```bash
 .venv\Scripts\uvicorn app.main:app --reload

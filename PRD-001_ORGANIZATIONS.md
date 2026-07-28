@@ -1,6 +1,6 @@
 # PRD-001 Organizations
 
-**Status:** Draft - Ready for CTO Review  
+**Status:** Implemented - Closed  
 **Phase:** Phase 3 Product Development  
 **Date:** 2026-07-28
 
@@ -26,6 +26,22 @@ Introduce organization-level product capability without redesigning Core Engines
 - Preserve existing Core contracts unless a reviewed migration path is approved.
 - Add tests covering organization creation and organization-aware access paths.
 
+## Implemented Scope
+
+- Domain contracts: `Organization`, `OrganizationCreate`, `OrganizationUpdate`, `OrganizationResponse`, `OrganizationListResponse`.
+- Application service: create, get, list, update, deactivate.
+- API endpoints:
+  - `POST /organizations`
+  - `GET /organizations`
+  - `GET /organizations/{organization_id}`
+  - `PATCH /organizations/{organization_id}`
+  - `POST /organizations/{organization_id}/deactivate`
+- PostgreSQL persistence with Alembic migration `20260728_0002`.
+- Unique slug constraint and URL-safe slug normalization.
+- Soft deactivation only; no physical delete.
+- Deactivation is idempotent.
+- Inactive organizations remain readable and may be updated.
+
 ## Acceptance Criteria
 
 - Existing Core quality gates remain green.
@@ -35,5 +51,4 @@ Introduce organization-level product capability without redesigning Core Engines
 
 ## Implementation Status
 
-Not implemented in this execution.
-
+Implemented and closed. PRD-002 was not started.

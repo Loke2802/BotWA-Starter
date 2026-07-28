@@ -1,5 +1,27 @@
 # Changelog
 
+## PRD-001 Organizations - 2026-07-28
+
+### Added
+
+- Organization domain contracts and application service.
+- PostgreSQL-backed Organization ORM model and repository.
+- Alembic migration `20260728_0002_create_organization_table.py`.
+- Organization API endpoints for create, list, get, update, and deactivate.
+- Unit, endpoint, migration, and vertical-slice regression tests.
+
+### Validated
+
+- Docker Compose API/PostgreSQL runtime.
+- Alembic upgrade/downgrade/upgrade for the new migration.
+- PostgreSQL direct persistence and unique slug constraint.
+- API persistence after restart.
+- Core regression quality gates.
+
+### Not Included
+
+- Authentication, users, roles, billing, dashboard, frontend, PRD-002.
+
 ## core-v1.0.0 - 2026-07-28
 
 ### Status
@@ -29,4 +51,3 @@
 ### Blocked
 
 - WhatsApp real/live validation remains blocked pending external credentials or sandbox access.
-

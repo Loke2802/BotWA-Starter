@@ -101,6 +101,7 @@ def test_create_user_endpoint_bootstrap_and_hides_password_hash(
     user = create_bootstrap_user(client, organization_id)
 
     assert user["email"] == "owner@example.com"
+    assert user["role"] == "organization_owner"
     assert user["status"] == "active"
     assert "password_hash" not in user
 
@@ -144,7 +145,12 @@ def test_create_user_endpoint_rejects_inactive_organization(
     client: TestClient,
 ) -> None:
     organization_id = create_organization(client)
-    client.post(f"/organizations/{organization_id}/deactivate")
+    create_bootstrap_user(client, organization_id)
+    token = login(client)
+    client.post(
+        f"/organizations/{organization_id}/deactivate",
+        headers=auth_header(token),
+    )
 
     response = client.post(
         "/users",
@@ -216,6 +222,7 @@ def test_login_me_list_update_change_password_and_deactivate(
     assert me.status_code == 200
     assert me.json()["user"]["email"] == "owner@example.com"
     assert agent.status_code == 201
+    assert agent.json()["user"]["role"] == "viewer"
     assert listed.status_code == 200
     assert listed.json()["total"] == 2
     assert updated.status_code == 403
@@ -244,10 +251,13 @@ def test_invalid_and_tampered_tokens_return_401(client: TestClient) -> None:
 
 def test_prd001_organization_regression(client: TestClient) -> None:
     organization_id = create_organization(client)
+    create_bootstrap_user(client, organization_id)
+    token = login(client)
 
     response = client.patch(
         f"/organizations/{organization_id}",
         json={"name": "Acme Legal", "slug": "acme-legal"},
+        headers=auth_header(token),
     )
 
     assert response.status_code == 200

@@ -85,6 +85,7 @@ def test_create_user_hashes_password_and_hides_hash(
 
     assert user.email == "owner@example.com"
     assert user.first_name == "Owner"
+    assert user.role == "organization_owner"
     assert model is not None
     assert model.password_hash != "valid-password-123"
     assert not hasattr(user, "password_hash")
@@ -171,6 +172,7 @@ def test_bootstrap_allows_first_user_then_requires_authenticated_actor(
     )
 
     assert created.email == "agent@example.com"
+    assert created.role == "viewer"
 
 
 def test_update_rejects_organization_id_change(
@@ -211,14 +213,22 @@ def test_update_profile_and_deactivate_are_scoped_and_idempotent(
             first_name="Old",
         ),
     )
+    agent = user_service.create(
+        UserCreate(
+            organization_id=organization.id,
+            email="agent@example.com",
+            password="valid-password-123",
+        ),
+        actor=owner,
+    )
 
     updated = user_service.update(
         owner.id,
         UserUpdate(first_name="New"),
         actor=owner,
     )
-    first = user_service.deactivate(owner.id, actor=owner)
-    second = user_service.deactivate(owner.id, actor=owner)
+    first = user_service.deactivate(agent.id, actor=owner)
+    second = user_service.deactivate(agent.id, actor=owner)
 
     assert updated.first_name == "New"
     assert first.status == "inactive"

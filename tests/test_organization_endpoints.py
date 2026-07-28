@@ -2,13 +2,17 @@ from collections.abc import Generator
 from uuid import uuid4
 
 import pytest
-from app.api.dependencies import get_organization_service
+from app.api.dependencies import get_organization_service, get_user_service
 from app.application.organizations.service import OrganizationService
+from app.application.users.service import UserService
 from app.infrastructure.database import Base
 from app.infrastructure.repositories.organization_repository import (
     OrganizationRepository,
 )
+from app.infrastructure.repositories.user_repository import UserRepository
 from app.main import create_app
+from app.security.passwords import PasswordService
+from argon2 import PasswordHasher
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -24,19 +28,57 @@ def client() -> Generator[TestClient]:
     )
     Base.metadata.create_all(engine)
     session = sessionmaker(bind=engine)()
+    password_service = PasswordService(
+        hasher=PasswordHasher(time_cost=1, memory_cost=1024, parallelism=1),
+    )
 
     def override_service() -> OrganizationService:
         repository = OrganizationRepository(session=session)
         return OrganizationService(repository=repository, session=session)
 
+    def override_user_service() -> UserService:
+        return UserService(
+            repository=UserRepository(session=session),
+            organization_repository=OrganizationRepository(session=session),
+            password_service=password_service,
+            session=session,
+        )
+
     app = create_app()
     app.dependency_overrides[get_organization_service] = override_service
+    app.dependency_overrides[get_user_service] = override_user_service
     try:
         with TestClient(app) as test_client:
             yield test_client
     finally:
         session.close()
         app.dependency_overrides.clear()
+
+
+def auth_header(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}
+
+
+def create_owner_token(client: TestClient, organization_id: str) -> str:
+    response = client.post(
+        "/users",
+        json={
+            "organization_id": organization_id,
+            "email": f"owner-{organization_id}@example.com",
+            "password": "valid-password-123",
+        },
+    )
+    assert response.status_code == 201
+    assert response.json()["user"]["role"] == "organization_owner"
+    login_response = client.post(
+        "/auth/login",
+        json={
+            "email": f"owner-{organization_id}@example.com",
+            "password": "valid-password-123",
+        },
+    )
+    assert login_response.status_code == 200
+    return str(login_response.json()["access_token"])
 
 
 def test_create_organization_endpoint(client: TestClient) -> None:
@@ -79,18 +121,23 @@ def test_get_list_update_deactivate_endpoints(client: TestClient) -> None:
         json={"name": "Acme", "slug": "acme"},
     ).json()["organization"]
     organization_id = created["id"]
+    token = create_owner_token(client, organization_id)
+    headers = auth_header(token)
 
-    get_response = client.get(f"/organizations/{organization_id}")
-    list_response = client.get("/organizations")
+    get_response = client.get(f"/organizations/{organization_id}", headers=headers)
+    list_response = client.get("/organizations", headers=headers)
     update_response = client.patch(
         f"/organizations/{organization_id}",
         json={"name": "Acme Updated", "slug": "acme-updated"},
+        headers=headers,
     )
     deactivate_response = client.post(
         f"/organizations/{organization_id}/deactivate",
+        headers=headers,
     )
     second_deactivate_response = client.post(
         f"/organizations/{organization_id}/deactivate",
+        headers=headers,
     )
 
     assert get_response.status_code == 200
@@ -105,7 +152,13 @@ def test_get_list_update_deactivate_endpoints(client: TestClient) -> None:
 
 
 def test_get_missing_organization_endpoint(client: TestClient) -> None:
-    response = client.get(f"/organizations/{uuid4()}")
+    created = client.post(
+        "/organizations",
+        json={"name": "Acme", "slug": "acme"},
+    ).json()["organization"]
+    token = create_owner_token(client, created["id"])
+
+    response = client.get(f"/organizations/{uuid4()}", headers=auth_header(token))
 
     assert response.status_code == 404
 
@@ -115,11 +168,13 @@ def test_update_duplicate_slug_endpoint(client: TestClient) -> None:
         "/organizations",
         json={"name": "Acme", "slug": "acme"},
     ).json()["organization"]
+    token = create_owner_token(client, first["id"])
     client.post("/organizations", json={"name": "Beta", "slug": "beta"})
 
     response = client.patch(
         f"/organizations/{first['id']}",
         json={"slug": "beta"},
+        headers=auth_header(token),
     )
 
     assert response.status_code == 409

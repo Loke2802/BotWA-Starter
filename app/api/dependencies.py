@@ -1,4 +1,15 @@
+from typing import Annotated
+
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from app.application.auth.service import (
+    AuthInactiveUserError,
+    AuthInvalidTokenError,
+    AuthService,
+)
 from app.application.organizations.service import OrganizationService
+from app.application.users.service import UserService
 from app.core.automation.event_publisher import AutomationEventPublisher
 from app.core.automation.execution_monitor import WorkflowExecutionMonitor
 from app.core.automation.persistent_monitor import PersistentExecutionMonitor
@@ -44,6 +55,7 @@ from app.core.knowledge.retriever import KnowledgeRetriever
 from app.core.knowledge.seed_data import ensure_knowledge_seed_data
 from app.core.knowledge.service import KnowledgeService
 from app.core.knowledge.validator import QualityValidator
+from app.domain.user.contracts import User
 from app.infrastructure.database import get_session
 from app.infrastructure.repositories.automation_execution_repository import (
     AutomationExecutionRepository,
@@ -67,7 +79,12 @@ from app.infrastructure.repositories.message_repository import MessageRepository
 from app.infrastructure.repositories.organization_repository import (
     OrganizationRepository,
 )
+from app.infrastructure.repositories.user_repository import UserRepository
 from app.infrastructure.settings import get_settings
+from app.security.passwords import PasswordService
+from app.security.tokens import AccessTokenService
+
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def get_conversation_service() -> ConversationService:
@@ -206,6 +223,76 @@ def get_organization_service() -> OrganizationService:
     session = next(get_session())
     repository = OrganizationRepository(session=session)
     return OrganizationService(repository=repository, session=session)
+
+
+def get_password_service() -> PasswordService:
+    return PasswordService()
+
+
+def get_access_token_service() -> AccessTokenService:
+    settings = get_settings()
+    return AccessTokenService(
+        secret_key=settings.auth_secret_key,
+        algorithm=settings.auth_algorithm,
+        expires_minutes=settings.auth_access_token_expire_minutes,
+    )
+
+
+def get_user_service() -> UserService:
+    session = next(get_session())
+    repository = UserRepository(session=session)
+    organization_repository = OrganizationRepository(session=session)
+    return UserService(
+        repository=repository,
+        organization_repository=organization_repository,
+        password_service=get_password_service(),
+        session=session,
+    )
+
+
+def get_auth_service(
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    token_service: Annotated[AccessTokenService, Depends(get_access_token_service)],
+) -> AuthService:
+    return AuthService(user_service=user_service, token_service=token_service)
+
+
+def get_current_user(
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None,
+        Depends(bearer_scheme),
+    ],
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+) -> User:
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="authentication required",
+        )
+    try:
+        return auth_service.authenticate_token(credentials.credentials)
+    except AuthInactiveUserError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="user is inactive",
+        ) from exc
+    except AuthInvalidTokenError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="invalid token",
+        ) from exc
+
+
+def get_optional_current_user(
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None,
+        Depends(bearer_scheme),
+    ],
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+) -> User | None:
+    if credentials is None:
+        return None
+    return get_current_user(credentials=credentials, auth_service=auth_service)
 
 
 _integration_service: IntegrationService | None = None

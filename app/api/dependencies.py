@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.application.access.service import AccessService
 from app.application.auth.service import (
     AuthInactiveUserError,
     AuthInvalidTokenError,
@@ -55,6 +56,7 @@ from app.core.knowledge.retriever import KnowledgeRetriever
 from app.core.knowledge.seed_data import ensure_knowledge_seed_data
 from app.core.knowledge.service import KnowledgeService
 from app.core.knowledge.validator import QualityValidator
+from app.domain.access.contracts import Permission
 from app.domain.user.contracts import User
 from app.infrastructure.database import get_session
 from app.infrastructure.repositories.automation_execution_repository import (
@@ -81,6 +83,12 @@ from app.infrastructure.repositories.organization_repository import (
 )
 from app.infrastructure.repositories.user_repository import UserRepository
 from app.infrastructure.settings import get_settings
+from app.security.authorization import (
+    AuthorizationError,
+)
+from app.security.authorization import (
+    require_permission as authorize_permission,
+)
 from app.security.passwords import PasswordService
 from app.security.tokens import AccessTokenService
 
@@ -257,6 +265,10 @@ def get_auth_service(
     return AuthService(user_service=user_service, token_service=token_service)
 
 
+def get_access_service() -> AccessService:
+    return AccessService()
+
+
 def get_current_user(
     credentials: Annotated[
         HTTPAuthorizationCredentials | None,
@@ -293,6 +305,28 @@ def get_optional_current_user(
     if credentials is None:
         return None
     return get_current_user(credentials=credentials, auth_service=auth_service)
+
+
+def require_authenticated_user(
+    actor: Annotated[User, Depends(get_current_user)],
+) -> User:
+    return actor
+
+
+def require_permission(permission: Permission) -> object:
+    def dependency(
+        actor: Annotated[User, Depends(require_authenticated_user)],
+    ) -> User:
+        try:
+            authorize_permission(actor, permission)
+        except AuthorizationError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="permission denied",
+            ) from exc
+        return actor
+
+    return dependency
 
 
 _integration_service: IntegrationService | None = None

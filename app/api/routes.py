@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.api.dependencies import (
     get_access_service,
     get_auth_service,
+    get_bot_service,
     get_conversation_service,
     get_current_user,
     get_optional_current_user,
@@ -19,6 +20,14 @@ from app.application.auth.service import (
     AuthInactiveUserError,
     AuthInvalidCredentialsError,
     AuthService,
+)
+from app.application.bots.service import (
+    BotConflictError,
+    BotForbiddenError,
+    BotNotFoundError,
+    BotOrganizationInactiveError,
+    BotOrganizationNotFoundError,
+    BotService,
 )
 from app.application.organizations.service import (
     OrganizationConflictError,
@@ -39,6 +48,12 @@ from app.domain.access.contracts import (
     EffectivePermissionsResponse,
     RoleAssignmentRequest,
     RoleListResponse,
+)
+from app.domain.bot.contracts import (
+    BotCreate,
+    BotListResponse,
+    BotResponse,
+    BotUpdate,
 )
 from app.domain.conversation.contracts import ChannelResponse, ConversationMessage
 from app.domain.organization.contracts import (
@@ -62,6 +77,30 @@ from app.infrastructure.settings import get_settings
 from app.security.authorization import AuthorizationError, require_organization_access
 
 router = APIRouter()
+
+
+def _raise_bot_error(exc: ValueError) -> None:
+    if isinstance(exc, BotConflictError):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+    if isinstance(exc, BotOrganizationInactiveError):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+    if isinstance(exc, (BotNotFoundError, BotOrganizationNotFoundError)):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    if isinstance(exc, BotForbiddenError):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(exc),
+        ) from exc
+    raise exc
 
 
 @router.get("/health", response_model=HealthResponse, tags=["system"])
@@ -374,6 +413,109 @@ def deactivate_user(
             detail=str(exc),
         ) from exc
     return UserResponse(user=user)
+
+
+@router.post(
+    "/bots",
+    response_model=BotResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["bots"],
+)
+def create_bot(
+    request: BotCreate,
+    service: Annotated[BotService, Depends(get_bot_service)],
+    actor: Annotated[User, Depends(require_permission("bots.create"))],
+) -> BotResponse:
+    try:
+        bot = service.create(request, actor=actor)
+    except ValueError as exc:
+        _raise_bot_error(exc)
+    return BotResponse(bot=bot)
+
+
+@router.get(
+    "/bots",
+    response_model=BotListResponse,
+    tags=["bots"],
+)
+def list_bots(
+    service: Annotated[BotService, Depends(get_bot_service)],
+    actor: Annotated[User, Depends(require_permission("bots.read"))],
+) -> BotListResponse:
+    try:
+        bots = service.list(actor=actor)
+    except ValueError as exc:
+        _raise_bot_error(exc)
+    return BotListResponse(bots=bots, total=len(bots))
+
+
+@router.get(
+    "/bots/{bot_id}",
+    response_model=BotResponse,
+    tags=["bots"],
+)
+def get_bot(
+    bot_id: UUID,
+    service: Annotated[BotService, Depends(get_bot_service)],
+    actor: Annotated[User, Depends(require_permission("bots.read"))],
+) -> BotResponse:
+    try:
+        bot = service.get(bot_id, actor=actor)
+    except ValueError as exc:
+        _raise_bot_error(exc)
+    return BotResponse(bot=bot)
+
+
+@router.patch(
+    "/bots/{bot_id}",
+    response_model=BotResponse,
+    tags=["bots"],
+)
+def update_bot(
+    bot_id: UUID,
+    request: BotUpdate,
+    service: Annotated[BotService, Depends(get_bot_service)],
+    actor: Annotated[User, Depends(require_permission("bots.update"))],
+) -> BotResponse:
+    try:
+        bot = service.update(bot_id, request, actor=actor)
+    except ValueError as exc:
+        _raise_bot_error(exc)
+    return BotResponse(bot=bot)
+
+
+@router.post(
+    "/bots/{bot_id}/activate",
+    response_model=BotResponse,
+    tags=["bots"],
+)
+def activate_bot(
+    bot_id: UUID,
+    service: Annotated[BotService, Depends(get_bot_service)],
+    actor: Annotated[User, Depends(require_permission("bots.activate"))],
+) -> BotResponse:
+    try:
+        bot = service.activate(bot_id, actor=actor)
+    except ValueError as exc:
+        _raise_bot_error(exc)
+    return BotResponse(bot=bot)
+
+
+@router.post(
+    "/bots/{bot_id}/deactivate",
+    response_model=BotResponse,
+    tags=["bots"],
+)
+def deactivate_bot(
+    bot_id: UUID,
+    service: Annotated[BotService, Depends(get_bot_service)],
+    actor: Annotated[User, Depends(require_permission("bots.deactivate"))],
+) -> BotResponse:
+    try:
+        bot = service.deactivate(bot_id, actor=actor)
+    except ValueError as exc:
+        _raise_bot_error(exc)
+    return BotResponse(bot=bot)
 
 
 @router.get(

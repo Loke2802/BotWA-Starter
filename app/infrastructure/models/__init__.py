@@ -4,6 +4,7 @@ from app.infrastructure.models.automation_execution import (
 from app.infrastructure.models.automation_task_execution import (
     AutomationTaskExecutionModel,
 )
+from app.infrastructure.models.bot import BotModel
 from app.infrastructure.models.business_event import BusinessEventModel
 from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.conversation_state_history import (
@@ -22,6 +23,7 @@ from app.infrastructure.models.user import UserModel
 __all__ = [
     "AutomationExecutionModel",
     "AutomationTaskExecutionModel",
+    "BotModel",
     "BusinessEventModel",
     "ConversationModel",
     "ConversationStateHistoryModel",

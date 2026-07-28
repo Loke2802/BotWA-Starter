@@ -1,5 +1,30 @@
 # Changelog
 
+## PRD-003 Roles and Permissions - 2026-07-28
+
+### Added
+
+- Central roles and permissions domain.
+- Role-permission matrix and reusable authorization helpers.
+- `role` on User contracts and `app_user`.
+- Alembic migration `20260728_0004_add_user_roles.py`.
+- Protected Organizations and Users endpoints.
+- Role and effective-permission endpoints.
+- Tests for RBAC, multi-tenancy, role assignment, last-owner protection, and PRD-001/PRD-002 regressions.
+
+### Validated
+
+- Docker Compose API/PostgreSQL runtime.
+- Alembic upgrade/downgrade/upgrade for `20260728_0004`.
+- Direct PostgreSQL role persistence.
+- Cross-tenant denial and platform-admin global access.
+- Immediate permission effect after role changes.
+- Core regression quality gates.
+
+### Not Included
+
+- PRD-004, custom roles, billing, dashboard, frontend, onboarding, MFA, OAuth, SSO.
+
 ## PRD-002 Authentication and Users - 2026-07-28
 
 ### Added

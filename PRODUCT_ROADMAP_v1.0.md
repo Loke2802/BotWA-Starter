@@ -1,6 +1,6 @@
 # BotWA Product Roadmap v1.0
 
-**Status:** PRD-002 Closed  
+**Status:** PRD-003 Closed  
 **Date:** 2026-07-28
 
 ## Current State
@@ -13,9 +13,10 @@ Core v1.0.0 is closed. The platform is ready for controlled Product Development.
 |---|---|---|
 | 1 | PRD-001 Organizations | CLOSED |
 | 2 | PRD-002 Authentication and Users | CLOSED |
-| 3 | PRD-003 Authorization / roles | NOT STARTED |
-| 4 | WhatsApp real/live validation with approved credentials | BLOCKED - EXTERNAL CREDENTIALS REQUIRED |
-| 5 | Release candidate review after PRD-002 | PENDING |
+| 3 | PRD-003 Roles and Permissions | CLOSED |
+| 4 | PRD-004 | NOT STARTED |
+| 5 | WhatsApp real/live validation with approved credentials | BLOCKED - EXTERNAL CREDENTIALS REQUIRED |
+| 6 | Release candidate review after PRD-003 | PENDING |
 
 ## Guardrails
 

@@ -1,14 +1,14 @@
 # BotWA Starter - Context For AI Assistants
 
 **Last updated:** 2026-07-28  
-**Project phase:** Phase 3 - PRD-002 Authentication and Users Closed  
+**Project phase:** Phase 3 - PRD-003 Roles and Permissions Closed  
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
 
 BotWA is a multi-engine conversational assistant platform with WhatsApp Cloud API integration, persistence, automation, integration providers, and deterministic quality gates. Core v1.0.0 is validated and Phase 2 is closed.
 
-PRD-001 Organizations and PRD-002 Authentication and Users are implemented and closed as Phase 3 product increments.
+PRD-001 Organizations, PRD-002 Authentication and Users, and PRD-003 Roles and Permissions are implemented and closed as Phase 3 product increments.
 
 All five core engines are implemented and closed:
 
@@ -26,17 +26,17 @@ Current stabilized gates:
 
 | Gate | Result |
 |---|---|
-| `pytest` | 513 passed, 1 warning |
+| `pytest` | 519 passed, 1 warning |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 199 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 199 source files |
+| `black --check app tests` | 206 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 206 source files |
 
 ## Infrastructure Validation
 
 | Area | Result |
 |---|---|
 | Docker/PostgreSQL | PASS |
-| Alembic migrations | PASS - `20260728_0003` |
+| Alembic migrations | PASS - `20260728_0004` |
 | DB-backed persistence | PASS |
 | Docker smoke tests | PASS |
 | Integration controlled errors | PASS |
@@ -62,14 +62,15 @@ Current stabilized gates:
 
 ## Current Official Objective
 
-The next step is CTO review of PRD-002. Do not start PRD-003 without explicit CTO approval.
+The next step is CTO review of PRD-003. Do not start PRD-004 without explicit CTO approval.
 
 **Phase 3**
 
 1. PRD-001 Organizations - CLOSED.
 2. PRD-002 Authentication and Users - CLOSED.
-3. PRD-003 - NOT STARTED.
-4. Preserve Core Engine boundaries.
+3. PRD-003 Roles and Permissions - CLOSED.
+4. PRD-004 - NOT STARTED.
+5. Preserve Core Engine boundaries.
 
 ## Remaining Real Debt
 

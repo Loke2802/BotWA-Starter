@@ -1,15 +1,15 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-002 cerrada
+## Estado actual - Phase 3 / PRD-003 cerrada
 
 Quality Gates (2026-07-28):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **513 passed, 1 warning** |
+| `pytest` | **519 passed, 1 warning** |
 | `ruff check app tests` | **All checks passed** |
-| `black --check app tests` | **199 files would be left unchanged** |
-| `mypy app tests` | **Success: no issues found in 199 source files** |
+| `black --check app tests` | **206 files would be left unchanged** |
+| `mypy app tests` | **Success: no issues found in 206 source files** |
 
 La base actual incluye 5 Engines:
 
@@ -23,9 +23,9 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial del proyecto: **Phase 3 - PRD-002 Authentication and Users Closed**.
+Estado oficial del proyecto: **Phase 3 - PRD-003 Roles and Permissions Closed**.
 
-Próximo objetivo oficial: CTO review de PRD-002. No iniciar PRD-003 sin autorización explícita. WhatsApp real/live permanece `BLOCKED - EXTERNAL CREDENTIALS REQUIRED`.
+Próximo objetivo oficial: CTO review de PRD-003. No iniciar PRD-004 sin autorización explícita. WhatsApp real/live permanece `BLOCKED - EXTERNAL CREDENTIALS REQUIRED`.
 
 Asistente conversacional multicanal con integración WhatsApp Cloud API, motor de conocimiento y persistencia.
 
@@ -221,6 +221,9 @@ app/
 | POST | `/auth/login` | Autenticar email/password y emitir token Bearer | auth |
 | GET | `/auth/me` | Consultar identidad autenticada | auth |
 | POST | `/auth/change-password` | Cambiar contraseña e invalidar tokens previos | auth |
+| GET | `/roles` | Listar roles y permisos | roles |
+| GET | `/permissions/me` | Consultar permisos efectivos | roles |
+| PATCH | `/users/{user_id}/role` | Asignar rol | roles |
 | GET | `/webhooks/whatsapp` | VerificaciÃ³n de webhook Meta | whatsapp |
 | POST | `/webhooks/whatsapp` | RecepciÃ³n de eventos WhatsApp | whatsapp |
 
@@ -320,7 +323,8 @@ alembic/versions/
 ├── 20260722_0002_add_source_trust_level.py
 ├── 20260728_0001_create_automation_integration_tables.py
 ├── 20260728_0002_create_organization_table.py
-└── 20260728_0003_create_user_table.py
+├── 20260728_0003_create_user_table.py
+└── 20260728_0004_add_user_roles.py
 ```
 
 ## Authentication and Users
@@ -334,7 +338,20 @@ PRD-002 adds basic identity without roles or advanced authorization.
 - `password_hash` is never exposed by API responses.
 - Email uniqueness is global.
 - Bootstrap is temporary: the first user of an active organization may be created without auth; later users require an authenticated active user from the same organization.
-- PRD-003 must replace bootstrap with explicit roles/authorization.
+- PRD-003 replaces bootstrap with explicit roles/authorization.
+
+## Roles and Permissions
+
+PRD-003 adds basic RBAC without custom persisted roles.
+
+- Roles: `platform_admin`, `organization_owner`, `organization_admin`, `operator`, `viewer`.
+- Permissions are derived from a central matrix in `app/domain/access/contracts.py`.
+- First user of an active organization becomes `organization_owner`.
+- Later users default to `viewer`.
+- Protected endpoints check current database role on every request.
+- `platform_admin` can operate across organizations.
+- Organization users are tenant-scoped.
+- Last active `organization_owner` cannot be downgraded or deactivated.
 
 ## WhatsApp Cloud API
 

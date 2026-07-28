@@ -1,6 +1,6 @@
 # BotWA Phase 3 Kickoff
 
-**Status:** PRD-002 Closed - Ready for CTO Review  
+**Status:** PRD-003 Closed - Ready for CTO Review  
 **Date:** 2026-07-28  
 **Entry condition:** Core v1.0.0 - Phase 2 Closed
 
@@ -22,8 +22,9 @@ Start Product Development on top of the validated Core platform.
 |---|---|---|
 | 1 | PRD-001 Organizations | CLOSED |
 | 2 | PRD-002 Authentication and Users | CLOSED |
+| 3 | PRD-003 Roles and Permissions | CLOSED |
 
-PRD-003 is not started.
+PRD-004 is not started.
 
 ## Required Gates During Phase 3
 

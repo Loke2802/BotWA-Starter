@@ -11,6 +11,8 @@ from app.infrastructure.models import (  # noqa: F401
     knowledge_query_log,
     knowledge_source,
     message,
+    organization,
+    user,
 )
 from app.infrastructure.settings import get_settings
 from sqlalchemy import engine_from_config, pool

@@ -17,6 +17,7 @@ from app.infrastructure.models.knowledge_query_log import KnowledgeQueryLogModel
 from app.infrastructure.models.knowledge_source import KnowledgeSourceModel
 from app.infrastructure.models.message import MessageModel
 from app.infrastructure.models.organization import OrganizationModel
+from app.infrastructure.models.user import UserModel
 
 __all__ = [
     "AutomationExecutionModel",
@@ -30,4 +31,5 @@ __all__ = [
     "KnowledgeSourceModel",
     "MessageModel",
     "OrganizationModel",
+    "UserModel",
 ]

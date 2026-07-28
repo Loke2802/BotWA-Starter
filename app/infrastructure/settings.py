@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     whatsapp_access_token: str = ""
     whatsapp_phone_number_id: str = ""
     whatsapp_api_version: str = "v22.0"
+    auth_secret_key: str = "local-development-secret-change-me"
+    auth_algorithm: str = "HS256"
+    auth_access_token_expire_minutes: int = 30
+    auth_password_min_length: int = 12
 
 
 @lru_cache

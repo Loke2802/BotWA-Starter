@@ -1,5 +1,33 @@
 # Changelog
 
+## PRD-002 Authentication and Users - 2026-07-28
+
+### Added
+
+- User domain contracts and application service.
+- Authentication application service.
+- Argon2id password hashing through `argon2-cffi`.
+- JWT access tokens through `PyJWT`.
+- Reusable Bearer authentication dependency for FastAPI.
+- PostgreSQL-backed `app_user` ORM model and repository.
+- Alembic migration `20260728_0003_create_user_table.py`.
+- Users and auth API endpoints.
+- Unit, endpoint, auth, migration, and PRD-001 regression tests.
+
+### Validated
+
+- Docker Compose API/PostgreSQL runtime.
+- Alembic upgrade/downgrade/upgrade for `20260728_0003`.
+- Direct PostgreSQL persistence for users.
+- Password hash is not plaintext.
+- Login, `/auth/me`, password change, token invalidation, deactivation, and inactive-login rejection.
+- API persistence after restart.
+- Core regression quality gates.
+
+### Not Included
+
+- PRD-003, roles, granular permissions, invitations, password recovery, MFA, OAuth, SSO, billing, dashboard, frontend.
+
 ## PRD-001 Organizations - 2026-07-28
 
 ### Added

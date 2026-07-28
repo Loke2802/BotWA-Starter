@@ -1,15 +1,15 @@
 ﻿# BotWA Starter
 
-## Estado actual — Core v1.0.0 / Fase 2 cerrada
+## Estado actual - Phase 3 / PRD-002 cerrada
 
 Quality Gates (2026-07-28):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **491 passed, 1 warning** |
-| `ruff check app tests` | **clean** |
-| `black --check app tests` | **clean** |
-| `mypy app tests` | **clean** |
+| `pytest` | **513 passed, 1 warning** |
+| `ruff check app tests` | **All checks passed** |
+| `black --check app tests` | **199 files would be left unchanged** |
+| `mypy app tests` | **Success: no issues found in 199 source files** |
 
 La base actual incluye 5 Engines:
 
@@ -23,9 +23,9 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial del proyecto: **Phase 3 — PRD-001 Organizations Closed**.
+Estado oficial del proyecto: **Phase 3 - PRD-002 Authentication and Users Closed**.
 
-Próximo objetivo oficial: CTO review de PRD-001. No iniciar PRD-002 sin autorización explícita. WhatsApp real/live permanece `BLOCKED — EXTERNAL CREDENTIALS REQUIRED`.
+Próximo objetivo oficial: CTO review de PRD-002. No iniciar PRD-003 sin autorización explícita. WhatsApp real/live permanece `BLOCKED - EXTERNAL CREDENTIALS REQUIRED`.
 
 Asistente conversacional multicanal con integración WhatsApp Cloud API, motor de conocimiento y persistencia.
 
@@ -213,6 +213,14 @@ app/
 | GET | `/organizations/{organization_id}` | Consultar organización | organizations |
 | PATCH | `/organizations/{organization_id}` | Actualizar organización | organizations |
 | POST | `/organizations/{organization_id}/deactivate` | Desactivar organización | organizations |
+| POST | `/users` | Crear usuario bootstrap o autenticado | users |
+| GET | `/users` | Listar usuarios de la organización autenticada | users |
+| GET | `/users/{user_id}` | Consultar usuario visible | users |
+| PATCH | `/users/{user_id}` | Actualizar perfil básico | users |
+| POST | `/users/{user_id}/deactivate` | Desactivar usuario | users |
+| POST | `/auth/login` | Autenticar email/password y emitir token Bearer | auth |
+| GET | `/auth/me` | Consultar identidad autenticada | auth |
+| POST | `/auth/change-password` | Cambiar contraseña e invalidar tokens previos | auth |
 | GET | `/webhooks/whatsapp` | VerificaciÃ³n de webhook Meta | whatsapp |
 | POST | `/webhooks/whatsapp` | RecepciÃ³n de eventos WhatsApp | whatsapp |
 
@@ -272,6 +280,10 @@ Todas las variables usan prefijo `BOTWA_`:
 | WhatsApp | `BOTWA_WHATSAPP_ACCESS_TOKEN` | (vacÃ­o) | Token de acceso a Meta Graph API |
 | WhatsApp | `BOTWA_WHATSAPP_PHONE_NUMBER_ID` | (vacÃ­o) | ID del nÃºmero de telÃ©fono en Meta |
 | WhatsApp | `BOTWA_WHATSAPP_API_VERSION` | `v22.0` | VersiÃ³n de Meta Graph API |
+| Auth | `BOTWA_AUTH_SECRET_KEY` | local placeholder | Secret para firmar JWT; usar secreto fuerte fuera de git |
+| Auth | `BOTWA_AUTH_ALGORITHM` | `HS256` | Algoritmo JWT |
+| Auth | `BOTWA_AUTH_ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | Expiración del access token |
+| Auth | `BOTWA_AUTH_PASSWORD_MIN_LENGTH` | `12` | Longitud mínima de contraseña |
 
 ## Persistencia
 
@@ -283,6 +295,7 @@ Cuando `BOTWA_USE_DATABASE=true`, al recibir un mensaje se persiste:
 5. **KnowledgeQueryLog**: consultas procesadas por Knowledge Engine
 6. **AutomationExecution / AutomationTaskExecution**: ejecuciones persistidas de Automation Engine
 7. **IntegrationEvent**: eventos persistibles de Integration Engine
+8. **Organization / User**: capacidades de producto Phase 3 con persistencia PostgreSQL
 
 ### Modelos ORM
 
@@ -293,6 +306,8 @@ Cuando `BOTWA_USE_DATABASE=true`, al recibir un mensaje se persiste:
 - `knowledge_source`, `knowledge_catalog_entry`, `knowledge_query_log` - Knowledge Engine DB catalog/log
 - `automation_execution`, `automation_task_execution` - Automation Engine persistence
 - `integration_event` - Integration Engine event persistence
+- `organization` - PRD-001 organization records
+- `app_user` - PRD-002 user identity records with Argon2 password hash and auth version
 
 ### Migraciones Alembic
 
@@ -303,8 +318,23 @@ alembic/versions/
 ├── 20260718_0001_add_conversation_state_history.py
 ├── 20260722_0001_create_knowledge_tables.py
 ├── 20260722_0002_add_source_trust_level.py
-└── 20260728_0001_create_automation_integration_tables.py
+├── 20260728_0001_create_automation_integration_tables.py
+├── 20260728_0002_create_organization_table.py
+└── 20260728_0003_create_user_table.py
 ```
+
+## Authentication and Users
+
+PRD-002 adds basic identity without roles or advanced authorization.
+
+- Password hashing uses maintained `argon2-cffi` Argon2id defaults.
+- Access tokens use JWT via `PyJWT`.
+- JWT includes user id, expiration, and `auth_version`.
+- Password changes and deactivation invalidate previous tokens.
+- `password_hash` is never exposed by API responses.
+- Email uniqueness is global.
+- Bootstrap is temporary: the first user of an active organization may be created without auth; later users require an authenticated active user from the same organization.
+- PRD-003 must replace bootstrap with explicit roles/authorization.
 
 ## WhatsApp Cloud API
 

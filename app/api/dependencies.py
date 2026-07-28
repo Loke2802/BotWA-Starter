@@ -1,7 +1,9 @@
+from collections.abc import Generator
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.orm import Session
 
 from app.application.access.service import AccessService
 from app.application.auth.service import (
@@ -9,6 +11,7 @@ from app.application.auth.service import (
     AuthInvalidTokenError,
     AuthService,
 )
+from app.application.bots.service import BotService
 from app.application.organizations.service import OrganizationService
 from app.application.users.service import UserService
 from app.core.automation.event_publisher import AutomationEventPublisher
@@ -65,6 +68,7 @@ from app.infrastructure.repositories.automation_execution_repository import (
 from app.infrastructure.repositories.automation_task_execution_repository import (
     AutomationTaskExecutionRepository,
 )
+from app.infrastructure.repositories.bot_repository import BotRepository
 from app.infrastructure.repositories.business_event_repository import (
     BusinessEventRepository,
 )
@@ -95,7 +99,7 @@ from app.security.tokens import AccessTokenService
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-def get_conversation_service() -> ConversationService:
+def get_conversation_service() -> Generator[ConversationService]:
     settings = get_settings()
     intent_classifier = IntentClassifier()
     decision_maker = DecisionMaker()
@@ -121,8 +125,11 @@ def get_conversation_service() -> ConversationService:
     publisher: KnowledgePublisher
     query_log_repo = None
 
+    session_generator: Generator[Session] | None = None
+
     if settings.use_database:
-        session = next(get_session())
+        session_generator = get_session()
+        session = next(session_generator)
         conversation_repo = ConversationRepository(session=session)
         message_repo = MessageRepository(session=session)
         event_repo = BusinessEventRepository(session=session)
@@ -214,23 +221,31 @@ def get_conversation_service() -> ConversationService:
     adapters: dict[str, HttpChannelAdapter] = {
         "http": HttpChannelAdapter(),
     }
-    return ConversationService(
-        router=router,
-        adapters=adapters,
-        state_manager=state_manager,
-        context_builder=context_builder,
-        topic_detector=topic_detector,
-        response_composer=response_composer,
-        session=session,
-        conversation_repo=conversation_repo,
-        message_repo=message_repo,
-    )
+    try:
+        yield ConversationService(
+            router=router,
+            adapters=adapters,
+            state_manager=state_manager,
+            context_builder=context_builder,
+            topic_detector=topic_detector,
+            response_composer=response_composer,
+            session=session,
+            conversation_repo=conversation_repo,
+            message_repo=message_repo,
+        )
+    finally:
+        if session_generator is not None:
+            session_generator.close()
 
 
-def get_organization_service() -> OrganizationService:
-    session = next(get_session())
-    repository = OrganizationRepository(session=session)
-    return OrganizationService(repository=repository, session=session)
+def get_organization_service() -> Generator[OrganizationService]:
+    session_generator = get_session()
+    session = next(session_generator)
+    try:
+        repository = OrganizationRepository(session=session)
+        yield OrganizationService(repository=repository, session=session)
+    finally:
+        session_generator.close()
 
 
 def get_password_service() -> PasswordService:
@@ -246,16 +261,35 @@ def get_access_token_service() -> AccessTokenService:
     )
 
 
-def get_user_service() -> UserService:
-    session = next(get_session())
-    repository = UserRepository(session=session)
-    organization_repository = OrganizationRepository(session=session)
-    return UserService(
-        repository=repository,
-        organization_repository=organization_repository,
-        password_service=get_password_service(),
-        session=session,
-    )
+def get_user_service() -> Generator[UserService]:
+    session_generator = get_session()
+    session = next(session_generator)
+    try:
+        repository = UserRepository(session=session)
+        organization_repository = OrganizationRepository(session=session)
+        yield UserService(
+            repository=repository,
+            organization_repository=organization_repository,
+            password_service=get_password_service(),
+            session=session,
+        )
+    finally:
+        session_generator.close()
+
+
+def get_bot_service() -> Generator[BotService]:
+    session_generator = get_session()
+    session = next(session_generator)
+    try:
+        repository = BotRepository(session=session)
+        organization_repository = OrganizationRepository(session=session)
+        yield BotService(
+            repository=repository,
+            organization_repository=organization_repository,
+            session=session,
+        )
+    finally:
+        session_generator.close()
 
 
 def get_auth_service(

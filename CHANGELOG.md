@@ -1,5 +1,37 @@
 # Changelog
 
+## PRD-004 Bot Management - 2026-07-28
+
+### Added
+
+- Bot domain contracts and validation helpers.
+- PostgreSQL-backed `bot` ORM model and repository.
+- Alembic migration `20260728_0005_create_bot_table.py`.
+- Bot API endpoints for create, list, read, update, activate, and deactivate.
+- Bot permissions in the central RBAC matrix.
+- Tests for bot contracts, API behavior, migration metadata, RBAC, multi-tenancy, and PRD regressions.
+
+### Fixed
+
+- Closed DB sessions for FastAPI service dependencies after each request, fixing SQLAlchemy pool exhaustion found during Docker smoke validation.
+
+### Validated
+
+- Docker Compose API/PostgreSQL runtime.
+- Alembic upgrade/downgrade/upgrade for `20260728_0005`.
+- Direct PostgreSQL bot persistence.
+- Bot persistence after API restart.
+- Tenant-scoped list/read/update behavior.
+- Platform-admin global bot access.
+- Slug uniqueness within tenant and same-slug allowance across tenants.
+- Idempotent activation/deactivation.
+- Inactive organization write blocking.
+- Core regression quality gates.
+
+### Not Included
+
+- PRD-005, bot-to-WhatsApp-number routing, bot-specific Knowledge configuration, bot-specific Business configuration, billing, dashboard, frontend, onboarding, MFA, OAuth, SSO.
+
 ## PRD-003 Roles and Permissions - 2026-07-28
 
 ### Added

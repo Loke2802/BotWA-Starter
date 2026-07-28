@@ -1,14 +1,18 @@
 # BotWA Starter - Context For AI Assistants
 
 **Last updated:** 2026-07-28  
-**Project phase:** Phase 3 - PRD-003 Roles and Permissions Closed  
+**Project phase:** Phase 3 - PRD-004 Bot Management Closed  
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
 
-BotWA is a multi-engine conversational assistant platform with WhatsApp Cloud API integration, persistence, automation, integration providers, and deterministic quality gates. Core v1.0.0 is validated and Phase 2 is closed.
+BotWA is a multi-engine conversational assistant platform with WhatsApp Cloud API
+integration, persistence, automation, integration providers, and deterministic
+quality gates. Core v1.0.0 is validated and Phase 2 is closed.
 
-PRD-001 Organizations, PRD-002 Authentication and Users, and PRD-003 Roles and Permissions are implemented and closed as Phase 3 product increments.
+PRD-001 Organizations, PRD-002 Authentication and Users, PRD-003 Roles and
+Permissions, and PRD-004 Bot Management are implemented and closed as Phase 3
+product increments.
 
 All five core engines are implemented and closed:
 
@@ -22,22 +26,22 @@ All five core engines are implemented and closed:
 
 ## Quality Gates
 
-Current stabilized gates:
+Current validated gates:
 
 | Gate | Result |
 |---|---|
-| `pytest` | 519 passed, 1 warning |
+| `pytest` | 532 passed, 1 warning |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 206 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 206 source files |
+| `black --check app tests` | 215 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 215 source files |
 
 ## Infrastructure Validation
 
 | Area | Result |
 |---|---|
 | Docker/PostgreSQL | PASS |
-| Alembic migrations | PASS - `20260728_0004` |
-| DB-backed persistence | PASS |
+| Alembic migrations | PASS - `20260728_0005 (head)` |
+| DB-backed bot persistence | PASS |
 | Docker smoke tests | PASS |
 | Integration controlled errors | PASS |
 | WhatsApp local contracts/webhook/sender | PASS |
@@ -47,8 +51,9 @@ Current stabilized gates:
 
 - Local tests run without Docker/PostgreSQL in in-memory mode.
 - Tests explicitly force `BOTWA_USE_DATABASE=false`.
-- Docker/PostgreSQL validation has passed for Core v1.0.0.
+- Docker/PostgreSQL validation has passed for Core and product persistence increments.
 - Do not rely on `.env` local database settings when running unit/local quality gates.
+- DB-backed FastAPI service dependencies must close SQLAlchemy sessions per request.
 
 ## Binding Constraints For AI Assistants
 
@@ -57,20 +62,22 @@ Current stabilized gates:
 - Do not create new engines.
 - Do not move responsibilities between engines.
 - Do not change public contracts unless explicitly approved by CTO.
-- Do not add product functionality during stabilization/status work.
+- Do not add product functionality without a PRD.
 - Do not re-open closed engines without explicit CTO direction.
 
 ## Current Official Objective
 
-The next step is CTO review of PRD-003. Do not start PRD-004 without explicit CTO approval.
+The next step is CTO review of PRD-004. Do not start PRD-005 without explicit CTO approval.
 
 **Phase 3**
 
-1. PRD-001 Organizations - CLOSED.
-2. PRD-002 Authentication and Users - CLOSED.
-3. PRD-003 Roles and Permissions - CLOSED.
-4. PRD-004 - NOT STARTED.
-5. Preserve Core Engine boundaries.
+| Order | Increment | Status |
+|---|---|---|
+| 1 | PRD-001 Organizations | CLOSED |
+| 2 | PRD-002 Authentication and Users | CLOSED |
+| 3 | PRD-003 Roles and Permissions | CLOSED |
+| 4 | PRD-004 Bot Management | CLOSED |
+| 5 | PRD-005 | NOT STARTED |
 
 ## Remaining Real Debt
 
@@ -83,11 +90,13 @@ The stabilization-specific debts below are resolved and should not be treated as
 - Integration generic typing.
 - Lint hygiene.
 - README drift.
+- DB session lifecycle under Docker smoke traffic.
 
 Active post-closure debt:
 
 - Validate WhatsApp with real credentials and webhook.
 - Add CI/CD after the local Core release is tagged.
+- Define future PRDs for bot-to-channel routing and bot-specific configuration if required.
 
 ## Technology Baseline
 

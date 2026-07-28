@@ -1,15 +1,15 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-003 cerrada
+## Estado actual - Phase 3 / PRD-004 cerrada
 
 Quality Gates (2026-07-28):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **519 passed, 1 warning** |
+| `pytest` | **532 passed, 1 warning** |
 | `ruff check app tests` | **All checks passed** |
-| `black --check app tests` | **206 files would be left unchanged** |
-| `mypy app tests` | **Success: no issues found in 206 source files** |
+| `black --check app tests` | **215 files would be left unchanged** |
+| `mypy app tests` | **Success: no issues found in 215 source files** |
 
 La base actual incluye 5 Engines:
 
@@ -23,9 +23,9 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial del proyecto: **Phase 3 - PRD-003 Roles and Permissions Closed**.
+Estado oficial del proyecto: **Phase 3 - PRD-004 Bot Management Closed**.
 
-Próximo objetivo oficial: CTO review de PRD-003. No iniciar PRD-004 sin autorización explícita. WhatsApp real/live permanece `BLOCKED - EXTERNAL CREDENTIALS REQUIRED`.
+Próximo objetivo oficial: CTO review de PRD-004. No iniciar PRD-005 sin autorización explícita. WhatsApp real/live permanece `BLOCKED - EXTERNAL CREDENTIALS REQUIRED`.
 
 Asistente conversacional multicanal con integración WhatsApp Cloud API, motor de conocimiento y persistencia.
 
@@ -160,7 +160,9 @@ app/
 │       ├── factory.py            # Factory de componentes
 │       └── service.py            # IntegrationService
 ├── domain/                       # Contratos (Pydantic puro)
+│   ├── access/contracts.py       # Roles y permisos
 │   ├── automation/contracts.py   # Plan, Task, Execution
+│   ├── bot/contracts.py          # Bot Management
 │   ├── business/contracts.py     # BusinessRequest, Context, Decision
 │   ├── conversation/
 │   │   ├── contracts.py          # ConversationMessage, ChannelResponse
@@ -168,7 +170,9 @@ app/
 │   │   ├── state.py              # ConversationState
 │   │   └── topics.py             # Tópicos
 │   ├── integration/contracts.py  # IntegrationRequest, Result, Provider, CB/RL
-│   └── persistence/repository.py # IRepository[T] (interfaz abstracta)
+│   ├── organization/contracts.py # Organizaciones
+│   ├── persistence/repository.py # IRepository[T] (interfaz abstracta)
+│   └── user/contracts.py         # Usuarios y autenticación
 ├── infrastructure/
 │   ├── database.py               # SQLAlchemy engine, session factory, Base
 │   ├── logging.py                # Configuración structlog
@@ -177,6 +181,7 @@ app/
 │   │   ├── __init__.py
 │   │   ├── automation_execution.py
 │   │   ├── automation_task_execution.py
+│   │   ├── bot.py
 │   │   ├── business_event.py
 │   │   ├── conversation.py
 │   │   ├── conversation_state_history.py
@@ -184,18 +189,23 @@ app/
 │   │   ├── knowledge_catalog_entry.py
 │   │   ├── knowledge_query_log.py
 │   │   ├── knowledge_source.py
-│   │   └── message.py
+│   │   ├── message.py
+│   │   ├── organization.py
+│   │   └── user.py
 │   └── repositories/             # Implementaciones de repositorios
 │       ├── base.py               # BaseRepository[T] genérico
 │       ├── automation_execution_repository.py
 │       ├── automation_task_execution_repository.py
+│       ├── bot_repository.py
 │       ├── business_event_repository.py
 │       ├── conversation_repository.py
 │       ├── integration_event_repository.py
 │       ├── knowledge_catalog_repository.py
 │       ├── knowledge_query_log_repository.py
 │       ├── knowledge_source_repository.py
-│       └── message_repository.py
+│       ├── message_repository.py
+│       ├── organization_repository.py
+│       └── user_repository.py
 ├── main.py                       # Creación de la app FastAPI
 └── shared/stubs/                 # Stubs
 ```
@@ -224,6 +234,12 @@ app/
 | GET | `/roles` | Listar roles y permisos | roles |
 | GET | `/permissions/me` | Consultar permisos efectivos | roles |
 | PATCH | `/users/{user_id}/role` | Asignar rol | roles |
+| POST | `/bots` | Crear bot en una organización activa | bots |
+| GET | `/bots` | Listar bots según alcance del usuario | bots |
+| GET | `/bots/{bot_id}` | Consultar bot visible | bots |
+| PATCH | `/bots/{bot_id}` | Actualizar metadata del bot | bots |
+| POST | `/bots/{bot_id}/activate` | Activar bot de forma idempotente | bots |
+| POST | `/bots/{bot_id}/deactivate` | Desactivar bot de forma idempotente | bots |
 | GET | `/webhooks/whatsapp` | VerificaciÃ³n de webhook Meta | whatsapp |
 | POST | `/webhooks/whatsapp` | RecepciÃ³n de eventos WhatsApp | whatsapp |
 

@@ -5,6 +5,8 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.domain.access.contracts import Role
+
 UserStatus = Literal["active", "inactive"]
 
 _EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -29,6 +31,7 @@ class User(BaseModel):
     email: str
     first_name: str | None = None
     last_name: str | None = None
+    role: Role = "viewer"
     status: UserStatus = "active"
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
@@ -49,6 +52,7 @@ class UserCreate(BaseModel):
     password: str
     first_name: str | None = None
     last_name: str | None = None
+    role: Role | None = None
 
     @field_validator("email")
     @classmethod

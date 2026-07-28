@@ -22,6 +22,7 @@ class UserModel(Base):
     password_hash: Mapped[str] = mapped_column(String(512), nullable=False)
     first_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    role: Mapped[str] = mapped_column(String(50), nullable=False, default="viewer")
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
     auth_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     created_at: Mapped[datetime] = mapped_column(

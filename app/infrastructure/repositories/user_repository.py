@@ -26,3 +26,15 @@ class UserRepository(BaseRepository[UserModel]):
             .where(UserModel.organization_id == organization_id)
         )
         return int(self._session.execute(stmt).scalar_one())
+
+    def count_active_owners_by_organization(self, organization_id: UUID) -> int:
+        stmt = (
+            select(func.count())
+            .select_from(UserModel)
+            .where(
+                UserModel.organization_id == organization_id,
+                UserModel.status == "active",
+                UserModel.role == "organization_owner",
+            )
+        )
+        return int(self._session.execute(stmt).scalar_one())

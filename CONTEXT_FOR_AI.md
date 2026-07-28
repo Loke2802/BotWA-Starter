@@ -1,12 +1,14 @@
 # BotWA Starter - Context For AI Assistants
 
 **Last updated:** 2026-07-28  
-**Project phase:** Core v1.0.0 - Phase 2 Closed  
+**Project phase:** Phase 3 - PRD-001 Organizations Closed  
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
 
 BotWA is a multi-engine conversational assistant platform with WhatsApp Cloud API integration, persistence, automation, integration providers, and deterministic quality gates. Core v1.0.0 is validated and Phase 2 is closed.
+
+PRD-001 Organizations is implemented and closed as the first Phase 3 product increment.
 
 All five core engines are implemented and closed:
 
@@ -24,7 +26,7 @@ Current stabilized gates:
 
 | Gate | Result |
 |---|---|
-| `pytest` | 470 passed |
+| `pytest` | 491 passed, 1 warning |
 | `ruff check app tests` | clean |
 | `black --check app tests` | clean |
 | `mypy app tests` | clean |
@@ -60,13 +62,13 @@ Current stabilized gates:
 
 ## Current Official Objective
 
-The next step is Product Development preparation, not new engine development.
+The next step is CTO review of PRD-001. Do not start PRD-002 without explicit CTO approval.
 
 **Phase 3**
 
-1. CTO review of Phase 2 closure.
-2. Use `PHASE_3_KICKOFF.md` as the kickoff document.
-3. Implement `PRD-001_ORGANIZATIONS.md` only after explicit approval.
+1. PRD-001 Organizations - CLOSED.
+2. PRD-002 - NOT STARTED.
+3. Preserve Core Engine boundaries.
 
 ## Remaining Real Debt
 

@@ -6,7 +6,7 @@ Quality Gates (2026-07-28):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **470 passed** |
+| `pytest` | **491 passed, 1 warning** |
 | `ruff check app tests` | **clean** |
 | `black --check app tests` | **clean** |
 | `mypy app tests` | **clean** |
@@ -23,9 +23,9 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial del proyecto: **Core v1.0.0 — Phase 2 Closed**.
+Estado oficial del proyecto: **Phase 3 — PRD-001 Organizations Closed**.
 
-Próximo objetivo oficial: **Phase 3 — Product Development Preparation** → CTO review → PRD-001 Organizations. WhatsApp real/live permanece `BLOCKED — EXTERNAL CREDENTIALS REQUIRED`.
+Próximo objetivo oficial: CTO review de PRD-001. No iniciar PRD-002 sin autorización explícita. WhatsApp real/live permanece `BLOCKED — EXTERNAL CREDENTIALS REQUIRED`.
 
 Asistente conversacional multicanal con integración WhatsApp Cloud API, motor de conocimiento y persistencia.
 
@@ -208,6 +208,11 @@ app/
 | GET | `/version` | VersiÃ³n y entorno | system |
 | POST | `/conversation/message` | Enviar mensaje al Conversation Engine | conversation |
 | POST | `/messages` | VS1 Endpoint (alias de /conversation/message) | vs1 |
+| POST | `/organizations` | Crear organización | organizations |
+| GET | `/organizations` | Listar organizaciones | organizations |
+| GET | `/organizations/{organization_id}` | Consultar organización | organizations |
+| PATCH | `/organizations/{organization_id}` | Actualizar organización | organizations |
+| POST | `/organizations/{organization_id}/deactivate` | Desactivar organización | organizations |
 | GET | `/webhooks/whatsapp` | VerificaciÃ³n de webhook Meta | whatsapp |
 | POST | `/webhooks/whatsapp` | RecepciÃ³n de eventos WhatsApp | whatsapp |
 
@@ -391,7 +396,7 @@ Esto ejecuta el flujo estÃ¡ndar:
 
 ## Tests
 
-**470 tests passing**. Los tests locales usan modo in-memory sin Docker/PostgreSQL. La validación Docker/PostgreSQL real de Phase 2 pasó con API y DB levantadas por `docker compose`.
+**491 tests passing**. Los tests locales usan modo in-memory sin Docker/PostgreSQL. La validación Docker/PostgreSQL real de PRD-001 pasó con API y DB levantadas por `docker compose`.
 
 | Area | Tests | Cobertura principal |
 |------|-------|---------------------|
@@ -419,4 +424,5 @@ Esto ejecuta el flujo estÃ¡ndar:
 - **ENG-005** Integration Engine (gateway, providers, resiliencia, monitoreo, health checks)
 - **Sprint Estabilización** P0-P7 completado: configuracion tests/runtime, SQLAlchemy typing, async lifecycle, immutable contracts, generic typing, lint hygiene, documentacion y release hygiene
 - **Core v1.0.0** Phase 2 Closed: Docker/PostgreSQL, migraciones, persistencia DB-backed, smoke tests y quality gates validados
+- **PRD-001 Organizations** Phase 3: contratos, servicio de aplicación, API, persistencia PostgreSQL, migración Alembic y tests
 

@@ -133,7 +133,7 @@ def test_vs1_knowledge_fallback_flow() -> None:
 
 
 def test_vs1_unknown_flow() -> None:
-    """Unknown intent: CE -> BB -> CE, fallback to policy default."""
+    """Unknown intent: CE -> BB -> CE, rejected because intent is not feasible."""
     client = TestClient(create_app())
 
     response = client.post(
@@ -147,7 +147,7 @@ def test_vs1_unknown_flow() -> None:
 
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "accepted"
+    assert data["status"] == "rejected"
     assert data["message"] == "Gracias por tu mensaje. Estamos procesando tu solicitud."
 
 

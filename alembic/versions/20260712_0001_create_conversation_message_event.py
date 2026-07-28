@@ -7,8 +7,8 @@ Create Date: 2026-07-12
 
 from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 revision: str = "20260712_0001"
@@ -88,9 +88,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index(
-        op.f("ix_business_event_event_type"), table_name="business_event"
-    )
+    op.drop_index(op.f("ix_business_event_event_type"), table_name="business_event")
     op.drop_table("business_event")
     op.drop_table("message")
     op.drop_table("conversation")

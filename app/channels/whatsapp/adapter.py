@@ -33,4 +33,10 @@ class WhatsAppAdapter:
             customer_id=msg.from_,
             company_id=phone_number_id,
             conversation_id=wa_id_to_conversation_id(msg.from_),
+            channel="whatsapp",
+            metadata={
+                "message_id": msg.id,
+                "timestamp": msg.timestamp,
+                "phone_number_id": phone_number_id,
+            },
         )

@@ -24,13 +24,13 @@ def test_conversation_message_requires_content() -> None:
         )
 
 
-def test_conversation_context_is_created_from_message() -> None:
+def test_conversation_context_contains_message() -> None:
     message = ConversationMessage(
         content="Hello",
         customer_id="customer-1",
         company_id="company-1",
     )
 
-    context = ConversationContext.from_message(message)
+    context = ConversationContext(message=message)
 
     assert context.message == message

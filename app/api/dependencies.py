@@ -1,20 +1,66 @@
-from app.core.business.decision_engine import DecisionEngine
+from app.core.automation.event_publisher import AutomationEventPublisher
+from app.core.automation.execution_monitor import WorkflowExecutionMonitor
+from app.core.automation.persistent_monitor import PersistentExecutionMonitor
+from app.core.automation.request_builder import DefaultAutomationRequestBuilder
+from app.core.automation.service import AutomationService
+from app.core.automation.task_orchestrator import SequentialTaskOrchestrator
+from app.core.automation.task_registry import create_default_registry
+from app.core.automation.workflow_planner import DefaultWorkflowPlanner
+from app.core.business.action_planner import ActionPlanner
+from app.core.business.confidence_evaluator import ConfidenceEvaluator
+from app.core.business.context_interpreter import ContextInterpreter
+from app.core.business.customer_profile_provider import (
+    InMemoryCustomerProfileProvider,
+)
+from app.core.business.decision_maker import DecisionMaker
 from app.core.business.event_publisher import BusinessEventPublisher
 from app.core.business.intent_classifier import IntentClassifier
-from app.core.business.policy import BusinessPolicy
+from app.core.business.rule_evaluator import RuleEvaluator
 from app.core.business.service import BusinessBrainService
-from app.core.conversation.mapper import ConversationMapper
+from app.core.conversation.channel_adapter import HttpChannelAdapter
+from app.core.conversation.context_builder import ConversationContextBuilder
+from app.core.conversation.response_composer import ResponseComposer
 from app.core.conversation.router import MessageRouter
 from app.core.conversation.service import ConversationService
-from app.core.knowledge.in_memory_provider import InMemoryKnowledgeProvider
-from app.core.knowledge.orchestrator import KnowledgeOrchestrator
+from app.core.conversation.state_manager import ConversationStateManager
+from app.core.conversation.topic_detector import TopicDetector
+from app.core.integration.factory import (
+    create_integration_service as _create_integration_service,
+)
+from app.core.integration.health_checker import HealthChecker
+from app.core.integration.service import IntegrationService
+from app.core.knowledge.db_catalog import DbKnowledgeCatalog
+from app.core.knowledge.db_retriever import DbKnowledgeRetriever
+from app.core.knowledge.in_memory_retriever import InMemoryKnowledgeRetriever
+from app.core.knowledge.normalizer import ContentNormalizer
+from app.core.knowledge.publisher import (
+    DbKnowledgePublisher,
+    InMemoryKnowledgePublisher,
+    KnowledgePublisher,
+)
+from app.core.knowledge.resolver import BestMatchResolver
+from app.core.knowledge.retriever import KnowledgeRetriever
+from app.core.knowledge.seed_data import ensure_knowledge_seed_data
 from app.core.knowledge.service import KnowledgeService
+from app.core.knowledge.validator import QualityValidator
 from app.infrastructure.database import get_session
+from app.infrastructure.repositories.automation_execution_repository import (
+    AutomationExecutionRepository,
+)
+from app.infrastructure.repositories.automation_task_execution_repository import (
+    AutomationTaskExecutionRepository,
+)
 from app.infrastructure.repositories.business_event_repository import (
     BusinessEventRepository,
 )
 from app.infrastructure.repositories.conversation_repository import (
     ConversationRepository,
+)
+from app.infrastructure.repositories.knowledge_catalog_repository import (
+    KnowledgeCatalogRepository,
+)
+from app.infrastructure.repositories.knowledge_query_log_repository import (
+    KnowledgeQueryLogRepository,
 )
 from app.infrastructure.repositories.message_repository import MessageRepository
 from app.infrastructure.settings import get_settings
@@ -23,18 +69,28 @@ from app.infrastructure.settings import get_settings
 def get_conversation_service() -> ConversationService:
     settings = get_settings()
     intent_classifier = IntentClassifier()
-    policy = BusinessPolicy()
-    decision_engine = DecisionEngine(policy=policy)
+    decision_maker = DecisionMaker()
+    confidence_evaluator = ConfidenceEvaluator()
+    action_planner = ActionPlanner()
 
-    provider = InMemoryKnowledgeProvider()
-    orchestrator = KnowledgeOrchestrator(providers=[provider])
-    knowledge_service = KnowledgeService(orchestrator=orchestrator)
+    normalizer = ContentNormalizer()
+    resolver = BestMatchResolver()
+    validator = QualityValidator()
 
     event_publisher = BusinessEventPublisher()
+    customer_profile_provider = InMemoryCustomerProfileProvider()
+    context_interpreter = ContextInterpreter(
+        customer_profile_provider=customer_profile_provider,
+    )
+    rule_evaluator = RuleEvaluator()
 
     session = None
     conversation_repo = None
     message_repo = None
+
+    retriever: KnowledgeRetriever
+    publisher: KnowledgePublisher
+    query_log_repo = None
 
     if settings.use_database:
         session = next(get_session())
@@ -43,18 +99,119 @@ def get_conversation_service() -> ConversationService:
         event_repo = BusinessEventRepository(session=session)
         event_publisher = BusinessEventPublisher(event_repository=event_repo)
 
+        catalog_repo = KnowledgeCatalogRepository(session=session)
+        ensure_knowledge_seed_data(catalog_repo)
+        catalog = DbKnowledgeCatalog(catalog_repository=catalog_repo)
+        retriever = DbKnowledgeRetriever(catalog=catalog)
+        publisher = DbKnowledgePublisher(catalog_repository=catalog_repo)
+        query_log_repo = KnowledgeQueryLogRepository(session=session)
+
+        ae_event_publisher = AutomationEventPublisher(event_repository=event_repo)
+        ae_exec_repo = AutomationExecutionRepository(session=session)
+        ae_task_repo = AutomationTaskExecutionRepository(session=session)
+        persistent_monitor = PersistentExecutionMonitor(
+            execution_repo=ae_exec_repo,
+            task_execution_repo=ae_task_repo,
+            event_publisher=ae_event_publisher,
+        )
+        automation_builder = DefaultAutomationRequestBuilder()
+        workflow_planner = DefaultWorkflowPlanner()
+        registry = create_default_registry()
+        task_orchestrator = SequentialTaskOrchestrator(
+            registry=registry,
+            execution_monitor=persistent_monitor,
+        )
+        automation_service = AutomationService(
+            request_builder=automation_builder,
+            workflow_planner=workflow_planner,
+            task_orchestrator=task_orchestrator,
+            execution_monitor=persistent_monitor,
+            registry=registry,
+            session_factory=get_session,  # type: ignore[arg-type]
+        )
+        automation_service.recover()
+    else:
+        retriever = InMemoryKnowledgeRetriever()
+        publisher = InMemoryKnowledgePublisher()
+
+        automation_builder = DefaultAutomationRequestBuilder()
+        workflow_planner = DefaultWorkflowPlanner()
+        registry = create_default_registry()
+        execution_monitor = WorkflowExecutionMonitor()
+        task_orchestrator = SequentialTaskOrchestrator(
+            registry=registry,
+            execution_monitor=execution_monitor,
+        )
+        automation_service = AutomationService(
+            request_builder=automation_builder,
+            workflow_planner=workflow_planner,
+            task_orchestrator=task_orchestrator,
+            execution_monitor=execution_monitor,
+        )
+
+    knowledge_service = KnowledgeService(
+        retriever=retriever,
+        normalizer=normalizer,
+        resolver=resolver,
+        validator=validator,
+        publisher=publisher,
+        query_log_repository=query_log_repo,
+    )
+
+    state_manager = ConversationStateManager(
+        session=session,
+        conversation_repo=conversation_repo,
+    )
+
+    context_builder = ConversationContextBuilder(
+        state_manager=state_manager,
+        message_repo=message_repo,
+    )
+
     business_brain = BusinessBrainService(
         intent_classifier=intent_classifier,
-        decision_engine=decision_engine,
+        context_interpreter=context_interpreter,
+        rule_evaluator=rule_evaluator,
+        decision_maker=decision_maker,
+        confidence_evaluator=confidence_evaluator,
+        action_planner=action_planner,
         knowledge_service=knowledge_service,
         event_publisher=event_publisher,
+        automation_service=automation_service,
     )
     router = MessageRouter(business_brain=business_brain)
-    mapper = ConversationMapper()
+    topic_detector = TopicDetector()
+    response_composer = ResponseComposer()
+    adapters: dict[str, HttpChannelAdapter] = {
+        "http": HttpChannelAdapter(),
+    }
     return ConversationService(
         router=router,
-        mapper=mapper,
+        adapters=adapters,
+        state_manager=state_manager,
+        context_builder=context_builder,
+        topic_detector=topic_detector,
+        response_composer=response_composer,
         session=session,
         conversation_repo=conversation_repo,
         message_repo=message_repo,
     )
+
+
+_integration_service: IntegrationService | None = None
+_integration_health_checker: HealthChecker | None = None
+
+
+def get_integration_service() -> IntegrationService:
+    global _integration_service, _integration_health_checker
+    if _integration_service is None:
+        svc, _gw, _mon, hc = _create_integration_service()
+        _integration_service = svc
+        _integration_health_checker = hc
+    return _integration_service
+
+
+def get_integration_health_checker() -> HealthChecker:
+    get_integration_service()
+    assert _integration_health_checker is not None
+    return _integration_health_checker

@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     database_url: str = Field(
         default="postgresql+psycopg://botwa:botwa@localhost:5432/botwa"
     )
-    use_database: bool = False
+    use_database: bool = True
     whatsapp_webhook_verify_token: str = "botwa_verify_token"
     whatsapp_access_token: str = ""
     whatsapp_phone_number_id: str = ""

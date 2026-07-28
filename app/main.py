@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.api.dependencies import get_integration_health_checker
 from app.api.routes import router
 from app.channels.whatsapp.webhook import router as whatsapp_router
 from app.infrastructure.database import engine
@@ -12,7 +13,10 @@ from app.infrastructure.settings import get_settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+    health_checker = get_integration_health_checker()
+    await health_checker.start_periodic_check()
     yield
+    await health_checker.stop_periodic_check()
     engine.dispose()
 
 

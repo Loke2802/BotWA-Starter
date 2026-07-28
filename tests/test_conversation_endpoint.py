@@ -8,17 +8,16 @@ def test_conversation_message_endpoint() -> None:
     response = client.post(
         "/conversation/message",
         json={
-            "content": "Hello",
+            "content": "Hola",
             "customer_id": "customer-1",
             "company_id": "company-1",
         },
     )
 
     assert response.status_code == 200
-    assert response.json() == {
-        "status": "accepted",
-        "message": "Gracias por tu mensaje. Estamos procesando tu solicitud.",
-    }
+    data = response.json()
+    assert data["status"] == "accepted"
+    assert "Hola" in data["message"]
 
 
 def test_conversation_message_endpoint_rejects_empty_content() -> None:

@@ -125,10 +125,18 @@ def test_login_rejects_inactive_user(
             password="valid-password-123",
         ),
     )
-    user_service.deactivate(user.id, actor=user)
+    inactive_user = user_service.create(
+        UserCreate(
+            organization_id=organization.id,
+            email="agent@example.com",
+            password="valid-password-123",
+        ),
+        actor=user,
+    )
+    user_service.deactivate(inactive_user.id, actor=user)
 
     with pytest.raises(AuthInactiveUserError):
-        auth_service.login("owner@example.com", "valid-password-123")
+        auth_service.login("agent@example.com", "valid-password-123")
 
 
 def test_token_valid_altered_expired_and_invalidated_after_password_change(

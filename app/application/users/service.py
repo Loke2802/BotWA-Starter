@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
 
+from app.domain.access.contracts import Role
 from app.domain.organization.contracts import Organization
 from app.domain.user.contracts import User, UserCreate, UserUpdate
 from app.infrastructure.models.organization import OrganizationModel
@@ -11,6 +12,13 @@ from app.infrastructure.repositories.organization_repository import (
     OrganizationRepository,
 )
 from app.infrastructure.repositories.user_repository import UserRepository
+from app.security.authorization import (
+    AuthorizationError,
+    can_access_organization,
+    require_permission,
+    require_role_assignment,
+    require_scoped_permission,
+)
 from app.security.passwords import PasswordService
 
 
@@ -31,6 +39,10 @@ class UserAuthenticationRequiredError(ValueError):
 
 
 class UserForbiddenError(ValueError):
+    pass
+
+
+class LastOwnerProtectionError(ValueError):
     pass
 
 
@@ -55,11 +67,22 @@ class UserService:
             raise OrganizationInactiveError("organization is inactive")
 
         user_count = self._repository.count_by_organization(request.organization_id)
+        role: Role = (
+            "organization_owner" if user_count == 0 else request.role or "viewer"
+        )
         if user_count > 0:
             if actor is None:
                 raise UserAuthenticationRequiredError("authentication required")
-            if actor.organization_id != request.organization_id:
-                raise UserForbiddenError("user belongs to another organization")
+            try:
+                require_scoped_permission(
+                    actor,
+                    "users.create",
+                    request.organization_id,
+                )
+                if role != "viewer":
+                    require_role_assignment(actor, role)
+            except AuthorizationError as exc:
+                raise UserForbiddenError("permission denied") from exc
 
         if self._repository.find_by_email(request.email) is not None:
             raise UserConflictError("user email already exists")
@@ -72,6 +95,7 @@ class UserService:
             password_hash=self._password_service.hash(request.password),
             first_name=request.first_name,
             last_name=request.last_name,
+            role=role,
             status="active",
             auth_version=1,
             created_at=now,
@@ -83,18 +107,31 @@ class UserService:
         return self._to_domain(model)
 
     def get(self, user_id: UUID, actor: User) -> User:
+        try:
+            require_permission(actor, "users.read")
+        except AuthorizationError as exc:
+            raise UserForbiddenError("permission denied") from exc
         model = self._get_visible_model(user_id, actor)
         return self._to_domain(model)
 
     def list(self, actor: User) -> list[User]:
+        try:
+            require_permission(actor, "users.read")
+        except AuthorizationError as exc:
+            raise UserForbiddenError("permission denied") from exc
         models = [
             model
             for model in self._repository.list_ordered()
-            if model.organization_id == actor.organization_id
+            if actor.role == "platform_admin"
+            or model.organization_id == actor.organization_id
         ]
         return [self._to_domain(model) for model in models]
 
     def update(self, user_id: UUID, request: UserUpdate, actor: User) -> User:
+        try:
+            require_permission(actor, "users.update")
+        except AuthorizationError as exc:
+            raise UserForbiddenError("permission denied") from exc
         if request.organization_id is not None:
             raise UserForbiddenError("organization_id cannot be changed")
 
@@ -110,7 +147,13 @@ class UserService:
         return self._to_domain(model)
 
     def deactivate(self, user_id: UUID, actor: User) -> User:
+        try:
+            require_permission(actor, "users.deactivate")
+        except AuthorizationError as exc:
+            raise UserForbiddenError("permission denied") from exc
         model = self._get_visible_model(user_id, actor)
+        if self._is_last_active_owner(model):
+            raise LastOwnerProtectionError("last organization owner cannot be changed")
         if model.status != "inactive":
             now = datetime.now(UTC)
             model.status = "inactive"
@@ -120,6 +163,26 @@ class UserService:
             self._repository.update(model)
             self._session.commit()
             self._session.refresh(model)
+        return self._to_domain(model)
+
+    def assign_role(self, user_id: UUID, role: Role, actor: User) -> User:
+        try:
+            require_permission(actor, "roles.assign")
+            require_role_assignment(actor, role)
+        except AuthorizationError as exc:
+            raise UserForbiddenError("permission denied") from exc
+
+        model = self._get_visible_model(user_id, actor)
+        if actor.id == user_id and role != actor.role:
+            raise UserForbiddenError("users cannot change their own role")
+        if self._is_last_active_owner(model) and role != "organization_owner":
+            raise LastOwnerProtectionError("last organization owner cannot be changed")
+
+        model.role = role
+        model.updated_at = datetime.now(UTC)
+        self._repository.update(model)
+        self._session.commit()
+        self._session.refresh(model)
         return self._to_domain(model)
 
     def get_model(self, user_id: UUID) -> UserModel | None:
@@ -163,7 +226,7 @@ class UserService:
         model = self._repository.get(user_id)
         if model is None:
             raise UserNotFoundError("user not found")
-        if model.organization_id != actor.organization_id:
+        if not can_access_organization(actor, model.organization_id):
             raise UserForbiddenError("user belongs to another organization")
         return model
 
@@ -175,11 +238,20 @@ class UserService:
             email=model.email,
             first_name=model.first_name,
             last_name=model.last_name,
+            role=model.role,
             status=model.status,
             created_at=model.created_at,
             updated_at=model.updated_at,
             last_login_at=model.last_login_at,
             deactivated_at=model.deactivated_at,
+        )
+
+    def _is_last_active_owner(self, model: UserModel) -> bool:
+        if model.status != "active" or model.role != "organization_owner":
+            return False
+        return (
+            self._repository.count_active_owners_by_organization(model.organization_id)
+            <= 1
         )
 
     @staticmethod

@@ -1,3 +1,4 @@
+from app.application.organizations.service import OrganizationService
 from app.core.automation.event_publisher import AutomationEventPublisher
 from app.core.automation.execution_monitor import WorkflowExecutionMonitor
 from app.core.automation.persistent_monitor import PersistentExecutionMonitor
@@ -63,6 +64,9 @@ from app.infrastructure.repositories.knowledge_query_log_repository import (
     KnowledgeQueryLogRepository,
 )
 from app.infrastructure.repositories.message_repository import MessageRepository
+from app.infrastructure.repositories.organization_repository import (
+    OrganizationRepository,
+)
 from app.infrastructure.settings import get_settings
 
 
@@ -196,6 +200,12 @@ def get_conversation_service() -> ConversationService:
         conversation_repo=conversation_repo,
         message_repo=message_repo,
     )
+
+
+def get_organization_service() -> OrganizationService:
+    session = next(get_session())
+    repository = OrganizationRepository(session=session)
+    return OrganizationService(repository=repository, session=session)
 
 
 _integration_service: IntegrationService | None = None

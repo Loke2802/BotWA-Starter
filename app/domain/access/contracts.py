@@ -25,6 +25,9 @@ Permission = Literal[
     "bots.update",
     "bots.activate",
     "bots.deactivate",
+    "business_configuration.create",
+    "business_configuration.read",
+    "business_configuration.update",
     "platform.organizations.read",
     "platform.organizations.manage",
 ]
@@ -51,6 +54,9 @@ ALL_PERMISSIONS: tuple[Permission, ...] = (
     "bots.update",
     "bots.activate",
     "bots.deactivate",
+    "business_configuration.create",
+    "business_configuration.read",
+    "business_configuration.update",
     "platform.organizations.read",
     "platform.organizations.manage",
 )
@@ -72,6 +78,9 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "bots.update",
             "bots.activate",
             "bots.deactivate",
+            "business_configuration.create",
+            "business_configuration.read",
+            "business_configuration.update",
         )
     ),
     "organization_admin": frozenset(
@@ -88,6 +97,9 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "bots.update",
             "bots.activate",
             "bots.deactivate",
+            "business_configuration.create",
+            "business_configuration.read",
+            "business_configuration.update",
         )
     ),
     "operator": frozenset(
@@ -95,9 +107,16 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "organizations.read",
             "users.read",
             "bots.read",
+            "business_configuration.read",
         )
     ),
-    "viewer": frozenset(("organizations.read", "bots.read")),
+    "viewer": frozenset(
+        (
+            "organizations.read",
+            "bots.read",
+            "business_configuration.read",
+        )
+    ),
 }
 
 ASSIGNABLE_ROLES_BY_ROLE: dict[Role, frozenset[Role]] = {

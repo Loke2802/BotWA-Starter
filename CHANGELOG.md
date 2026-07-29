@@ -1,5 +1,33 @@
 # Changelog
 
+## PRD-005 Business Configuration - 2026-07-29
+
+### Added
+
+- Business Configuration domain contracts and validation helpers.
+- Structured `BusinessHours`, `BusinessService`, and `BusinessPolicy` contracts.
+- PostgreSQL-backed `business_configuration` ORM model and repository.
+- Alembic migration `20260728_0006_create_business_configuration_table.py`.
+- Business Configuration API endpoints under `/bots/{bot_id}`.
+- Business Configuration permissions in the central RBAC matrix.
+- Tests for contracts, API behavior, migration metadata, RBAC, multi-tenancy, validation, persistence, and PRD regressions.
+
+### Validated
+
+- Docker Compose API/PostgreSQL runtime.
+- Alembic upgrade/downgrade/upgrade for `20260728_0006`.
+- Direct PostgreSQL Business Configuration persistence.
+- Business Configuration persistence after API restart.
+- Cross-tenant denial and platform-admin cross-organization access.
+- Viewer/operator read-only behavior.
+- Owner/admin write behavior.
+- Structured validation for timezone, email, website, business hours, services, policies, payment methods, and handoff configuration.
+- Core regression quality gates.
+
+### Not Included
+
+- PRD-006, Knowledge Sources, complex catalog, inventory, reservations, CRM integration, WhatsApp connection, automation execution, frontend, dashboard, billing.
+
 ## PRD-004 Bot Management - 2026-07-28
 
 ### Added

@@ -1,15 +1,15 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-004 cerrada
+## Estado actual - Phase 3 / PRD-005 cerrada
 
 Quality Gates (2026-07-28):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **532 passed, 1 warning** |
+| `pytest` | **545 passed, 1 warning** |
 | `ruff check app tests` | **All checks passed** |
-| `black --check app tests` | **215 files would be left unchanged** |
-| `mypy app tests` | **Success: no issues found in 215 source files** |
+| `black --check app tests` | **224 files would be left unchanged** |
+| `mypy app tests` | **Success: no issues found in 224 source files** |
 
 La base actual incluye 5 Engines:
 
@@ -23,9 +23,9 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial del proyecto: **Phase 3 - PRD-004 Bot Management Closed**.
+Estado oficial del proyecto: **Phase 3 - PRD-005 Business Configuration Closed**.
 
-Próximo objetivo oficial: CTO review de PRD-004. No iniciar PRD-005 sin autorización explícita. WhatsApp real/live permanece `BLOCKED - EXTERNAL CREDENTIALS REQUIRED`.
+Próximo objetivo oficial: CTO review de PRD-005. No iniciar PRD-006 sin autorización explícita. WhatsApp real/live permanece `BLOCKED - EXTERNAL CREDENTIALS REQUIRED`.
 
 Asistente conversacional multicanal con integración WhatsApp Cloud API, motor de conocimiento y persistencia.
 
@@ -163,6 +163,7 @@ app/
 │   ├── access/contracts.py       # Roles y permisos
 │   ├── automation/contracts.py   # Plan, Task, Execution
 │   ├── bot/contracts.py          # Bot Management
+│   ├── business_configuration/   # Configuración de negocio por bot
 │   ├── business/contracts.py     # BusinessRequest, Context, Decision
 │   ├── conversation/
 │   │   ├── contracts.py          # ConversationMessage, ChannelResponse
@@ -182,6 +183,7 @@ app/
 │   │   ├── automation_execution.py
 │   │   ├── automation_task_execution.py
 │   │   ├── bot.py
+│   │   ├── business_configuration.py
 │   │   ├── business_event.py
 │   │   ├── conversation.py
 │   │   ├── conversation_state_history.py
@@ -197,6 +199,7 @@ app/
 │       ├── automation_execution_repository.py
 │       ├── automation_task_execution_repository.py
 │       ├── bot_repository.py
+│       ├── business_configuration_repository.py
 │       ├── business_event_repository.py
 │       ├── conversation_repository.py
 │       ├── integration_event_repository.py
@@ -240,6 +243,9 @@ app/
 | PATCH | `/bots/{bot_id}` | Actualizar metadata del bot | bots |
 | POST | `/bots/{bot_id}/activate` | Activar bot de forma idempotente | bots |
 | POST | `/bots/{bot_id}/deactivate` | Desactivar bot de forma idempotente | bots |
+| POST | `/bots/{bot_id}/business-configuration` | Crear configuración de negocio del bot | business-configuration |
+| GET | `/bots/{bot_id}/business-configuration` | Consultar configuración de negocio visible | business-configuration |
+| PATCH | `/bots/{bot_id}/business-configuration` | Actualizar configuración de negocio | business-configuration |
 | GET | `/webhooks/whatsapp` | VerificaciÃ³n de webhook Meta | whatsapp |
 | POST | `/webhooks/whatsapp` | RecepciÃ³n de eventos WhatsApp | whatsapp |
 
@@ -314,7 +320,7 @@ Cuando `BOTWA_USE_DATABASE=true`, al recibir un mensaje se persiste:
 5. **KnowledgeQueryLog**: consultas procesadas por Knowledge Engine
 6. **AutomationExecution / AutomationTaskExecution**: ejecuciones persistidas de Automation Engine
 7. **IntegrationEvent**: eventos persistibles de Integration Engine
-8. **Organization / User**: capacidades de producto Phase 3 con persistencia PostgreSQL
+8. **Organization / User / Bot / BusinessConfiguration**: capacidades de producto Phase 3 con persistencia PostgreSQL
 
 ### Modelos ORM
 
@@ -327,6 +333,8 @@ Cuando `BOTWA_USE_DATABASE=true`, al recibir un mensaje se persiste:
 - `integration_event` - Integration Engine event persistence
 - `organization` - PRD-001 organization records
 - `app_user` - PRD-002 user identity records with Argon2 password hash and auth version
+- `bot` - PRD-004 bot records scoped by organization
+- `business_configuration` - PRD-005 business configuration records scoped by bot
 
 ### Migraciones Alembic
 
@@ -340,7 +348,9 @@ alembic/versions/
 ├── 20260728_0001_create_automation_integration_tables.py
 ├── 20260728_0002_create_organization_table.py
 ├── 20260728_0003_create_user_table.py
-└── 20260728_0004_add_user_roles.py
+├── 20260728_0004_add_user_roles.py
+├── 20260728_0005_create_bot_table.py
+└── 20260728_0006_create_business_configuration_table.py
 ```
 
 ## Authentication and Users
@@ -368,6 +378,21 @@ PRD-003 adds basic RBAC without custom persisted roles.
 - `platform_admin` can operate across organizations.
 - Organization users are tenant-scoped.
 - Last active `organization_owner` cannot be downgraded or deactivated.
+
+## Bot Management and Business Configuration
+
+PRD-004 and PRD-005 add tenant-scoped product administration on top of the Core.
+
+- Each bot belongs to one organization.
+- Bot slugs are unique inside the organization, not globally.
+- Each bot can have one active Business Configuration record.
+- Business Configuration stores commercial identity, hours, timezone, services, payment methods, policies, service instructions, and handoff settings.
+- Business hours, services, policies, email, website, timezone, and handoff keywords are validated by domain contracts.
+- `organization_owner` and `organization_admin` can create/update inside their organization.
+- `operator` and `viewer` can read only.
+- `platform_admin` can operate across organizations.
+- Bots from inactive organizations cannot have configuration modified.
+- Inactive bots can retain and expose their configuration.
 
 ## WhatsApp Cloud API
 

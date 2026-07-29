@@ -1,7 +1,7 @@
 # BotWA Phase 3 Kickoff
 
-**Status:** PRD-004 Closed - Ready for CTO Review  
-**Date:** 2026-07-28  
+**Status:** PRD-005 Closed - Ready for CTO Review  
+**Date:** 2026-07-29  
 **Entry condition:** Core v1.0.0 - Phase 2 Closed
 
 ## Objective
@@ -24,8 +24,9 @@ Build Product Development increments on top of the validated Core platform.
 | 2 | PRD-002 Authentication and Users | CLOSED |
 | 3 | PRD-003 Roles and Permissions | CLOSED |
 | 4 | PRD-004 Bot Management | CLOSED |
+| 5 | PRD-005 Business Configuration | CLOSED |
 
-PRD-005 is not started.
+PRD-006 is not started.
 
 ## Required Gates During Phase 3
 
@@ -39,10 +40,10 @@ PRD-005 is not started.
 
 | Gate | Result |
 |---|---|
-| `pytest` | 532 passed, 1 warning |
+| `pytest` | 545 passed, 1 warning |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 215 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 215 source files |
+| `black --check app tests` | 224 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 224 source files |
 
 ## Open External Dependency
 

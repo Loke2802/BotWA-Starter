@@ -1,11 +1,11 @@
 # BotWA Product Roadmap v1.0
 
-**Status:** PRD-004 Closed  
-**Date:** 2026-07-28
+**Status:** PRD-005 Closed  
+**Date:** 2026-07-29
 
 ## Current State
 
-Core v1.0.0 is closed. Phase 3 Product Development has completed the first four
+Core v1.0.0 is closed. Phase 3 Product Development has completed the first five
 platform increments on top of the validated Core.
 
 ## Phase 3 Sequence
@@ -16,18 +16,19 @@ platform increments on top of the validated Core.
 | 2 | PRD-002 Authentication and Users | CLOSED |
 | 3 | PRD-003 Roles and Permissions | CLOSED |
 | 4 | PRD-004 Bot Management | CLOSED |
-| 5 | PRD-005 | NOT STARTED |
+| 5 | PRD-005 Business Configuration | CLOSED |
 | 6 | WhatsApp real/live validation with approved credentials | BLOCKED - EXTERNAL CREDENTIALS REQUIRED |
-| 7 | Release candidate review after PRD-004 | READY FOR CTO REVIEW |
+| 7 | PRD-006 | NOT STARTED |
+| 8 | Release candidate review after PRD-005 | READY FOR CTO REVIEW |
 
 ## Latest Validated Gates
 
 | Gate | Result |
 |---|---|
-| `pytest` | 532 passed, 1 warning |
+| `pytest` | 545 passed, 1 warning |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 215 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 215 source files |
+| `black --check app tests` | 224 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 224 source files |
 
 ## Guardrails
 
@@ -35,4 +36,4 @@ platform increments on top of the validated Core.
 - Core architecture remains stable.
 - New functionality must be tied to PRDs.
 - Quality gates remain mandatory.
-- Do not start PRD-005 without explicit CTO approval.
+- Do not start PRD-006 without explicit CTO approval.

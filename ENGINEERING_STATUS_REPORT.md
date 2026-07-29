@@ -1,9 +1,9 @@
 # Engineering Status Report - Official Current Status
 
-**Date:** 2026-07-28  
+**Date:** 2026-07-29  
 **Role:** Lead Engineer  
-**Project phase:** Phase 3 - PRD-004 Bot Management Closed  
-**Status source:** Current repository state after PRD-004 validation
+**Project phase:** Phase 3 - PRD-005 Business Configuration Closed  
+**Status source:** Current repository state after PRD-005 validation
 
 ## Executive Summary
 
@@ -21,17 +21,17 @@ core engines are implemented and closed:
 The Stabilization Sprint recovered all quality gates, and Docker/PostgreSQL
 validation confirmed real DB-backed runtime operation.
 
-Phase 3 product increments PRD-001 through PRD-004 are implemented and closed
+Phase 3 product increments PRD-001 through PRD-005 are implemented and closed
 without changing Core Engine responsibilities.
 
 ## Quality Gates
 
 | Gate | Current result |
 |---|---|
-| `pytest` | 532 passed, 1 warning |
+| `pytest` | 545 passed, 1 warning |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 215 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 215 source files |
+| `black --check app tests` | 224 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 224 source files |
 
 ## Phase 3 Product Status
 
@@ -41,7 +41,8 @@ without changing Core Engine responsibilities.
 | PRD-002 Authentication and Users | CLOSED |
 | PRD-003 Roles and Permissions | CLOSED |
 | PRD-004 Bot Management | CLOSED |
-| PRD-005 | NOT STARTED |
+| PRD-005 Business Configuration | CLOSED |
+| PRD-006 | NOT STARTED |
 
 ## PRD-004 Bot Management
 
@@ -58,7 +59,24 @@ without changing Core Engine responsibilities.
 | Activation/deactivation idempotency | PASS |
 | Inactive organization write blocking | PASS |
 | Docker smoke tests | PASS |
-| PRD-005 | Not started |
+| PRD-005 | Closed |
+
+## PRD-005 Business Configuration
+
+| Area | Current result |
+|---|---|
+| Business Configuration domain contracts | PASS |
+| Application service | PASS |
+| API endpoints | PASS |
+| PostgreSQL persistence | PASS |
+| Alembic migration | PASS - `20260728_0006` |
+| RBAC permissions | PASS |
+| Multi-tenancy | PASS |
+| Structured validation | PASS |
+| Inactive organization write blocking | PASS |
+| Inactive bot read preservation | PASS |
+| Docker smoke tests | PASS |
+| PRD-006 | Not started |
 
 ## Infrastructure Validation
 
@@ -67,9 +85,9 @@ without changing Core Engine responsibilities.
 | Docker daemon | PASS - Docker Desktop 4.82.0, engine 29.6.1 |
 | Docker Compose | PASS - PostgreSQL and API started |
 | PostgreSQL | PASS - database `botwa`, user `botwa` |
-| Alembic | PASS - revision `20260728_0005 (head)` |
-| DB persistence | PASS - bot records persisted after API restart |
-| Docker smoke tests | PASS - health, version, messages, bot CRUD/lifecycle/RBAC |
+| Alembic | PASS - revision `20260728_0006 (head)` |
+| DB persistence | PASS - business configuration records persisted after API restart |
+| Docker smoke tests | PASS - health, version, messages, business configuration CRUD/RBAC |
 | Integration controlled errors | PASS - covered by regression suite |
 
 ## Runtime And Test Mode
@@ -98,13 +116,13 @@ Only the following items remain pending:
 
 - Validate real WhatsApp Cloud API webhook and outbound flow with approved credentials or sandbox.
 - Add CI/CD when the release branch is ready.
-- Define future PRDs for bot-to-channel routing, bot-specific Knowledge, and bot-specific Business configuration if required.
+- Define future PRDs for bot-to-channel routing, bot-specific Knowledge, and Core consumption of Business Configuration if required.
 
 ## Next Official Objective
 
-**CTO review of PRD-004 closure.**
+**CTO review of PRD-005 closure.**
 
-Do not start PRD-005 without explicit CTO approval.
+Do not start PRD-006 without explicit CTO approval.
 
 ## CTO Review Status
 

@@ -1,7 +1,7 @@
 # BotWA Starter - Context For AI Assistants
 
-**Last updated:** 2026-07-28  
-**Project phase:** Phase 3 - PRD-004 Bot Management Closed  
+**Last updated:** 2026-07-29  
+**Project phase:** Phase 3 - PRD-005 Business Configuration Closed  
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
@@ -11,8 +11,8 @@ integration, persistence, automation, integration providers, and deterministic
 quality gates. Core v1.0.0 is validated and Phase 2 is closed.
 
 PRD-001 Organizations, PRD-002 Authentication and Users, PRD-003 Roles and
-Permissions, and PRD-004 Bot Management are implemented and closed as Phase 3
-product increments.
+Permissions, PRD-004 Bot Management, and PRD-005 Business Configuration are
+implemented and closed as Phase 3 product increments.
 
 All five core engines are implemented and closed:
 
@@ -30,18 +30,18 @@ Current validated gates:
 
 | Gate | Result |
 |---|---|
-| `pytest` | 532 passed, 1 warning |
+| `pytest` | 545 passed, 1 warning |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 215 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 215 source files |
+| `black --check app tests` | 224 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 224 source files |
 
 ## Infrastructure Validation
 
 | Area | Result |
 |---|---|
 | Docker/PostgreSQL | PASS |
-| Alembic migrations | PASS - `20260728_0005 (head)` |
-| DB-backed bot persistence | PASS |
+| Alembic migrations | PASS - `20260728_0006 (head)` |
+| DB-backed bot and business configuration persistence | PASS |
 | Docker smoke tests | PASS |
 | Integration controlled errors | PASS |
 | WhatsApp local contracts/webhook/sender | PASS |
@@ -67,7 +67,7 @@ Current validated gates:
 
 ## Current Official Objective
 
-The next step is CTO review of PRD-004. Do not start PRD-005 without explicit CTO approval.
+The next step is CTO review of PRD-005. Do not start PRD-006 without explicit CTO approval.
 
 **Phase 3**
 
@@ -77,7 +77,8 @@ The next step is CTO review of PRD-004. Do not start PRD-005 without explicit CT
 | 2 | PRD-002 Authentication and Users | CLOSED |
 | 3 | PRD-003 Roles and Permissions | CLOSED |
 | 4 | PRD-004 Bot Management | CLOSED |
-| 5 | PRD-005 | NOT STARTED |
+| 5 | PRD-005 Business Configuration | CLOSED |
+| 6 | PRD-006 | NOT STARTED |
 
 ## Remaining Real Debt
 
@@ -96,7 +97,7 @@ Active post-closure debt:
 
 - Validate WhatsApp with real credentials and webhook.
 - Add CI/CD after the local Core release is tagged.
-- Define future PRDs for bot-to-channel routing and bot-specific configuration if required.
+- Define future PRDs for bot-to-channel routing and Core consumption of Business Configuration if required.
 
 ## Technology Baseline
 

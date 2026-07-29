@@ -12,6 +12,9 @@ from app.application.auth.service import (
     AuthService,
 )
 from app.application.bots.service import BotService
+from app.application.business_configuration.service import (
+    BusinessConfigurationService,
+)
 from app.application.organizations.service import OrganizationService
 from app.application.users.service import UserService
 from app.core.automation.event_publisher import AutomationEventPublisher
@@ -69,6 +72,9 @@ from app.infrastructure.repositories.automation_task_execution_repository import
     AutomationTaskExecutionRepository,
 )
 from app.infrastructure.repositories.bot_repository import BotRepository
+from app.infrastructure.repositories.business_configuration_repository import (
+    BusinessConfigurationRepository,
+)
 from app.infrastructure.repositories.business_event_repository import (
     BusinessEventRepository,
 )
@@ -285,6 +291,23 @@ def get_bot_service() -> Generator[BotService]:
         organization_repository = OrganizationRepository(session=session)
         yield BotService(
             repository=repository,
+            organization_repository=organization_repository,
+            session=session,
+        )
+    finally:
+        session_generator.close()
+
+
+def get_business_configuration_service() -> Generator[BusinessConfigurationService]:
+    session_generator = get_session()
+    session = next(session_generator)
+    try:
+        repository = BusinessConfigurationRepository(session=session)
+        bot_repository = BotRepository(session=session)
+        organization_repository = OrganizationRepository(session=session)
+        yield BusinessConfigurationService(
+            repository=repository,
+            bot_repository=bot_repository,
             organization_repository=organization_repository,
             session=session,
         )

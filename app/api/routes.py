@@ -7,6 +7,7 @@ from app.api.dependencies import (
     get_access_service,
     get_auth_service,
     get_bot_service,
+    get_business_configuration_service,
     get_conversation_service,
     get_current_user,
     get_optional_current_user,
@@ -28,6 +29,14 @@ from app.application.bots.service import (
     BotOrganizationInactiveError,
     BotOrganizationNotFoundError,
     BotService,
+)
+from app.application.business_configuration.service import (
+    BusinessConfigurationBotNotFoundError,
+    BusinessConfigurationConflictError,
+    BusinessConfigurationForbiddenError,
+    BusinessConfigurationNotFoundError,
+    BusinessConfigurationOrganizationInactiveError,
+    BusinessConfigurationService,
 )
 from app.application.organizations.service import (
     OrganizationConflictError,
@@ -54,6 +63,11 @@ from app.domain.bot.contracts import (
     BotListResponse,
     BotResponse,
     BotUpdate,
+)
+from app.domain.business_configuration.contracts import (
+    BusinessConfigurationCreate,
+    BusinessConfigurationResponse,
+    BusinessConfigurationUpdate,
 )
 from app.domain.conversation.contracts import ChannelResponse, ConversationMessage
 from app.domain.organization.contracts import (
@@ -96,6 +110,36 @@ def _raise_bot_error(exc: ValueError) -> None:
             detail=str(exc),
         ) from exc
     if isinstance(exc, BotForbiddenError):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(exc),
+        ) from exc
+    raise exc
+
+
+def _raise_business_configuration_error(exc: ValueError) -> None:
+    if isinstance(exc, BusinessConfigurationConflictError):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+    if isinstance(exc, BusinessConfigurationOrganizationInactiveError):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+    if isinstance(
+        exc,
+        (
+            BusinessConfigurationNotFoundError,
+            BusinessConfigurationBotNotFoundError,
+        ),
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    if isinstance(exc, BusinessConfigurationForbiddenError):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(exc),
@@ -516,6 +560,84 @@ def deactivate_bot(
     except ValueError as exc:
         _raise_bot_error(exc)
     return BotResponse(bot=bot)
+
+
+@router.post(
+    "/bots/{bot_id}/business-configuration",
+    response_model=BusinessConfigurationResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["business-configuration"],
+)
+def create_business_configuration(
+    bot_id: UUID,
+    request: BusinessConfigurationCreate,
+    service: Annotated[
+        BusinessConfigurationService,
+        Depends(get_business_configuration_service),
+    ],
+    actor: Annotated[
+        User,
+        Depends(require_permission("business_configuration.create")),
+    ],
+) -> BusinessConfigurationResponse:
+    try:
+        business_configuration = service.create(bot_id, request, actor=actor)
+    except ValueError as exc:
+        _raise_business_configuration_error(exc)
+    return BusinessConfigurationResponse(
+        business_configuration=business_configuration,
+    )
+
+
+@router.get(
+    "/bots/{bot_id}/business-configuration",
+    response_model=BusinessConfigurationResponse,
+    tags=["business-configuration"],
+)
+def get_business_configuration(
+    bot_id: UUID,
+    service: Annotated[
+        BusinessConfigurationService,
+        Depends(get_business_configuration_service),
+    ],
+    actor: Annotated[
+        User,
+        Depends(require_permission("business_configuration.read")),
+    ],
+) -> BusinessConfigurationResponse:
+    try:
+        business_configuration = service.get(bot_id, actor=actor)
+    except ValueError as exc:
+        _raise_business_configuration_error(exc)
+    return BusinessConfigurationResponse(
+        business_configuration=business_configuration,
+    )
+
+
+@router.patch(
+    "/bots/{bot_id}/business-configuration",
+    response_model=BusinessConfigurationResponse,
+    tags=["business-configuration"],
+)
+def update_business_configuration(
+    bot_id: UUID,
+    request: BusinessConfigurationUpdate,
+    service: Annotated[
+        BusinessConfigurationService,
+        Depends(get_business_configuration_service),
+    ],
+    actor: Annotated[
+        User,
+        Depends(require_permission("business_configuration.update")),
+    ],
+) -> BusinessConfigurationResponse:
+    try:
+        business_configuration = service.update(bot_id, request, actor=actor)
+    except ValueError as exc:
+        _raise_business_configuration_error(exc)
+    return BusinessConfigurationResponse(
+        business_configuration=business_configuration,
+    )
 
 
 @router.get(

@@ -484,7 +484,7 @@ Esto ejecuta el flujo estÃ¡ndar:
 
 ## Tests
 
-**491 tests passing**. Los tests locales usan modo in-memory sin Docker/PostgreSQL. La validación Docker/PostgreSQL real de PRD-001 pasó con API y DB levantadas por `docker compose`.
+**545 tests passing, 1 warning**. Los tests locales usan modo in-memory sin Docker/PostgreSQL. La validación Docker/PostgreSQL real de Phase 2 y del Release Candidate posterior a PRD-005 pasó con API y DB levantadas por `docker compose`.
 
 | Area | Tests | Cobertura principal |
 |------|-------|---------------------|

@@ -1,12 +1,12 @@
 # BotWA Product Roadmap v1.0
 
-**Status:** PRD-007 WhatsApp Configuration In Progress
+**Status:** PRD-008 WhatsApp Live Messaging Pending CTO Review
 **Date:** 2026-07-30
 
 ## Current State
 
 Core v1.0.0 and Product v1.0.0 are released. Phase 3 Product Development has
-completed PRD-001 through PRD-006. PRD-007 is implemented and validated on its
+completed PRD-001 through PRD-007. PRD-008 is implemented and validated on its
 feature branch and remains in progress pending CTO review and merge.
 
 **MVP milestone:** PRD-001 through PRD-010.
@@ -21,8 +21,8 @@ feature branch and remains in progress pending CTO review and merge.
 | 4 | PRD-004 Bot Management | CLOSED |
 | 5 | PRD-005 Business Configuration | CLOSED |
 | 6 | PRD-006 Knowledge Management | CLOSED |
-| 7 | PRD-007 WhatsApp Configuration | IN PROGRESS |
-| 8 | PRD-008 WhatsApp Live Messaging | NOT STARTED |
+| 7 | PRD-007 WhatsApp Configuration | CLOSED |
+| 8 | PRD-008 WhatsApp Live Messaging | IN PROGRESS - PENDING CTO REVIEW |
 | 9 | PRD-009 Conversations Management | NOT STARTED |
 | 10 | PRD-010 Human Handoff | NOT STARTED |
 | 11 | PRD-011 Contacts and Customers | NOT STARTED |
@@ -51,20 +51,22 @@ feature branch and remains in progress pending CTO review and merge.
 
 | Gate | Result |
 |---|---|
-| `pytest` | 572 passed, 1 warning |
+| `pytest` | 603 passed, 1 warning |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 263 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 263 source files |
-| Docker/PostgreSQL | PASS - `20260730_0008`, migration cycle, smoke, and restart persistence |
+| `black --check app tests` | 286 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 286 source files |
+| Docker/PostgreSQL | PASS - `20260730_0009`, migration cycle, signed smoke, deduplication, and restart persistence |
 
 ## Channel Runtime Boundary
 
-**IDENTITY ROUTING IMPLEMENTED - LIVE MESSAGING DEFERRED**
+**IDENTITY ROUTING AND LIVE-COMPATIBLE TRANSPORT IMPLEMENTED**
 
 PRD-007 resolves a WhatsApp `phone_number_id` to a generic
 `ResolvedChannelContext` containing organization and bot identity. That identity
-is tested with the bot-scoped Knowledge provider. Connection to live conversation
-processing remains deferred to PRD-008.
+is consumed by PRD-008 through generic inbound/outbound channel contracts,
+bot-scoped Knowledge lookup, the unchanged Conversation Core, durable
+idempotency, encrypted delivery attempts, and an injectable Meta-compatible
+client. Real Meta validation remains blocked by external credentials.
 
 ## Guardrails
 
@@ -72,4 +74,4 @@ processing remains deferred to PRD-008.
 - Core architecture remains stable.
 - New functionality must be tied to PRDs.
 - Quality gates remain mandatory.
-- Do not start PRD-008 without explicit CTO approval.
+- Do not start PRD-009 without explicit CTO approval.

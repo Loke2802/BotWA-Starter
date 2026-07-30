@@ -1,5 +1,43 @@
 # Changelog
 
+## PRD-006 Knowledge Management - 2026-07-29
+
+### Added
+
+- Multi-tenant `KnowledgeEntry` contracts, service, repositories, and ORM model.
+- Administrative API scoped by organization and bot.
+- SQL-backed status/text filters, pagination, and total counts.
+- Central RBAC permissions for knowledge read, create, update, delete, and publish.
+- Isolated `BotKnowledgeProvider` for published entries with explicit tenant and bot scope.
+- Alembic migration `20260729_0007_create_knowledge_entry_table.py`.
+- Tests for contracts, service rules, rollback, repositories, API, RBAC,
+  multi-tenancy, migration, pagination, filters, and provider isolation.
+
+### Runtime Boundary
+
+**BLOCKED RUNTIME INTEGRATION**
+
+The conversation runtime currently does not resolve organization_id and bot_id.
+The bot-scoped Knowledge provider is implemented and tested, but its runtime
+connection to the Conversation Core is deferred to PRD-007 WhatsApp
+Configuration, where bot-to-channel routing will establish that identity.
+
+### Validated
+
+- 557 tests passing with one upstream Starlette deprecation warning.
+- Ruff, Black, and mypy clean across 239 source files.
+- Clean-volume Docker Compose API/PostgreSQL startup.
+- Alembic upgrade/downgrade/upgrade with one head at `20260729_0007`.
+- Viewer, operator, owner, platform-admin, and cross-tenant behavior.
+- Draft exclusion, published retrieval, archived exclusion, SQL filters, and pagination.
+- Direct PostgreSQL constraints/indexes and persistence after API restart.
+
+### Not Included
+
+- PRD-007, bot-to-channel routing, changes to `ConversationMessage`, connection
+  to `get_conversation_service()`, PDF/web ingestion, embeddings, vector search,
+  external RAG, frontend, bulk import, analytics, or complex versioning.
+
 ## PRD-005 Business Configuration - 2026-07-29
 
 ### Added

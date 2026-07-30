@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api.dependencies import get_integration_health_checker
+from app.api.knowledge_routes import router as knowledge_management_router
 from app.api.routes import router
 from app.channels.whatsapp.webhook import router as whatsapp_router
 from app.infrastructure.database import engine
@@ -30,6 +31,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     app.include_router(router)
+    app.include_router(knowledge_management_router)
     app.include_router(whatsapp_router)
     return app
 

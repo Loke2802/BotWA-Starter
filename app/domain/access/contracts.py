@@ -28,6 +28,11 @@ Permission = Literal[
     "business_configuration.create",
     "business_configuration.read",
     "business_configuration.update",
+    "knowledge.read",
+    "knowledge.create",
+    "knowledge.update",
+    "knowledge.delete",
+    "knowledge.publish",
     "platform.organizations.read",
     "platform.organizations.manage",
 ]
@@ -57,6 +62,11 @@ ALL_PERMISSIONS: tuple[Permission, ...] = (
     "business_configuration.create",
     "business_configuration.read",
     "business_configuration.update",
+    "knowledge.read",
+    "knowledge.create",
+    "knowledge.update",
+    "knowledge.delete",
+    "knowledge.publish",
     "platform.organizations.read",
     "platform.organizations.manage",
 )
@@ -81,6 +91,11 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "business_configuration.create",
             "business_configuration.read",
             "business_configuration.update",
+            "knowledge.read",
+            "knowledge.create",
+            "knowledge.update",
+            "knowledge.delete",
+            "knowledge.publish",
         )
     ),
     "organization_admin": frozenset(
@@ -100,6 +115,11 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "business_configuration.create",
             "business_configuration.read",
             "business_configuration.update",
+            "knowledge.read",
+            "knowledge.create",
+            "knowledge.update",
+            "knowledge.delete",
+            "knowledge.publish",
         )
     ),
     "operator": frozenset(
@@ -108,6 +128,9 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "users.read",
             "bots.read",
             "business_configuration.read",
+            "knowledge.read",
+            "knowledge.create",
+            "knowledge.update",
         )
     ),
     "viewer": frozenset(
@@ -115,6 +138,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "organizations.read",
             "bots.read",
             "business_configuration.read",
+            "knowledge.read",
         )
     ),
 }

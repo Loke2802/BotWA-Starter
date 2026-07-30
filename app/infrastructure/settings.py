@@ -26,6 +26,30 @@ class Settings(BaseSettings):
     whatsapp_api_version: str = "v22.0"
     whatsapp_secret_encryption_key: str = ""
     whatsapp_secret_previous_encryption_keys: str = ""
+    whatsapp_live_client_mode: str = "disabled"
+    whatsapp_webhook_max_body_bytes: int = Field(
+        default=1_048_576,
+        ge=1_024,
+        le=10_485_760,
+    )
+    whatsapp_webhook_max_events: int = Field(default=100, ge=1, le=1_000)
+    whatsapp_outbound_max_text_chars: int = Field(
+        default=4_096,
+        ge=1,
+        le=65_536,
+    )
+    whatsapp_outbound_max_attempts: int = Field(default=3, ge=1, le=10)
+    whatsapp_outbound_retry_base_seconds: float = Field(
+        default=1.0,
+        ge=0,
+        le=300,
+    )
+    whatsapp_outbound_retry_max_seconds: float = Field(
+        default=60.0,
+        ge=0,
+        le=3_600,
+    )
+    whatsapp_meta_timeout_seconds: float = Field(default=10.0, gt=0, le=120)
     auth_secret_key: str = "local-development-secret-change-me"
     auth_algorithm: str = "HS256"
     auth_access_token_expire_minutes: int = 30

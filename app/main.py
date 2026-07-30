@@ -12,6 +12,7 @@ from app.api.whatsapp_configuration_routes import (
 from app.api.whatsapp_configuration_routes import (
     webhook_router as configured_whatsapp_webhook_router,
 )
+from app.api.whatsapp_live_routes import router as whatsapp_live_router
 from app.channels.whatsapp.webhook import router as whatsapp_router
 from app.infrastructure.database import engine
 from app.infrastructure.logging import configure_logging
@@ -40,6 +41,7 @@ def create_app() -> FastAPI:
     app.include_router(knowledge_management_router)
     app.include_router(whatsapp_configuration_router)
     app.include_router(configured_whatsapp_webhook_router)
+    app.include_router(whatsapp_live_router)
     app.include_router(whatsapp_router)
     return app
 

@@ -16,6 +16,7 @@ from app.infrastructure.models import (  # noqa: F401
     message,
     organization,
     user,
+    whatsapp_channel_configuration,
 )
 from app.infrastructure.settings import get_settings
 from sqlalchemy import engine_from_config, pool

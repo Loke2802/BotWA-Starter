@@ -10,6 +10,12 @@ from app.api.whatsapp_configuration_dependencies import (
 from app.application.channel.conversation_handler import (
     ChannelConversationHandler,
 )
+from app.application.conversation_management.managed_handler import (
+    ManagedChannelConversationHandler,
+)
+from app.application.conversation_management.service import (
+    ConversationManagementService,
+)
 from app.application.knowledge_management.provider import BotKnowledgeProvider
 from app.application.whatsapp_configuration.resolver import (
     WhatsAppChannelResolver,
@@ -20,6 +26,11 @@ from app.application.whatsapp_live.sender import WhatsAppChannelMessageSender
 from app.channels.whatsapp.live_mapper import WhatsAppInboundMessageMapper
 from app.core.conversation.service import ConversationService
 from app.infrastructure.database import get_session
+from app.infrastructure.repositories.bot_repository import BotRepository
+from app.infrastructure.repositories.conversation_management_repository import (
+    SqlAlchemyConversationManagementRepository,
+    SqlAlchemyConversationMessageManagementRepository,
+)
 from app.infrastructure.repositories.knowledge_entry_repository import (
     SqlAlchemyKnowledgeEntryRepository,
 )
@@ -69,9 +80,20 @@ def get_whatsapp_live_message_processor(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> WhatsAppLiveMessageProcessor:
     configuration_repository = SqlAlchemyWhatsAppConfigurationRepository(session)
-    handler = ChannelConversationHandler(
-        conversation_service,
-        BotKnowledgeProvider(SqlAlchemyKnowledgeEntryRepository(session)),
+    management = ConversationManagementService(
+        conversations=SqlAlchemyConversationManagementRepository(session),
+        messages=SqlAlchemyConversationMessageManagementRepository(session),
+        bot_repository=BotRepository(session),
+        cipher=secret_cipher,
+        session=session,
+    )
+    handler = ManagedChannelConversationHandler(
+        ChannelConversationHandler(
+            conversation_service,
+            BotKnowledgeProvider(SqlAlchemyKnowledgeEntryRepository(session)),
+            persist_core_messages=False,
+        ),
+        management,
     )
     sender = WhatsAppChannelMessageSender(
         configuration_repository,
@@ -93,4 +115,5 @@ def get_whatsapp_live_message_processor(
         max_attempts=settings.whatsapp_outbound_max_attempts,
         retry_base_seconds=settings.whatsapp_outbound_retry_base_seconds,
         retry_max_seconds=settings.whatsapp_outbound_retry_max_seconds,
+        conversation_management=management,
     )

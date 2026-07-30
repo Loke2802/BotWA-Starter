@@ -13,6 +13,9 @@ from app.application.channel.messaging import (
 )
 from app.application.channel.resolver import ChannelResolutionError
 from app.application.channel.text_splitter import split_outbound_message
+from app.application.conversation_management.service import (
+    ConversationManagementService,
+)
 from app.application.whatsapp_configuration.repository import (
     WhatsAppConfigurationRepository,
 )
@@ -64,6 +67,7 @@ class WhatsAppLiveMessageProcessor:
         max_attempts: int,
         retry_base_seconds: float,
         retry_max_seconds: float,
+        conversation_management: ConversationManagementService | None = None,
         now: Callable[[], datetime] | None = None,
     ) -> None:
         self._configuration_repository = configuration_repository
@@ -79,6 +83,7 @@ class WhatsAppLiveMessageProcessor:
         self._max_attempts = max_attempts
         self._retry_base_seconds = retry_base_seconds
         self._retry_max_seconds = retry_max_seconds
+        self._conversation_management = conversation_management
         self._now = now or (lambda: datetime.now(UTC))
 
     async def process(
@@ -178,6 +183,14 @@ class WhatsAppLiveMessageProcessor:
             )
 
             try:
+                message = message.model_copy(
+                    update={
+                        "metadata": {
+                            **message.metadata,
+                            "receipt_id": str(receipt.id),
+                        }
+                    }
+                )
                 outbound = self._handler.handle(message)
                 attempt_ids = await self._send_outbound(
                     receipt.id,
@@ -319,13 +332,46 @@ class WhatsAppLiveMessageProcessor:
             self._outbound_repository.create_pending(attempt)
             self._session.commit()
             attempt_ids.append(attempt.id)
+            self._record_outbound(chunk, attempt, context)
             await self._deliver(
                 attempt.id,
                 context,
                 chunk,
                 correlation_id,
             )
+            self._sync_outbound_attempt(attempt.id)
         return tuple(attempt_ids)
+
+    def _record_outbound(
+        self,
+        message: OutboundChannelMessage,
+        attempt: OutboundMessageAttemptModel,
+        context: ResolvedChannelContext,
+    ) -> None:
+        if self._conversation_management is None:
+            return
+        conversation_id = message.metadata.get("conversation_id")
+        if not isinstance(conversation_id, str):
+            return
+        self._conversation_management.record_outbound(
+            message,
+            UUID(conversation_id),
+            context.organization_id,
+            context.bot_id,
+            attempt.id,
+            self._now(),
+        )
+
+    def _sync_outbound_attempt(self, attempt_id: UUID) -> None:
+        if self._conversation_management is None:
+            return
+        attempt = self._outbound_repository.get(attempt_id)
+        if attempt is not None:
+            self._conversation_management.sync_outbound_attempt(
+                attempt.id,
+                attempt.status,
+                attempt.provider_message_id,
+            )
 
     async def _deliver(
         self,
@@ -421,6 +467,8 @@ class WhatsAppLiveMessageProcessor:
             status_event.error_code,
         )
         self._session.commit()
+        if updated and attempt is not None:
+            self._sync_outbound_attempt(attempt.id)
         if updated:
             logger.info(
                 "whatsapp.outbound.status_updated",

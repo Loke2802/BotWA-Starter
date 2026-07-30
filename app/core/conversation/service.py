@@ -44,7 +44,12 @@ class ConversationService:
         self._conversation_repo = conversation_repo
         self._message_repo = message_repo
 
-    def handle_message(self, message: ConversationMessage) -> ChannelResponse:
+    def handle_message(
+        self,
+        message: ConversationMessage,
+        *,
+        persist: bool = True,
+    ) -> ChannelResponse:
         state = self._state_manager.get_or_create(
             conversation_id=message.conversation_id,
             company_id=message.company_id,
@@ -75,7 +80,8 @@ class ConversationService:
         adapter = self._get_adapter(message.channel)
         response = adapter.adapt(business_response)
 
-        self._persist(message, business_response.message)
+        if persist:
+            self._persist(message, business_response.message)
 
         return response
 

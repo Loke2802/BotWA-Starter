@@ -2,8 +2,8 @@
 
 **Date:** 2026-07-30
 **Role:** Lead Engineer  
-**Project phase:** Phase 3 - PRD-008 WhatsApp Live Messaging Pending CTO Review
-**Status source:** Current PRD-008 feature branch after local validation
+**Project phase:** Phase 3 - PRD-009 Conversations Management In Progress
+**Status source:** Current PRD-009 feature branch during validation
 
 ## Executive Summary
 
@@ -21,19 +21,19 @@ core engines are implemented and closed:
 The Stabilization Sprint recovered all quality gates, and Docker/PostgreSQL
 validation confirmed real DB-backed runtime operation.
 
-Product v1.0.0 is released. Phase 3 product increments PRD-001 through PRD-007
-are implemented and closed. PRD-008 WhatsApp Live Messaging is implemented and
-validated on its feature branch without changing Core Engine responsibilities
-or public conversation contracts.
+Product v1.0.0 is released. Phase 3 product increments PRD-001 through PRD-008
+are implemented and closed. PRD-009 Conversations Management extends existing
+conversation persistence without changing Core Engine responsibilities or public
+conversation contracts.
 
 ## Quality Gates
 
 | Gate | Current result |
 |---|---|
-| `pytest` | 603 passed, 1 warning |
+| `pytest` | 606 passed, 1 warning |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 286 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 286 source files |
+| `black --check app tests` | 297 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 297 source files |
 
 ## Phase 3 Product Status
 
@@ -46,8 +46,9 @@ or public conversation contracts.
 | PRD-005 Business Configuration | CLOSED |
 | PRD-006 Knowledge Management | CLOSED |
 | PRD-007 WhatsApp Configuration | CLOSED |
-| PRD-008 WhatsApp Live Messaging | IN PROGRESS - PENDING CTO REVIEW |
-| PRD-009 through PRD-022 | NOT STARTED |
+| PRD-008 WhatsApp Live Messaging | CLOSED |
+| PRD-009 Conversations Management | IN PROGRESS |
+| PRD-010 through PRD-022 | NOT STARTED |
 
 ## PRD-004 Bot Management
 
@@ -146,7 +147,22 @@ context while preserving the generic channel and Core boundaries.
 | Automated regression suite | PASS - 603 passed, 1 warning |
 | Docker/PostgreSQL validation | PASS - clean volume, migration cycle, restart |
 | Real Meta validation | BLOCKED - EXTERNAL CREDENTIALS REQUIRED |
-| PRD-009 | Not started |
+| PRD-009 | In progress on its feature branch |
+
+## PRD-009 Conversations Management
+
+| Area | Current result |
+|---|---|
+| Existing conversation/message source | Extended, not duplicated |
+| Tenant/bot/channel identity | PASS - partial unique managed identity |
+| Encrypted message records | PASS - managed plaintext column remains empty |
+| Lifecycle | PASS - open, closed, archived, controlled reopen |
+| Transport links | PASS - receipt and outbound attempt references remain separate |
+| API/RBAC | PASS - metadata and content permissions are separate |
+| Pagination and isolation | PASS - SQL-scoped list/detail/message history |
+| Alembic migration | PASS - `20260730_0010`, one head |
+| Docker/PostgreSQL | PASS - clean volume, signed flow, restart, and migration cycle |
+| PRD-010 | Not started |
 
 ## Infrastructure Validation
 
@@ -155,7 +171,7 @@ context while preserving the generic channel and Core boundaries.
 | Docker daemon | PASS - Docker Desktop 4.82.0, engine 29.6.1 |
 | Docker Compose | PASS - PostgreSQL and API started |
 | PostgreSQL | PASS - database `botwa`, user `botwa` |
-| Alembic | PASS - revision `20260730_0009 (head)`, downgrade/upgrade validated |
+| Alembic | PASS - revision `20260730_0010 (head)`, downgrade/upgrade validated |
 | DB persistence | PASS - receipts, conversations, messages, and encrypted outbound attempts survive API restart |
 | Docker smoke tests | PASS - health, version, signed inbound, Core/Knowledge, fake outbound, deduplication, statuses |
 | Integration controlled errors | PASS - covered by regression suite |
@@ -191,9 +207,9 @@ Only the following items remain pending:
 
 ## Next Official Objective
 
-**Submit the validated PRD-008 Draft PR for CTO review.**
+**Complete final PRD-009 quality gates and submit its Draft PR for CTO review.**
 
-Do not start PRD-009 without explicit CTO approval.
+Do not start PRD-010 without explicit CTO approval.
 
 ## CTO Review Status
 

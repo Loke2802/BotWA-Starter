@@ -1,7 +1,7 @@
 # BotWA Starter - Context For AI Assistants
 
 **Last updated:** 2026-07-30
-**Project phase:** Phase 3 - PRD-008 WhatsApp Live Messaging Pending CTO Review
+**Project phase:** Phase 3 - PRD-009 Conversations Management In Progress
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
@@ -13,8 +13,8 @@ quality gates. Core v1.0.0 is validated and Phase 2 is closed.
 Product v1.0.0 is released. PRD-001 Organizations, PRD-002 Authentication and
 Users, PRD-003 Roles and Permissions, PRD-004 Bot Management, and PRD-005
 Business Configuration, PRD-006 Knowledge Management, and PRD-007 WhatsApp
-Configuration are implemented and closed. PRD-008 WhatsApp Live Messaging is
-implemented and validated on its feature branch and awaits CTO review.
+Configuration and PRD-008 WhatsApp Live Messaging are implemented and closed.
+PRD-009 Conversations Management is in progress on its feature branch.
 
 All five core engines are implemented and closed:
 
@@ -32,19 +32,19 @@ Current validated gates:
 
 | Gate | Result |
 |---|---|
-| `pytest` | 603 passed, 1 warning |
+| `pytest` | 606 passed, 1 warning |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 286 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 286 source files |
+| `black --check app tests` | 297 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 297 source files |
 
 ## Infrastructure Validation
 
 | Area | Result |
 |---|---|
 | Docker/PostgreSQL | PASS |
-| Alembic migrations | PASS - `20260730_0009 (head)`, one head |
-| DB-backed product persistence | PASS - WhatsApp receipts and encrypted delivery attempts survive API restart |
-| Docker smoke tests | PASS - signed inbound, Core/Knowledge, fake outbound, deduplication, statuses, restart |
+| Alembic migrations | PASS - `20260730_0010 (head)`, one head, downgrade/upgrade validated |
+| DB-backed product persistence | PASS - receipts, managed encrypted messages, and delivery attempts survive API restart |
+| Docker smoke tests | PASS - signed inbound, Core/Knowledge, fake outbound, lifecycle/RBAC, statuses, restart |
 | Integration controlled errors | PASS |
 | WhatsApp live-compatible contracts/webhook/sender | PASS |
 | WhatsApp real/live | BLOCKED - EXTERNAL CREDENTIALS REQUIRED |
@@ -69,8 +69,8 @@ Current validated gates:
 
 ## Current Official Objective
 
-The next step is Draft PR and CTO review of the validated PRD-008 branch. Do not
-start PRD-009 without explicit CTO approval.
+The current objective is validation and Draft PR preparation for PRD-009. Do not
+start PRD-010 without explicit CTO approval.
 
 **Phase 3**
 
@@ -83,8 +83,8 @@ start PRD-009 without explicit CTO approval.
 | 5 | PRD-005 Business Configuration | CLOSED |
 | 6 | PRD-006 Knowledge Management | CLOSED |
 | 7 | PRD-007 WhatsApp Configuration | CLOSED |
-| 8 | PRD-008 WhatsApp Live Messaging | IN PROGRESS - PENDING CTO REVIEW |
-| 9 | PRD-009 Conversations Management | NOT STARTED |
+| 8 | PRD-008 WhatsApp Live Messaging | CLOSED |
+| 9 | PRD-009 Conversations Management | IN PROGRESS |
 | 10 | PRD-010 Human Handoff | NOT STARTED |
 | 11-22 | Future approved product increments | NOT STARTED |
 
@@ -101,7 +101,7 @@ The MVP milestone comprises PRD-001 through PRD-010.
 - `BotKnowledgeProvider` requires explicit organization and bot identifiers and
   returns only published entries.
 - PRD-006 migration revision is `20260729_0007`; the current project head is
-  `20260730_0009`.
+  `20260730_0010`.
 
 ### Runtime Integration Status
 
@@ -136,6 +136,19 @@ generic channel handler, bot-scoped Knowledge lookup, the unchanged
   configuration.
 - No Core Engine or public conversation contract was changed.
 
+## PRD-009 Conversations Management
+
+- Extends existing `conversation` and `message` persistence; it does not create
+  a second conversation-history source.
+- Administrative lifecycle is separate from Core state: `open`, `closed`, and
+  `archived` belong to PRD-009; agent states remain PRD-010 scope.
+- Managed history is organization/bot/channel/customer scoped, paginated in SQL,
+  and protects content with existing authenticated encryption.
+- `InboundMessageReceipt` and `OutboundMessageAttempt` remain transport records;
+  administrative messages link to them optionally and never drive retry.
+- `conversation.read_content` is distinct from metadata-only `conversation.read`.
+- Current target Alembic head is `20260730_0010`.
+
 ## Remaining Real Debt
 
 The stabilization-specific debts below are resolved and should not be treated as active backlog:
@@ -155,6 +168,7 @@ Active post-closure debt:
 - Add CI/CD after the local Core release is tagged.
 - Add a scheduled worker for due outbound retries.
 - Define recovery for receipts left in `processing` after a process crash.
+- Define retention and safe preview/full-text search policy for managed history.
 
 ## Technology Baseline
 

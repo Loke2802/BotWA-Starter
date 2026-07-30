@@ -1,5 +1,38 @@
 # Changelog
 
+## PRD-009 Conversations Management - 2026-07-30
+
+### Added
+
+- Extended the existing `conversation` and `message` tables for tenant/bot scoped
+  administration without creating a parallel history source.
+- Encrypted inbound/outbound administrative message records linked to receipts and
+  outbound attempts.
+- Administrative lifecycle `open`, `closed`, and `archived`, with documented
+  inbound reopen behavior and archive protection.
+- Paginated conversations/messages APIs and separate content-read permission.
+- Alembic migration `20260730_0010` with scoped indexes and duplicate protection.
+
+### Security
+
+- Message text is encrypted at rest; managed `message.content` is empty.
+- Lists return masked external identifiers; full text requires
+  `conversation.read_content`.
+- Logs exclude message content, ciphertext, raw payloads, secrets, and full
+  external identifiers.
+
+### Validated
+
+- SQL repository lifecycle, encryption, deduplication, pagination, tenant
+  isolation, and outbound status synchronization.
+- Docker/PostgreSQL clean-volume migration, signed webhook flow, RBAC,
+  direct ciphertext evidence, restart persistence, and Alembic cycle.
+
+### Not Included
+
+- PRD-010 Human Handoff, assignment, agent replies, queues, inbox UI, CRM,
+  analytics, media processing, or administrative retry endpoints.
+
 ## PRD-008 WhatsApp Live Messaging - 2026-07-30
 
 ### Added

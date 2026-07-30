@@ -1,6 +1,6 @@
 # PRD-007 WhatsApp Configuration
 
-**Status:** IN PROGRESS - implementation and local validation complete, pending CTO review
+**Status:** CLOSED - merged through PR #8
 **Date:** 2026-07-30
 **Product milestone:** MVP, increment 7 of 10
 
@@ -240,9 +240,9 @@ There must be one head: `20260730_0008`.
 
 ## Relationship With PRD-008
 
-PRD-007 configures, protects, and resolves WhatsApp channels. PRD-008 will
-implement live inbound/outbound messaging through this generic channel boundary.
-PRD-008 is not started by this increment.
+PRD-007 configures, protects, and resolves WhatsApp channels. PRD-008 consumes
+this generic channel boundary for live-compatible inbound/outbound messaging.
+The increments remain separate and PRD-007 owns no live transport behavior.
 
 ## Validation Results
 
@@ -261,6 +261,5 @@ PRD-008 is not started by this increment.
 
 ## Future Debt
 
-- Wire the resolved context into live conversation handling under PRD-008.
 - Validate with approved Meta credentials without changing stored-secret rules.
 - Add future channel resolvers only under their approved PRDs.

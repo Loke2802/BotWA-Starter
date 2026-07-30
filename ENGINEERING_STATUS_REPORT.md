@@ -2,8 +2,8 @@
 
 **Date:** 2026-07-30
 **Role:** Lead Engineer  
-**Project phase:** Phase 3 - PRD-007 WhatsApp Configuration In Progress
-**Status source:** Current PRD-007 feature branch before CTO review
+**Project phase:** Phase 3 - PRD-008 WhatsApp Live Messaging Pending CTO Review
+**Status source:** Current PRD-008 feature branch after local validation
 
 ## Executive Summary
 
@@ -21,19 +21,19 @@ core engines are implemented and closed:
 The Stabilization Sprint recovered all quality gates, and Docker/PostgreSQL
 validation confirmed real DB-backed runtime operation.
 
-Product v1.0.0 is released. Phase 3 product increments PRD-001 through PRD-005
-and PRD-006 are implemented and closed. PRD-007 WhatsApp Configuration is
-implemented on its feature branch without changing Core Engine responsibilities
+Product v1.0.0 is released. Phase 3 product increments PRD-001 through PRD-007
+are implemented and closed. PRD-008 WhatsApp Live Messaging is implemented and
+validated on its feature branch without changing Core Engine responsibilities
 or public conversation contracts.
 
 ## Quality Gates
 
 | Gate | Current result |
 |---|---|
-| `pytest` | 572 passed, 1 warning |
+| `pytest` | 603 passed, 1 warning |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 263 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 263 source files |
+| `black --check app tests` | 286 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 286 source files |
 
 ## Phase 3 Product Status
 
@@ -45,8 +45,9 @@ or public conversation contracts.
 | PRD-004 Bot Management | CLOSED |
 | PRD-005 Business Configuration | CLOSED |
 | PRD-006 Knowledge Management | CLOSED |
-| PRD-007 WhatsApp Configuration | IN PROGRESS |
-| PRD-008 through PRD-022 | NOT STARTED |
+| PRD-007 WhatsApp Configuration | CLOSED |
+| PRD-008 WhatsApp Live Messaging | IN PROGRESS - PENDING CTO REVIEW |
+| PRD-009 through PRD-022 | NOT STARTED |
 
 ## PRD-004 Bot Management
 
@@ -96,17 +97,17 @@ or public conversation contracts.
 | Alembic migration | PASS - `20260729_0007`, one head |
 | Automated regression suite | PASS - 572 passed, 1 warning |
 | Docker/PostgreSQL validation | PASS - clean volume and API restart |
-| Channel identity routing | PASS - live messaging deferred to PRD-008 |
+| Channel identity routing | PASS - consumed by the subsequent PRD-008 increment |
 | PRD-007 | Validated locally; CTO review pending |
 
 The provider requires explicit `organization_id` and `bot_id` and returns only
 published entries. Draft and archived entries are excluded.
 
-**IDENTITY ROUTING IMPLEMENTED - LIVE MESSAGING DEFERRED**
+**IDENTITY ROUTING AND LIVE-COMPATIBLE TRANSPORT IMPLEMENTED**
 
 PRD-007 resolves phone number identity into organization and bot context and
-tests that context against `BotKnowledgeProvider`. Live processing remains a
-PRD-008 responsibility.
+tests that context against `BotKnowledgeProvider`. PRD-008 now consumes that
+context while preserving the generic channel and Core boundaries.
 
 ## PRD-007 WhatsApp Configuration
 
@@ -126,7 +127,26 @@ PRD-008 responsibility.
 | Automated regression suite | PASS - 572 passed, 1 warning |
 | Docker/PostgreSQL validation | PASS - migration cycle, smoke, restart persistence |
 | Secret storage/logging | PASS - ciphertext at rest, safe DTOs, verify token redacted |
-| PRD-008 | Not started |
+| PRD-008 | Implemented and validated on feature branch |
+
+## PRD-008 WhatsApp Live Messaging
+
+| Area | Current result |
+|---|---|
+| Generic inbound/outbound contracts | PASS |
+| Signed configured webhook | PASS - HMAC before parsing, bounded body/events |
+| Tenant/bot routing | PASS - PRD-007 resolver reused |
+| Conversation Core and Knowledge | PASS - unchanged Core, published bot scope |
+| Inbound idempotency | PASS - sequential and concurrent duplicates |
+| Outbound sender/client | PASS - explicit disabled/fake/meta modes |
+| Retry classification and persistence | PASS - bounded persisted backoff |
+| Delivery status events | PASS - idempotent, monotonic ordering |
+| Secret and content handling | PASS - encrypted at rest, metadata-only logs |
+| Alembic migration | PASS - `20260730_0009`, one head |
+| Automated regression suite | PASS - 603 passed, 1 warning |
+| Docker/PostgreSQL validation | PASS - clean volume, migration cycle, restart |
+| Real Meta validation | BLOCKED - EXTERNAL CREDENTIALS REQUIRED |
+| PRD-009 | Not started |
 
 ## Infrastructure Validation
 
@@ -135,9 +155,9 @@ PRD-008 responsibility.
 | Docker daemon | PASS - Docker Desktop 4.82.0, engine 29.6.1 |
 | Docker Compose | PASS - PostgreSQL and API started |
 | PostgreSQL | PASS - database `botwa`, user `botwa` |
-| Alembic | PASS - revision `20260730_0008 (head)`, downgrade/upgrade validated |
-| DB persistence | PASS - knowledge and WhatsApp configuration survive API restart |
-| Docker smoke tests | PASS - health, version, lifecycle, RBAC, tenancy, resolver/provider, webhook security |
+| Alembic | PASS - revision `20260730_0009 (head)`, downgrade/upgrade validated |
+| DB persistence | PASS - receipts, conversations, messages, and encrypted outbound attempts survive API restart |
+| Docker smoke tests | PASS - health, version, signed inbound, Core/Knowledge, fake outbound, deduplication, statuses |
 | Integration controlled errors | PASS - covered by regression suite |
 
 ## Runtime And Test Mode
@@ -166,13 +186,14 @@ Only the following items remain pending:
 
 - Validate real WhatsApp Cloud API webhook and outbound flow with approved credentials or sandbox.
 - Add CI/CD when the release branch is ready.
-- Connect resolved channel context to live conversation processing in PRD-008.
+- Add a scheduled worker for due outbound retries.
+- Define recovery for receipts left in `processing` after a process crash.
 
 ## Next Official Objective
 
-**Complete PRD-007 validation and submit its Draft PR for CTO review.**
+**Submit the validated PRD-008 Draft PR for CTO review.**
 
-Do not start PRD-008 without explicit CTO approval.
+Do not start PRD-009 without explicit CTO approval.
 
 ## CTO Review Status
 

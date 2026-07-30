@@ -1,15 +1,15 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-007 en progreso
+## Estado actual - Phase 3 / PRD-008 en revisión
 
-Quality Gates (PRD-007):
+Quality Gates (PRD-008):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **572 passed, 1 warning** |
+| `pytest` | **603 passed, 1 warning** |
 | `ruff check app tests` | **All checks passed** |
-| `black --check app tests` | **263 files would be left unchanged** |
-| `mypy app tests` | **Success: no issues found in 263 source files** |
+| `black --check app tests` | **286 files would be left unchanged** |
+| `mypy app tests` | **Success: no issues found in 286 source files** |
 
 La base actual incluye 5 Engines:
 
@@ -23,11 +23,12 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial del proyecto: **Product v1.0.0 Released - Phase 3 / PRD-007 WhatsApp Configuration In Progress**.
+Estado oficial del proyecto: **Product v1.0.0 Released - Phase 3 / PRD-008 WhatsApp Live Messaging Pending CTO Review**.
 
-Próximo objetivo oficial: someter el PRD-007 validado mediante Draft PR a revisión CTO.
-No iniciar PRD-008 sin autorización explícita. WhatsApp real/live permanece
-fuera de PRD-007.
+PRD-007 está cerrado. PRD-008 está implementado y validado localmente con
+Docker/PostgreSQL y cliente fake; su siguiente paso es Draft PR y revisión CTO.
+PRD-009 no ha iniciado. La validación contra Meta real permanece bloqueada por
+credenciales externas.
 
 Asistente conversacional multicanal con integración WhatsApp Cloud API, motor de conocimiento y persistencia.
 
@@ -264,6 +265,7 @@ app/
 | POST | `/organizations/{organization_id}/bots/{bot_id}/whatsapp-configurations/{configuration_id}/deactivate` | Desactivar configuración | whatsapp-configuration |
 | POST | `/organizations/{organization_id}/bots/{bot_id}/whatsapp-configurations/{configuration_id}/rotate-secrets` | Rotar secretos | whatsapp-configuration |
 | GET | `/webhooks/whatsapp/{public_webhook_id}` | Verificar challenge por configuración | whatsapp-configuration |
+| POST | `/webhooks/whatsapp/{public_webhook_id}` | Procesar mensajes y estados firmados | whatsapp-live-messaging |
 | POST | `/webhooks/whatsapp/{public_webhook_id}/validate-signature` | Validar HMAC sin procesar mensajes | whatsapp-configuration |
 | GET | `/webhooks/whatsapp` | VerificaciÃ³n de webhook Meta | whatsapp |
 | POST | `/webhooks/whatsapp` | RecepciÃ³n de eventos WhatsApp | whatsapp |
@@ -326,6 +328,14 @@ Todas las variables usan prefijo `BOTWA_`:
 | WhatsApp | `BOTWA_WHATSAPP_API_VERSION` | `v22.0` | VersiÃ³n de Meta Graph API |
 | WhatsApp | `BOTWA_WHATSAPP_SECRET_ENCRYPTION_KEY` | (vacÃ­o) | Clave Fernet primaria para secretos de configuraciones |
 | WhatsApp | `BOTWA_WHATSAPP_SECRET_PREVIOUS_ENCRYPTION_KEYS` | (vacÃ­o) | Claves Fernet anteriores para rotaciÃ³n |
+| WhatsApp | `BOTWA_WHATSAPP_LIVE_CLIENT_MODE` | `disabled` | Cliente live: `disabled`, `fake` o `meta` |
+| WhatsApp | `BOTWA_WHATSAPP_WEBHOOK_MAX_BODY_BYTES` | `1048576` | Tamaño máximo del webhook POST |
+| WhatsApp | `BOTWA_WHATSAPP_WEBHOOK_MAX_EVENTS` | `100` | Eventos máximos por webhook |
+| WhatsApp | `BOTWA_WHATSAPP_OUTBOUND_MAX_TEXT_CHARS` | `4096` | Tamaño máximo por fragmento saliente |
+| WhatsApp | `BOTWA_WHATSAPP_OUTBOUND_MAX_ATTEMPTS` | `3` | Intentos máximos persistidos |
+| WhatsApp | `BOTWA_WHATSAPP_OUTBOUND_RETRY_BASE_SECONDS` | `1` | Base del backoff |
+| WhatsApp | `BOTWA_WHATSAPP_OUTBOUND_RETRY_MAX_SECONDS` | `60` | Tope del backoff |
+| WhatsApp | `BOTWA_WHATSAPP_META_TIMEOUT_SECONDS` | `10` | Timeout del cliente Meta |
 | Auth | `BOTWA_AUTH_SECRET_KEY` | local placeholder | Secret para firmar JWT; usar secreto fuerte fuera de git |
 | Auth | `BOTWA_AUTH_ALGORITHM` | `HS256` | Algoritmo JWT |
 | Auth | `BOTWA_AUTH_ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | Expiración del access token |
@@ -342,6 +352,7 @@ Cuando `BOTWA_USE_DATABASE=true`, al recibir un mensaje se persiste:
 6. **AutomationExecution / AutomationTaskExecution**: ejecuciones persistidas de Automation Engine
 7. **IntegrationEvent**: eventos persistibles de Integration Engine
 8. **Organization / User / Bot / BusinessConfiguration / KnowledgeEntry / WhatsAppChannelConfiguration**: capacidades de producto Phase 3 con persistencia PostgreSQL
+9. **InboundMessageReceipt / OutboundMessageAttempt**: idempotencia y entrega técnica PRD-008 con contenido sensible cifrado
 
 ### Modelos ORM
 
@@ -358,6 +369,8 @@ Cuando `BOTWA_USE_DATABASE=true`, al recibir un mensaje se persiste:
 - `business_configuration` - PRD-005 business configuration records scoped by bot
 - `knowledge_entry` - PRD-006 manual knowledge scoped by organization and bot
 - `whatsapp_channel_configuration` - PRD-007 configuraciones por tenant/bot con secretos cifrados
+- `inbound_message_receipt` - recibos idempotentes por canal y mensaje externo, sin texto
+- `outbound_message_attempt` - entrega, reintento y estado de proveedor con destinatario/texto cifrados
 
 ### Migraciones Alembic
 
@@ -375,7 +388,8 @@ alembic/versions/
 ├── 20260728_0005_create_bot_table.py
 ├── 20260728_0006_create_business_configuration_table.py
 ├── 20260729_0007_create_knowledge_entry_table.py
-└── 20260730_0008_create_whatsapp_channel_configuration_table.py
+├── 20260730_0008_create_whatsapp_channel_configuration_table.py
+└── 20260730_0009_create_whatsapp_message_transport_tables.py
 ```
 
 ## Authentication and Users
@@ -436,9 +450,9 @@ the Knowledge Engine.
 - `BotKnowledgeProvider` requires explicit organization and bot IDs and returns
   only published entries.
 
-PRD-007 resolves `phone_number_id` into a generic `ResolvedChannelContext` and
-tests that identity with `BotKnowledgeProvider`. Live Conversation wiring remains
-deferred to PRD-008.
+PRD-007 resolves `phone_number_id` into a generic `ResolvedChannelContext`.
+PRD-008 consumes that identity, queries `BotKnowledgeProvider`, and executes the
+existing `ConversationService` through a generic channel handler.
 
 ## Multichannel And WhatsApp Configuration
 
@@ -455,42 +469,46 @@ application flow depends on generic `ChannelIdentity`, `ChannelResolver`, and
   fields; owner/admin control activation, deletion, and secret rotation.
 - Webhook challenge uses constant-time token comparison.
 - Signature validation uses `X-Hub-Signature-256` and HMAC SHA-256 over raw body.
-- No PRD-007 route processes live messages or contacts Meta.
+- PRD-007 remains responsible for configuration and identity resolution.
+- PRD-008 adds the configured live-compatible transport without changing Core.
 
 ## WhatsApp Cloud API
 
-### RecepciÃ³n (Webhook)
+### Recepcion configurada (Webhook)
 
 ```
-GET /webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=...&hub.challenge=...
-  â†’ Verifica token, responde con challenge (PlainText)
+GET /webhooks/whatsapp/{public_webhook_id}
+  -> verifica el token de la configuracion y devuelve el challenge
 
-POST /webhooks/whatsapp  (payload oficial de Meta)
-  â†’ WhatsAppAdapter â†’ ConversationMessage
-  â†’ ConversationService.handle_message() â†’ ChannelResponse
-  â†’ WhatsAppSender.send() â†’ Meta Graph API
+POST /webhooks/whatsapp/{public_webhook_id}
+  -> valida HMAC sobre bytes crudos antes de parsear
+  -> resuelve tenant/bot por phone_number_id
+  -> registra recibo idempotente
+  -> ChannelConversationHandler -> ConversationService
+  -> persiste el intento saliente cifrado
+  -> cliente fake o Meta explicito
 ```
 
-### EnvÃ­o
+Los endpoints sin `public_webhook_id` se conservan por compatibilidad historica
+y no forman parte del flujo multi-tenant configurado de PRD-008.
+
+### Envio
 
 ```
-WhatsAppSender.send(response, to=wa_id)
-  â†’ to_whatsapp_text_payload() â†’ payload {
-      "messaging_product": "whatsapp",
-      "to": "15557654321",
-      "type": "text",
-      "text": {"body": "..."}
-    }
-  â†’ WhatsAppClient.send_message(payload)
-    â†’ POST https://graph.facebook.com/v22.0/{phone_id}/messages
-    â†’ Authorization: Bearer {access_token}
+WhatsAppChannelMessageSender
+  -> carga la configuracion exacta organization/bot/channel
+  -> descifra el access token solo en memoria
+  -> WhatsAppCloudApiClient.send_text_message()
+  -> registra provider_message_id y estado
 ```
 
-### Manejo de errores de envÃ­o
+### Manejo de errores de envio
 
-- Errores HTTP (4xx, 5xx): se loguean, no rompen el flujo del Core
-- Errores de red/timeout: se loguean, no rompen el flujo del Core
-- `SendResult.success` indica si se enviÃ³ correctamente
+- Timeout, red, HTTP 429 y HTTP 5xx producen reintento persistido y acotado.
+- HTTP 400, autenticacion y configuracion invalida son no reintentables.
+- Los estados `sent`, `delivered`, `read` y `failed` son idempotentes y no
+  retroceden ante eventos antiguos.
+- No se registran bodies de Meta, tokens, firmas, texto ni identificadores completos.
 
 ## Desarrollo
 
@@ -547,11 +565,11 @@ Esto ejecuta el flujo estÃ¡ndar:
 
 ## Tests
 
-**572 tests passing, 1 warning**. Ruff, Black y mypy están limpios sobre 263
-archivos. Los tests locales usan modo in-memory sin Docker/PostgreSQL. PRD-007
-fue validado con Docker/PostgreSQL real, migración `20260730_0008`, secretos
-cifrados, smoke multi-tenant/RBAC/webhook/resolver y persistencia tras reiniciar
-la API.
+**603 tests passing, 1 warning**. Ruff, Black y mypy están limpios sobre 286
+archivos. Los tests locales usan modo in-memory sin Docker/PostgreSQL. PRD-008
+fue validado con Docker/PostgreSQL real, migración `20260730_0009`, HMAC previo
+al parseo, idempotencia secuencial/concurrente, persistencia cifrada, estados de
+entrega y supervivencia tras reiniciar la API.
 
 | Area | Tests | Cobertura principal |
 |------|-------|---------------------|

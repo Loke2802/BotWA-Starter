@@ -26,6 +26,10 @@ from app.infrastructure.models.user import UserModel
 from app.infrastructure.models.whatsapp_channel_configuration import (
     WhatsAppChannelConfigurationModel,
 )
+from app.infrastructure.models.whatsapp_message_transport import (
+    InboundMessageReceiptModel,
+    OutboundMessageAttemptModel,
+)
 
 __all__ = [
     "AutomationExecutionModel",
@@ -36,12 +40,14 @@ __all__ = [
     "ConversationModel",
     "ConversationStateHistoryModel",
     "IntegrationEventModel",
+    "InboundMessageReceiptModel",
     "KnowledgeCatalogEntryModel",
     "KnowledgeEntryModel",
     "KnowledgeQueryLogModel",
     "KnowledgeSourceModel",
     "MessageModel",
     "OrganizationModel",
+    "OutboundMessageAttemptModel",
     "UserModel",
     "WhatsAppChannelConfigurationModel",
 ]

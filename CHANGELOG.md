@@ -1,5 +1,51 @@
 # Changelog
 
+## PRD-008 WhatsApp Live Messaging - 2026-07-30
+
+### Added
+
+- Generic inbound/outbound channel contracts and a channel-neutral conversation
+  handler that reuses the existing Conversation Core and bot-scoped Knowledge.
+- Configured signed webhook processing for inbound text and delivery statuses.
+- Durable inbound receipts and encrypted outbound delivery attempts.
+- Deterministic long-message splitting, bounded persisted retry state, and
+  monotonic provider status updates.
+- Injectable fake and Meta-compatible WhatsApp Cloud API clients.
+- Alembic migration `20260730_0009`.
+
+### Security
+
+- HMAC SHA-256 validation runs over raw bytes before JSON parsing.
+- Webhook body and event counts are bounded.
+- Tenant, bot, and configuration identity is checked throughout processing.
+- Access tokens are decrypted only in memory; recipient and response text are
+  encrypted at rest.
+- Logs exclude raw payloads, text, full recipient IDs, secrets, signatures, and
+  provider response bodies.
+
+### Validated
+
+- 31 focused PRD-008 tests.
+- 603 tests passing with one upstream Starlette deprecation warning.
+- Ruff, Black, and mypy clean across 286 source files.
+- Docker/PostgreSQL clean-volume migration cycle with one head at
+  `20260730_0009`.
+- Signed inbound processing, Core/Knowledge execution, fake outbound delivery,
+  sequential/concurrent deduplication, status ordering, encrypted persistence,
+  safe logs, and API restart persistence.
+
+### Compatibility
+
+- No Core Engine or public conversation contract changed.
+- Existing unscoped WhatsApp endpoints remain available for compatibility; the
+  PRD-008 runtime uses the configured multi-tenant route.
+
+### Not Included
+
+- Real Meta validation, which requires approved external credentials.
+- PRD-009 Conversations Management, PRD-010 Human Handoff, media processing,
+  templates, frontend, or a distributed retry worker.
+
 ## PRD-007 WhatsApp Configuration - 2026-07-30
 
 ### Added

@@ -17,6 +17,7 @@ from app.infrastructure.models.integration_event import IntegrationEventModel
 from app.infrastructure.models.knowledge_catalog_entry import (
     KnowledgeCatalogEntryModel,
 )
+from app.infrastructure.models.knowledge_entry import KnowledgeEntryModel
 from app.infrastructure.models.knowledge_query_log import KnowledgeQueryLogModel
 from app.infrastructure.models.knowledge_source import KnowledgeSourceModel
 from app.infrastructure.models.message import MessageModel
@@ -33,6 +34,7 @@ __all__ = [
     "ConversationStateHistoryModel",
     "IntegrationEventModel",
     "KnowledgeCatalogEntryModel",
+    "KnowledgeEntryModel",
     "KnowledgeQueryLogModel",
     "KnowledgeSourceModel",
     "MessageModel",

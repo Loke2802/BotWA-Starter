@@ -33,6 +33,12 @@ Permission = Literal[
     "knowledge.update",
     "knowledge.delete",
     "knowledge.publish",
+    "whatsapp_config.read",
+    "whatsapp_config.create",
+    "whatsapp_config.update",
+    "whatsapp_config.delete",
+    "whatsapp_config.activate",
+    "whatsapp_config.rotate_secrets",
     "platform.organizations.read",
     "platform.organizations.manage",
 ]
@@ -67,6 +73,12 @@ ALL_PERMISSIONS: tuple[Permission, ...] = (
     "knowledge.update",
     "knowledge.delete",
     "knowledge.publish",
+    "whatsapp_config.read",
+    "whatsapp_config.create",
+    "whatsapp_config.update",
+    "whatsapp_config.delete",
+    "whatsapp_config.activate",
+    "whatsapp_config.rotate_secrets",
     "platform.organizations.read",
     "platform.organizations.manage",
 )
@@ -96,6 +108,12 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "knowledge.update",
             "knowledge.delete",
             "knowledge.publish",
+            "whatsapp_config.read",
+            "whatsapp_config.create",
+            "whatsapp_config.update",
+            "whatsapp_config.delete",
+            "whatsapp_config.activate",
+            "whatsapp_config.rotate_secrets",
         )
     ),
     "organization_admin": frozenset(
@@ -120,6 +138,12 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "knowledge.update",
             "knowledge.delete",
             "knowledge.publish",
+            "whatsapp_config.read",
+            "whatsapp_config.create",
+            "whatsapp_config.update",
+            "whatsapp_config.delete",
+            "whatsapp_config.activate",
+            "whatsapp_config.rotate_secrets",
         )
     ),
     "operator": frozenset(
@@ -131,6 +155,9 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "knowledge.read",
             "knowledge.create",
             "knowledge.update",
+            "whatsapp_config.read",
+            "whatsapp_config.create",
+            "whatsapp_config.update",
         )
     ),
     "viewer": frozenset(
@@ -139,6 +166,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "bots.read",
             "business_configuration.read",
             "knowledge.read",
+            "whatsapp_config.read",
         )
     ),
 }

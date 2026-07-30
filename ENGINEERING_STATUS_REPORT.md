@@ -1,9 +1,9 @@
 # Engineering Status Report - Official Current Status
 
-**Date:** 2026-07-29  
+**Date:** 2026-07-30
 **Role:** Lead Engineer  
-**Project phase:** Phase 3 - PRD-006 Knowledge Management In Progress
-**Status source:** Current PRD-006 feature branch before CTO review
+**Project phase:** Phase 3 - PRD-007 WhatsApp Configuration In Progress
+**Status source:** Current PRD-007 feature branch before CTO review
 
 ## Executive Summary
 
@@ -22,18 +22,18 @@ The Stabilization Sprint recovered all quality gates, and Docker/PostgreSQL
 validation confirmed real DB-backed runtime operation.
 
 Product v1.0.0 is released. Phase 3 product increments PRD-001 through PRD-005
-are implemented and closed. PRD-006 Knowledge Management is implemented on its
-feature branch without changing Core Engine responsibilities or public
-conversation contracts.
+and PRD-006 are implemented and closed. PRD-007 WhatsApp Configuration is
+implemented on its feature branch without changing Core Engine responsibilities
+or public conversation contracts.
 
 ## Quality Gates
 
 | Gate | Current result |
 |---|---|
-| `pytest` | 557 passed, 1 warning |
+| `pytest` | 572 passed, 1 warning |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 239 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 239 source files |
+| `black --check app tests` | 263 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 263 source files |
 
 ## Phase 3 Product Status
 
@@ -44,8 +44,9 @@ conversation contracts.
 | PRD-003 Roles and Permissions | CLOSED |
 | PRD-004 Bot Management | CLOSED |
 | PRD-005 Business Configuration | CLOSED |
-| PRD-006 Knowledge Management | IN PROGRESS |
-| PRD-007 through PRD-022 | NOT STARTED |
+| PRD-006 Knowledge Management | CLOSED |
+| PRD-007 WhatsApp Configuration | IN PROGRESS |
+| PRD-008 through PRD-022 | NOT STARTED |
 
 ## PRD-004 Bot Management
 
@@ -79,7 +80,7 @@ conversation contracts.
 | Inactive organization write blocking | PASS |
 | Inactive bot read preservation | PASS |
 | Docker smoke tests | PASS |
-| PRD-006 | In progress |
+| PRD-006 | Closed |
 
 ## PRD-006 Knowledge Management
 
@@ -93,20 +94,39 @@ conversation contracts.
 | `IntegrityError` rollback and conflict translation | PASS |
 | Isolated published-entry provider | PASS |
 | Alembic migration | PASS - `20260729_0007`, one head |
-| Automated regression suite | PASS - 557 passed, 1 warning |
+| Automated regression suite | PASS - 572 passed, 1 warning |
 | Docker/PostgreSQL validation | PASS - clean volume and API restart |
-| Conversation runtime connection | BLOCKED RUNTIME INTEGRATION |
-| PRD-007 | Not started |
+| Channel identity routing | PASS - live messaging deferred to PRD-008 |
+| PRD-007 | Validated locally; CTO review pending |
 
 The provider requires explicit `organization_id` and `bot_id` and returns only
 published entries. Draft and archived entries are excluded.
 
-**BLOCKED RUNTIME INTEGRATION**
+**IDENTITY ROUTING IMPLEMENTED - LIVE MESSAGING DEFERRED**
 
-The conversation runtime currently does not resolve organization_id and bot_id.
-The bot-scoped Knowledge provider is implemented and tested, but its runtime
-connection to the Conversation Core is deferred to PRD-007 WhatsApp
-Configuration, where bot-to-channel routing will establish that identity.
+PRD-007 resolves phone number identity into organization and bot context and
+tests that context against `BotKnowledgeProvider`. Live processing remains a
+PRD-008 responsibility.
+
+## PRD-007 WhatsApp Configuration
+
+| Area | Current result |
+|---|---|
+| Generic channel contracts | PASS |
+| WhatsApp configuration contracts/service/API | PASS |
+| Environment-backed secret encryption | PASS |
+| Secret rotation and safe flags | PASS |
+| SQL tenant filtering and pagination | PASS |
+| Global phone/webhook uniqueness | PASS |
+| Row locking and `IntegrityError` rollback | PASS |
+| WhatsApp channel resolver | PASS |
+| Webhook verification and HMAC | PASS |
+| Resolver-to-Knowledge integration | PASS |
+| Alembic migration | PASS - `20260730_0008`, one head |
+| Automated regression suite | PASS - 572 passed, 1 warning |
+| Docker/PostgreSQL validation | PASS - migration cycle, smoke, restart persistence |
+| Secret storage/logging | PASS - ciphertext at rest, safe DTOs, verify token redacted |
+| PRD-008 | Not started |
 
 ## Infrastructure Validation
 
@@ -115,9 +135,9 @@ Configuration, where bot-to-channel routing will establish that identity.
 | Docker daemon | PASS - Docker Desktop 4.82.0, engine 29.6.1 |
 | Docker Compose | PASS - PostgreSQL and API started |
 | PostgreSQL | PASS - database `botwa`, user `botwa` |
-| Alembic | PASS - revision `20260729_0007 (head)`, downgrade/upgrade validated |
-| DB persistence | PASS - knowledge records persisted after API restart |
-| Docker smoke tests | PASS - health, version, knowledge lifecycle, RBAC, tenancy, provider |
+| Alembic | PASS - revision `20260730_0008 (head)`, downgrade/upgrade validated |
+| DB persistence | PASS - knowledge and WhatsApp configuration survive API restart |
+| Docker smoke tests | PASS - health, version, lifecycle, RBAC, tenancy, resolver/provider, webhook security |
 | Integration controlled errors | PASS - covered by regression suite |
 
 ## Runtime And Test Mode
@@ -146,14 +166,13 @@ Only the following items remain pending:
 
 - Validate real WhatsApp Cloud API webhook and outbound flow with approved credentials or sandbox.
 - Add CI/CD when the release branch is ready.
-- Connect bot-scoped Knowledge to the Conversation runtime only after PRD-007
-  establishes bot-to-channel identity.
+- Connect resolved channel context to live conversation processing in PRD-008.
 
 ## Next Official Objective
 
-**Complete PRD-006 validation and submit its Draft PR for CTO review.**
+**Complete PRD-007 validation and submit its Draft PR for CTO review.**
 
-Do not start PRD-007 without explicit CTO approval.
+Do not start PRD-008 without explicit CTO approval.
 
 ## CTO Review Status
 

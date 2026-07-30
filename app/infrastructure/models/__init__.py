@@ -23,6 +23,9 @@ from app.infrastructure.models.knowledge_source import KnowledgeSourceModel
 from app.infrastructure.models.message import MessageModel
 from app.infrastructure.models.organization import OrganizationModel
 from app.infrastructure.models.user import UserModel
+from app.infrastructure.models.whatsapp_channel_configuration import (
+    WhatsAppChannelConfigurationModel,
+)
 
 __all__ = [
     "AutomationExecutionModel",
@@ -40,4 +43,5 @@ __all__ = [
     "MessageModel",
     "OrganizationModel",
     "UserModel",
+    "WhatsAppChannelConfigurationModel",
 ]

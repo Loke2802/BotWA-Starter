@@ -1,15 +1,15 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-006 en progreso
+## Estado actual - Phase 3 / PRD-007 en progreso
 
-Quality Gates (PRD-006):
+Quality Gates (PRD-007):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **557 passed, 1 warning** |
+| `pytest` | **572 passed, 1 warning** |
 | `ruff check app tests` | **All checks passed** |
-| `black --check app tests` | **239 files would be left unchanged** |
-| `mypy app tests` | **Success: no issues found in 239 source files** |
+| `black --check app tests` | **263 files would be left unchanged** |
+| `mypy app tests` | **Success: no issues found in 263 source files** |
 
 La base actual incluye 5 Engines:
 
@@ -23,11 +23,11 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial del proyecto: **Product v1.0.0 Released - Phase 3 / PRD-006 Knowledge Management In Progress**.
+Estado oficial del proyecto: **Product v1.0.0 Released - Phase 3 / PRD-007 WhatsApp Configuration In Progress**.
 
-Próximo objetivo oficial: validar PRD-006 y someter su Draft PR a revisión CTO.
-No iniciar PRD-007 sin autorización explícita. WhatsApp real/live permanece
-`BLOCKED - EXTERNAL CREDENTIALS REQUIRED`.
+Próximo objetivo oficial: someter el PRD-007 validado mediante Draft PR a revisión CTO.
+No iniciar PRD-008 sin autorización explícita. WhatsApp real/live permanece
+fuera de PRD-007.
 
 Asistente conversacional multicanal con integración WhatsApp Cloud API, motor de conocimiento y persistencia.
 
@@ -255,6 +255,16 @@ app/
 | DELETE | `/organizations/{organization_id}/bots/{bot_id}/knowledge/{knowledge_id}` | Eliminar entrada | knowledge-management |
 | POST | `/organizations/{organization_id}/bots/{bot_id}/knowledge/{knowledge_id}/publish` | Publicar draft | knowledge-management |
 | POST | `/organizations/{organization_id}/bots/{bot_id}/knowledge/{knowledge_id}/archive` | Archivar entrada | knowledge-management |
+| POST | `/organizations/{organization_id}/bots/{bot_id}/whatsapp-configurations` | Crear configuración WhatsApp draft | whatsapp-configuration |
+| GET | `/organizations/{organization_id}/bots/{bot_id}/whatsapp-configurations` | Listar configuraciones con filtros/paginación | whatsapp-configuration |
+| GET | `/organizations/{organization_id}/bots/{bot_id}/whatsapp-configurations/{configuration_id}` | Consultar configuración segura | whatsapp-configuration |
+| PATCH | `/organizations/{organization_id}/bots/{bot_id}/whatsapp-configurations/{configuration_id}` | Actualizar campos no sensibles | whatsapp-configuration |
+| DELETE | `/organizations/{organization_id}/bots/{bot_id}/whatsapp-configurations/{configuration_id}` | Eliminar configuración | whatsapp-configuration |
+| POST | `/organizations/{organization_id}/bots/{bot_id}/whatsapp-configurations/{configuration_id}/activate` | Activar configuración | whatsapp-configuration |
+| POST | `/organizations/{organization_id}/bots/{bot_id}/whatsapp-configurations/{configuration_id}/deactivate` | Desactivar configuración | whatsapp-configuration |
+| POST | `/organizations/{organization_id}/bots/{bot_id}/whatsapp-configurations/{configuration_id}/rotate-secrets` | Rotar secretos | whatsapp-configuration |
+| GET | `/webhooks/whatsapp/{public_webhook_id}` | Verificar challenge por configuración | whatsapp-configuration |
+| POST | `/webhooks/whatsapp/{public_webhook_id}/validate-signature` | Validar HMAC sin procesar mensajes | whatsapp-configuration |
 | GET | `/webhooks/whatsapp` | VerificaciÃ³n de webhook Meta | whatsapp |
 | POST | `/webhooks/whatsapp` | RecepciÃ³n de eventos WhatsApp | whatsapp |
 
@@ -314,6 +324,8 @@ Todas las variables usan prefijo `BOTWA_`:
 | WhatsApp | `BOTWA_WHATSAPP_ACCESS_TOKEN` | (vacÃ­o) | Token de acceso a Meta Graph API |
 | WhatsApp | `BOTWA_WHATSAPP_PHONE_NUMBER_ID` | (vacÃ­o) | ID del nÃºmero de telÃ©fono en Meta |
 | WhatsApp | `BOTWA_WHATSAPP_API_VERSION` | `v22.0` | VersiÃ³n de Meta Graph API |
+| WhatsApp | `BOTWA_WHATSAPP_SECRET_ENCRYPTION_KEY` | (vacÃ­o) | Clave Fernet primaria para secretos de configuraciones |
+| WhatsApp | `BOTWA_WHATSAPP_SECRET_PREVIOUS_ENCRYPTION_KEYS` | (vacÃ­o) | Claves Fernet anteriores para rotaciÃ³n |
 | Auth | `BOTWA_AUTH_SECRET_KEY` | local placeholder | Secret para firmar JWT; usar secreto fuerte fuera de git |
 | Auth | `BOTWA_AUTH_ALGORITHM` | `HS256` | Algoritmo JWT |
 | Auth | `BOTWA_AUTH_ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | Expiración del access token |
@@ -329,7 +341,7 @@ Cuando `BOTWA_USE_DATABASE=true`, al recibir un mensaje se persiste:
 5. **KnowledgeQueryLog**: consultas procesadas por Knowledge Engine
 6. **AutomationExecution / AutomationTaskExecution**: ejecuciones persistidas de Automation Engine
 7. **IntegrationEvent**: eventos persistibles de Integration Engine
-8. **Organization / User / Bot / BusinessConfiguration / KnowledgeEntry**: capacidades de producto Phase 3 con persistencia PostgreSQL
+8. **Organization / User / Bot / BusinessConfiguration / KnowledgeEntry / WhatsAppChannelConfiguration**: capacidades de producto Phase 3 con persistencia PostgreSQL
 
 ### Modelos ORM
 
@@ -345,6 +357,7 @@ Cuando `BOTWA_USE_DATABASE=true`, al recibir un mensaje se persiste:
 - `bot` - PRD-004 bot records scoped by organization
 - `business_configuration` - PRD-005 business configuration records scoped by bot
 - `knowledge_entry` - PRD-006 manual knowledge scoped by organization and bot
+- `whatsapp_channel_configuration` - PRD-007 configuraciones por tenant/bot con secretos cifrados
 
 ### Migraciones Alembic
 
@@ -361,7 +374,8 @@ alembic/versions/
 ├── 20260728_0004_add_user_roles.py
 ├── 20260728_0005_create_bot_table.py
 ├── 20260728_0006_create_business_configuration_table.py
-└── 20260729_0007_create_knowledge_entry_table.py
+├── 20260729_0007_create_knowledge_entry_table.py
+└── 20260730_0008_create_whatsapp_channel_configuration_table.py
 ```
 
 ## Authentication and Users
@@ -422,12 +436,26 @@ the Knowledge Engine.
 - `BotKnowledgeProvider` requires explicit organization and bot IDs and returns
   only published entries.
 
-### BLOCKED RUNTIME INTEGRATION
+PRD-007 resolves `phone_number_id` into a generic `ResolvedChannelContext` and
+tests that identity with `BotKnowledgeProvider`. Live Conversation wiring remains
+deferred to PRD-008.
 
-The conversation runtime currently does not resolve organization_id and bot_id.
-The bot-scoped Knowledge provider is implemented and tested, but its runtime
-connection to the Conversation Core is deferred to PRD-007 WhatsApp
-Configuration, where bot-to-channel routing will establish that identity.
+## Multichannel And WhatsApp Configuration
+
+BotWA is multichannel. WhatsApp is the first production adapter, but shared
+application flow depends on generic `ChannelIdentity`, `ChannelResolver`, and
+`ResolvedChannelContext` contracts rather than Meta identifiers.
+
+- Configuration lifecycle: `draft`, `active`, `inactive`.
+- Runtime resolution accepts only active, webhook-enabled configurations.
+- Secrets use Fernet authenticated encryption from environment-provided keys.
+- API responses expose configured flags, never secrets or ciphertext.
+- `phone_number_id` and `public_webhook_id` are globally unique.
+- Viewer reads; operator creates configuration shells and updates non-sensitive
+  fields; owner/admin control activation, deletion, and secret rotation.
+- Webhook challenge uses constant-time token comparison.
+- Signature validation uses `X-Hub-Signature-256` and HMAC SHA-256 over raw body.
+- No PRD-007 route processes live messages or contacts Meta.
 
 ## WhatsApp Cloud API
 
@@ -519,10 +547,11 @@ Esto ejecuta el flujo estÃ¡ndar:
 
 ## Tests
 
-**557 tests passing, 1 warning**. Ruff, Black y mypy están limpios sobre 239
-archivos. Los tests locales usan modo in-memory sin Docker/PostgreSQL. PRD-006
-también fue validado desde volumen limpio con Docker/PostgreSQL, migración
-`20260729_0007`, smoke multi-tenant/provider y persistencia tras reiniciar la API.
+**572 tests passing, 1 warning**. Ruff, Black y mypy están limpios sobre 263
+archivos. Los tests locales usan modo in-memory sin Docker/PostgreSQL. PRD-007
+fue validado con Docker/PostgreSQL real, migración `20260730_0008`, secretos
+cifrados, smoke multi-tenant/RBAC/webhook/resolver y persistencia tras reiniciar
+la API.
 
 | Area | Tests | Cobertura principal |
 |------|-------|---------------------|

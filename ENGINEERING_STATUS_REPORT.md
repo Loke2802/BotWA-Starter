@@ -2,8 +2,8 @@
 
 **Date:** 2026-07-29  
 **Role:** Lead Engineer  
-**Project phase:** Phase 3 - PRD-005 Business Configuration Closed  
-**Status source:** Current repository state after PRD-005 validation
+**Project phase:** Phase 3 - PRD-006 Knowledge Management In Progress
+**Status source:** Current PRD-006 feature branch before CTO review
 
 ## Executive Summary
 
@@ -21,17 +21,19 @@ core engines are implemented and closed:
 The Stabilization Sprint recovered all quality gates, and Docker/PostgreSQL
 validation confirmed real DB-backed runtime operation.
 
-Phase 3 product increments PRD-001 through PRD-005 are implemented and closed
-without changing Core Engine responsibilities.
+Product v1.0.0 is released. Phase 3 product increments PRD-001 through PRD-005
+are implemented and closed. PRD-006 Knowledge Management is implemented on its
+feature branch without changing Core Engine responsibilities or public
+conversation contracts.
 
 ## Quality Gates
 
 | Gate | Current result |
 |---|---|
-| `pytest` | 545 passed, 1 warning |
+| `pytest` | 557 passed, 1 warning |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 224 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 224 source files |
+| `black --check app tests` | 239 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 239 source files |
 
 ## Phase 3 Product Status
 
@@ -42,7 +44,8 @@ without changing Core Engine responsibilities.
 | PRD-003 Roles and Permissions | CLOSED |
 | PRD-004 Bot Management | CLOSED |
 | PRD-005 Business Configuration | CLOSED |
-| PRD-006 | NOT STARTED |
+| PRD-006 Knowledge Management | IN PROGRESS |
+| PRD-007 through PRD-022 | NOT STARTED |
 
 ## PRD-004 Bot Management
 
@@ -76,7 +79,34 @@ without changing Core Engine responsibilities.
 | Inactive organization write blocking | PASS |
 | Inactive bot read preservation | PASS |
 | Docker smoke tests | PASS |
-| PRD-006 | Not started |
+| PRD-006 | In progress |
+
+## PRD-006 Knowledge Management
+
+| Area | Current result |
+|---|---|
+| Domain contracts | PASS |
+| Application service | PASS |
+| Administrative API | PASS |
+| RBAC integration | PASS |
+| SQL tenant filtering and pagination | PASS |
+| `IntegrityError` rollback and conflict translation | PASS |
+| Isolated published-entry provider | PASS |
+| Alembic migration | PASS - `20260729_0007`, one head |
+| Automated regression suite | PASS - 557 passed, 1 warning |
+| Docker/PostgreSQL validation | PASS - clean volume and API restart |
+| Conversation runtime connection | BLOCKED RUNTIME INTEGRATION |
+| PRD-007 | Not started |
+
+The provider requires explicit `organization_id` and `bot_id` and returns only
+published entries. Draft and archived entries are excluded.
+
+**BLOCKED RUNTIME INTEGRATION**
+
+The conversation runtime currently does not resolve organization_id and bot_id.
+The bot-scoped Knowledge provider is implemented and tested, but its runtime
+connection to the Conversation Core is deferred to PRD-007 WhatsApp
+Configuration, where bot-to-channel routing will establish that identity.
 
 ## Infrastructure Validation
 
@@ -85,9 +115,9 @@ without changing Core Engine responsibilities.
 | Docker daemon | PASS - Docker Desktop 4.82.0, engine 29.6.1 |
 | Docker Compose | PASS - PostgreSQL and API started |
 | PostgreSQL | PASS - database `botwa`, user `botwa` |
-| Alembic | PASS - revision `20260728_0006 (head)` |
-| DB persistence | PASS - business configuration records persisted after API restart |
-| Docker smoke tests | PASS - health, version, messages, business configuration CRUD/RBAC |
+| Alembic | PASS - revision `20260729_0007 (head)`, downgrade/upgrade validated |
+| DB persistence | PASS - knowledge records persisted after API restart |
+| Docker smoke tests | PASS - health, version, knowledge lifecycle, RBAC, tenancy, provider |
 | Integration controlled errors | PASS - covered by regression suite |
 
 ## Runtime And Test Mode
@@ -116,13 +146,14 @@ Only the following items remain pending:
 
 - Validate real WhatsApp Cloud API webhook and outbound flow with approved credentials or sandbox.
 - Add CI/CD when the release branch is ready.
-- Define future PRDs for bot-to-channel routing, bot-specific Knowledge, and Core consumption of Business Configuration if required.
+- Connect bot-scoped Knowledge to the Conversation runtime only after PRD-007
+  establishes bot-to-channel identity.
 
 ## Next Official Objective
 
-**CTO review of PRD-005 closure.**
+**Complete PRD-006 validation and submit its Draft PR for CTO review.**
 
-Do not start PRD-006 without explicit CTO approval.
+Do not start PRD-007 without explicit CTO approval.
 
 ## CTO Review Status
 

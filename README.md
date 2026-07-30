@@ -1,15 +1,15 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-005 cerrada
+## Estado actual - Phase 3 / PRD-006 en progreso
 
-Quality Gates (2026-07-28):
+Quality Gates (PRD-006):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **545 passed, 1 warning** |
+| `pytest` | **557 passed, 1 warning** |
 | `ruff check app tests` | **All checks passed** |
-| `black --check app tests` | **224 files would be left unchanged** |
-| `mypy app tests` | **Success: no issues found in 224 source files** |
+| `black --check app tests` | **239 files would be left unchanged** |
+| `mypy app tests` | **Success: no issues found in 239 source files** |
 
 La base actual incluye 5 Engines:
 
@@ -23,9 +23,11 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial del proyecto: **Phase 3 - PRD-005 Business Configuration Closed**.
+Estado oficial del proyecto: **Product v1.0.0 Released - Phase 3 / PRD-006 Knowledge Management In Progress**.
 
-Próximo objetivo oficial: CTO review de PRD-005. No iniciar PRD-006 sin autorización explícita. WhatsApp real/live permanece `BLOCKED - EXTERNAL CREDENTIALS REQUIRED`.
+Próximo objetivo oficial: validar PRD-006 y someter su Draft PR a revisión CTO.
+No iniciar PRD-007 sin autorización explícita. WhatsApp real/live permanece
+`BLOCKED - EXTERNAL CREDENTIALS REQUIRED`.
 
 Asistente conversacional multicanal con integración WhatsApp Cloud API, motor de conocimiento y persistencia.
 
@@ -246,6 +248,13 @@ app/
 | POST | `/bots/{bot_id}/business-configuration` | Crear configuración de negocio del bot | business-configuration |
 | GET | `/bots/{bot_id}/business-configuration` | Consultar configuración de negocio visible | business-configuration |
 | PATCH | `/bots/{bot_id}/business-configuration` | Actualizar configuración de negocio | business-configuration |
+| POST | `/organizations/{organization_id}/bots/{bot_id}/knowledge` | Crear entrada draft | knowledge-management |
+| GET | `/organizations/{organization_id}/bots/{bot_id}/knowledge` | Listar con filtros y paginación | knowledge-management |
+| GET | `/organizations/{organization_id}/bots/{bot_id}/knowledge/{knowledge_id}` | Consultar entrada | knowledge-management |
+| PATCH | `/organizations/{organization_id}/bots/{bot_id}/knowledge/{knowledge_id}` | Actualizar entrada | knowledge-management |
+| DELETE | `/organizations/{organization_id}/bots/{bot_id}/knowledge/{knowledge_id}` | Eliminar entrada | knowledge-management |
+| POST | `/organizations/{organization_id}/bots/{bot_id}/knowledge/{knowledge_id}/publish` | Publicar draft | knowledge-management |
+| POST | `/organizations/{organization_id}/bots/{bot_id}/knowledge/{knowledge_id}/archive` | Archivar entrada | knowledge-management |
 | GET | `/webhooks/whatsapp` | VerificaciÃ³n de webhook Meta | whatsapp |
 | POST | `/webhooks/whatsapp` | RecepciÃ³n de eventos WhatsApp | whatsapp |
 
@@ -320,7 +329,7 @@ Cuando `BOTWA_USE_DATABASE=true`, al recibir un mensaje se persiste:
 5. **KnowledgeQueryLog**: consultas procesadas por Knowledge Engine
 6. **AutomationExecution / AutomationTaskExecution**: ejecuciones persistidas de Automation Engine
 7. **IntegrationEvent**: eventos persistibles de Integration Engine
-8. **Organization / User / Bot / BusinessConfiguration**: capacidades de producto Phase 3 con persistencia PostgreSQL
+8. **Organization / User / Bot / BusinessConfiguration / KnowledgeEntry**: capacidades de producto Phase 3 con persistencia PostgreSQL
 
 ### Modelos ORM
 
@@ -335,6 +344,7 @@ Cuando `BOTWA_USE_DATABASE=true`, al recibir un mensaje se persiste:
 - `app_user` - PRD-002 user identity records with Argon2 password hash and auth version
 - `bot` - PRD-004 bot records scoped by organization
 - `business_configuration` - PRD-005 business configuration records scoped by bot
+- `knowledge_entry` - PRD-006 manual knowledge scoped by organization and bot
 
 ### Migraciones Alembic
 
@@ -350,7 +360,8 @@ alembic/versions/
 ├── 20260728_0003_create_user_table.py
 ├── 20260728_0004_add_user_roles.py
 ├── 20260728_0005_create_bot_table.py
-└── 20260728_0006_create_business_configuration_table.py
+├── 20260728_0006_create_business_configuration_table.py
+└── 20260729_0007_create_knowledge_entry_table.py
 ```
 
 ## Authentication and Users
@@ -393,6 +404,30 @@ PRD-004 and PRD-005 add tenant-scoped product administration on top of the Core.
 - `platform_admin` can operate across organizations.
 - Bots from inactive organizations cannot have configuration modified.
 - Inactive bots can retain and expose their configuration.
+
+## Knowledge Management
+
+PRD-006 adds an administrative knowledge layer without replacing or changing
+the Knowledge Engine.
+
+- Each entry is scoped by both organization and bot.
+- States are `draft`, `published`, and `archived`.
+- Valid transitions are draft to published, draft to archived, and published to
+  archived. Restoration and published-to-draft are not supported.
+- Title is limited to 200 characters and content to 20,000 characters.
+- Lists filter in SQL by tenant and bot, support status/basic text search, and
+  return `items`, `total`, `page`, and `page_size`; maximum page size is 100.
+- `viewer` reads; `operator` reads, creates, and updates; owner/admin have full
+  control; `platform_admin` uses the existing cross-tenant mechanism.
+- `BotKnowledgeProvider` requires explicit organization and bot IDs and returns
+  only published entries.
+
+### BLOCKED RUNTIME INTEGRATION
+
+The conversation runtime currently does not resolve organization_id and bot_id.
+The bot-scoped Knowledge provider is implemented and tested, but its runtime
+connection to the Conversation Core is deferred to PRD-007 WhatsApp
+Configuration, where bot-to-channel routing will establish that identity.
 
 ## WhatsApp Cloud API
 
@@ -484,7 +519,10 @@ Esto ejecuta el flujo estÃ¡ndar:
 
 ## Tests
 
-**545 tests passing, 1 warning**. Los tests locales usan modo in-memory sin Docker/PostgreSQL. La validación Docker/PostgreSQL real de Phase 2 y del Release Candidate posterior a PRD-005 pasó con API y DB levantadas por `docker compose`.
+**557 tests passing, 1 warning**. Ruff, Black y mypy están limpios sobre 239
+archivos. Los tests locales usan modo in-memory sin Docker/PostgreSQL. PRD-006
+también fue validado desde volumen limpio con Docker/PostgreSQL, migración
+`20260729_0007`, smoke multi-tenant/provider y persistencia tras reiniciar la API.
 
 | Area | Tests | Cobertura principal |
 |------|-------|---------------------|

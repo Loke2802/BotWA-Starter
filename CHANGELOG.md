@@ -1,5 +1,46 @@
 # Changelog
 
+## PRD-007 WhatsApp Configuration - 2026-07-30
+
+### Added
+
+- Generic channel identity, resolved context, and resolver contracts.
+- Tenant/bot-scoped WhatsApp channel configuration contracts, service, API,
+  SQLAlchemy model, SQL/in-memory repositories, and lifecycle.
+- Fernet authenticated secret encryption using environment-managed current and
+  previous keys.
+- Dedicated secret rotation with safe configuration flags.
+- Direct SQL WhatsApp resolver by active phone number ID.
+- Configuration-specific webhook challenge and HMAC SHA-256 validation routes.
+- Resolver-to-Knowledge integration using explicit organization and bot context.
+- Alembic migration `20260730_0008`.
+- RBAC permissions for read, create, update, delete, activate, and rotate secrets.
+
+### Security
+
+- Secret plaintext and ciphertext are excluded from all output DTOs.
+- Phone number ID and public webhook ID have global database uniqueness.
+- Mutations use row locking; persistence conflicts roll back and return generic
+  domain conflicts.
+- Invalid webhook tokens/signatures return `403` without disclosing expectations.
+- Uvicorn access logs redact the `hub.verify_token` query value.
+
+### Validated
+
+- 572 tests passing with one upstream Starlette deprecation warning.
+- Ruff, Black, and mypy clean across 263 source files.
+- Docker Compose API/PostgreSQL startup and Alembic
+  upgrade/downgrade/upgrade with one head at `20260730_0008`.
+- Encrypted DB persistence, restart survival, lifecycle, RBAC, multi-tenancy,
+  SQL pagination, global uniqueness, resolver/provider identity, challenge, and
+  HMAC validation.
+
+### Not Included
+
+- PRD-008, live message processing, outbound Meta calls, changes to
+  `ConversationMessage`, Core Engine changes, templates, media, retries, or
+  additional channel implementations.
+
 ## PRD-006 Knowledge Management - 2026-07-29
 
 ### Added

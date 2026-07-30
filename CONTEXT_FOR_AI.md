@@ -1,7 +1,7 @@
 # BotWA Starter - Context For AI Assistants
 
-**Last updated:** 2026-07-29  
-**Project phase:** Phase 3 - PRD-006 Knowledge Management In Progress
+**Last updated:** 2026-07-30
+**Project phase:** Phase 3 - PRD-007 WhatsApp Configuration In Progress
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
@@ -12,8 +12,9 @@ quality gates. Core v1.0.0 is validated and Phase 2 is closed.
 
 Product v1.0.0 is released. PRD-001 Organizations, PRD-002 Authentication and
 Users, PRD-003 Roles and Permissions, PRD-004 Bot Management, and PRD-005
-Business Configuration are implemented and closed. PRD-006 Knowledge
-Management is implemented on its feature branch and awaits CTO review.
+Business Configuration and PRD-006 Knowledge Management are implemented and
+closed. PRD-007 WhatsApp Configuration is implemented and validated on its
+feature branch and awaits CTO review.
 
 All five core engines are implemented and closed:
 
@@ -31,19 +32,19 @@ Current validated gates:
 
 | Gate | Result |
 |---|---|
-| `pytest` | 557 passed, 1 warning |
+| `pytest` | 572 passed, 1 warning |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 239 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 239 source files |
+| `black --check app tests` | 263 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 263 source files |
 
 ## Infrastructure Validation
 
 | Area | Result |
 |---|---|
 | Docker/PostgreSQL | PASS |
-| Alembic migrations | PASS - `20260729_0007 (head)`, one head |
-| DB-backed product persistence | PASS - KnowledgeEntry survives API restart |
-| Docker smoke tests | PASS - PRD-006 lifecycle, RBAC, tenancy, filters, provider |
+| Alembic migrations | PASS - `20260730_0008 (head)`, one head |
+| DB-backed product persistence | PASS - KnowledgeEntry and WhatsApp configuration survive API restart |
+| Docker smoke tests | PASS - PRD-007 lifecycle, RBAC, tenancy, resolver/provider, webhook security |
 | Integration controlled errors | PASS |
 | WhatsApp local contracts/webhook/sender | PASS |
 | WhatsApp real/live | BLOCKED - EXTERNAL CREDENTIALS REQUIRED |
@@ -68,8 +69,8 @@ Current validated gates:
 
 ## Current Official Objective
 
-The next step is complete validation and CTO review of PRD-006. Do not start
-PRD-007 without explicit CTO approval.
+The next step is Draft PR and CTO review of the validated PRD-007 branch. Do not
+start PRD-008 without explicit CTO approval.
 
 **Phase 3**
 
@@ -80,8 +81,8 @@ PRD-007 without explicit CTO approval.
 | 3 | PRD-003 Roles and Permissions | CLOSED |
 | 4 | PRD-004 Bot Management | CLOSED |
 | 5 | PRD-005 Business Configuration | CLOSED |
-| 6 | PRD-006 Knowledge Management | IN PROGRESS |
-| 7 | PRD-007 WhatsApp Configuration | NOT STARTED |
+| 6 | PRD-006 Knowledge Management | CLOSED |
+| 7 | PRD-007 WhatsApp Configuration | IN PROGRESS |
 | 8 | PRD-008 WhatsApp Live Messaging | NOT STARTED |
 | 9 | PRD-009 Conversations Management | NOT STARTED |
 | 10 | PRD-010 Human Handoff | NOT STARTED |
@@ -99,14 +100,27 @@ The MVP milestone comprises PRD-001 through PRD-010.
   `page_size`.
 - `BotKnowledgeProvider` requires explicit organization and bot identifiers and
   returns only published entries.
-- Migration target is `20260729_0007`.
+- PRD-006 migration revision is `20260729_0007`; the current project head is
+  `20260730_0008`.
 
-### BLOCKED RUNTIME INTEGRATION
+### Runtime Integration Status
 
-The conversation runtime currently does not resolve organization_id and bot_id.
-The bot-scoped Knowledge provider is implemented and tested, but its runtime
-connection to the Conversation Core is deferred to PRD-007 WhatsApp
-Configuration, where bot-to-channel routing will establish that identity.
+PRD-007 provides generic `ResolvedChannelContext` identity and a
+`WhatsAppChannelResolver`. Resolver-to-Knowledge integration is implemented and
+tested. Live message processing and Conversation Core wiring remain deferred to
+PRD-008.
+
+## PRD-007 WhatsApp Configuration
+
+- BotWA remains multichannel; WhatsApp is the first production adapter.
+- Generic channel contracts do not depend on Meta or WhatsApp DTOs.
+- WhatsApp configurations are tenant/bot scoped and have draft/active/inactive
+  lifecycle.
+- Secrets use environment-backed authenticated encryption and safe output flags.
+- Runtime lookup uses globally unique indexed phone number IDs.
+- Webhook verification and HMAC validation are configuration-specific.
+- Uvicorn access logs redact `hub.verify_token`.
+- No live messaging or Meta call is added.
 
 ## Remaining Real Debt
 
@@ -125,8 +139,7 @@ Active post-closure debt:
 
 - Validate WhatsApp with real credentials and webhook.
 - Add CI/CD after the local Core release is tagged.
-- Connect bot-scoped Knowledge to Conversation only after PRD-007 provides
-  bot-to-channel identity.
+- Connect resolved channel context to live conversation processing in PRD-008.
 
 ## Technology Baseline
 

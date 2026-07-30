@@ -1,15 +1,15 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-008 en revisión
+## Estado actual - Phase 3 / PRD-009 en progreso
 
-Quality Gates (PRD-008):
+Quality Gates (PRD-009, validación final completada):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **603 passed, 1 warning** |
+| `pytest` | **606 passed, 1 warning** |
 | `ruff check app tests` | **All checks passed** |
-| `black --check app tests` | **286 files would be left unchanged** |
-| `mypy app tests` | **Success: no issues found in 286 source files** |
+| `black --check app tests` | **297 files would be left unchanged** |
+| `mypy app tests` | **Success: no issues found in 297 source files** |
 
 La base actual incluye 5 Engines:
 
@@ -23,12 +23,11 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial del proyecto: **Product v1.0.0 Released - Phase 3 / PRD-008 WhatsApp Live Messaging Pending CTO Review**.
+Estado oficial del proyecto: **Product v1.0.0 Released - Phase 3 / PRD-009 Conversations Management In Progress**.
 
-PRD-007 está cerrado. PRD-008 está implementado y validado localmente con
-Docker/PostgreSQL y cliente fake; su siguiente paso es Draft PR y revisión CTO.
-PRD-009 no ha iniciado. La validación contra Meta real permanece bloqueada por
-credenciales externas.
+PRD-008 está cerrado. PRD-009 extiende la administración multi-tenant de
+conversaciones y mensajes sin iniciar Human Handoff. PRD-010 permanece sin
+iniciar. La validación contra Meta real sigue bloqueada por credenciales externas.
 
 Asistente conversacional multicanal con integración WhatsApp Cloud API, motor de conocimiento y persistencia.
 
@@ -264,6 +263,12 @@ app/
 | POST | `/organizations/{organization_id}/bots/{bot_id}/whatsapp-configurations/{configuration_id}/activate` | Activar configuración | whatsapp-configuration |
 | POST | `/organizations/{organization_id}/bots/{bot_id}/whatsapp-configurations/{configuration_id}/deactivate` | Desactivar configuración | whatsapp-configuration |
 | POST | `/organizations/{organization_id}/bots/{bot_id}/whatsapp-configurations/{configuration_id}/rotate-secrets` | Rotar secretos | whatsapp-configuration |
+| GET | `/organizations/{organization_id}/conversations` | Listar conversaciones paginadas y filtradas | conversation-management |
+| GET | `/organizations/{organization_id}/conversations/{conversation_id}` | Consultar detalle seguro | conversation-management |
+| GET | `/organizations/{organization_id}/conversations/{conversation_id}/messages` | Consultar historial paginado con permiso de contenido | conversation-management |
+| POST | `/organizations/{organization_id}/conversations/{conversation_id}/close` | Cerrar lifecycle administrativo | conversation-management |
+| POST | `/organizations/{organization_id}/conversations/{conversation_id}/reopen` | Reabrir lifecycle administrativo | conversation-management |
+| POST | `/organizations/{organization_id}/conversations/{conversation_id}/archive` | Archivar lifecycle administrativo | conversation-management |
 | GET | `/webhooks/whatsapp/{public_webhook_id}` | Verificar challenge por configuración | whatsapp-configuration |
 | POST | `/webhooks/whatsapp/{public_webhook_id}` | Procesar mensajes y estados firmados | whatsapp-live-messaging |
 | POST | `/webhooks/whatsapp/{public_webhook_id}/validate-signature` | Validar HMAC sin procesar mensajes | whatsapp-configuration |
@@ -353,6 +358,7 @@ Cuando `BOTWA_USE_DATABASE=true`, al recibir un mensaje se persiste:
 7. **IntegrationEvent**: eventos persistibles de Integration Engine
 8. **Organization / User / Bot / BusinessConfiguration / KnowledgeEntry / WhatsAppChannelConfiguration**: capacidades de producto Phase 3 con persistencia PostgreSQL
 9. **InboundMessageReceipt / OutboundMessageAttempt**: idempotencia y entrega técnica PRD-008 con contenido sensible cifrado
+10. **Conversation / Message**: administración PRD-009 tenant-scoped, lifecycle y contenido cifrado enlazado a transporte
 
 ### Modelos ORM
 
@@ -371,6 +377,8 @@ Cuando `BOTWA_USE_DATABASE=true`, al recibir un mensaje se persiste:
 - `whatsapp_channel_configuration` - PRD-007 configuraciones por tenant/bot con secretos cifrados
 - `inbound_message_receipt` - recibos idempotentes por canal y mensaje externo, sin texto
 - `outbound_message_attempt` - entrega, reintento y estado de proveedor con destinatario/texto cifrados
+- `conversation` - fuente de verdad existente extendida con tenant/bot, lifecycle administrativo, actividad y contadores
+- `message` - fuente de verdad existente extendida con dirección, estado, texto cifrado y enlaces técnicos opcionales
 
 ### Migraciones Alembic
 
@@ -389,7 +397,8 @@ alembic/versions/
 ├── 20260728_0006_create_business_configuration_table.py
 ├── 20260729_0007_create_knowledge_entry_table.py
 ├── 20260730_0008_create_whatsapp_channel_configuration_table.py
-└── 20260730_0009_create_whatsapp_message_transport_tables.py
+├── 20260730_0009_create_whatsapp_message_transport_tables.py
+└── 20260730_0010_create_conversation_management_tables.py
 ```
 
 ## Authentication and Users
@@ -510,6 +519,22 @@ WhatsAppChannelMessageSender
   retroceden ante eventos antiguos.
 - No se registran bodies de Meta, tokens, firmas, texto ni identificadores completos.
 
+## Conversations Management
+
+PRD-009 extiende las tablas existentes `conversation` y `message`; no crea un
+historial paralelo. La identidad administrativa combina organización, bot, canal
+e identidad externa. Los mensajes generados por canales se cifran en reposo y se
+vinculan opcionalmente a receipts e intentos outbound sin sustituir sus
+responsabilidades técnicas.
+
+- Lifecycle administrativo: `open`, `closed`, `archived`.
+- Un inbound puede reabrir una conversación cerrada; una archivada no se reabre.
+- Los listados devuelven identificadores de cliente enmascarados.
+- `conversation.read` permite metadatos; `conversation.read_content` controla el
+  texto descifrado.
+- El historial se pagina por `occurred_at` e `id`; no se descifra contenido para
+  buscarlo en memoria.
+
 ## Desarrollo
 
 ### Requisitos
@@ -565,11 +590,11 @@ Esto ejecuta el flujo estÃ¡ndar:
 
 ## Tests
 
-**603 tests passing, 1 warning**. Ruff, Black y mypy están limpios sobre 286
-archivos. Los tests locales usan modo in-memory sin Docker/PostgreSQL. PRD-008
-fue validado con Docker/PostgreSQL real, migración `20260730_0009`, HMAC previo
-al parseo, idempotencia secuencial/concurrente, persistencia cifrada, estados de
-entrega y supervivencia tras reiniciar la API.
+**606 tests passing, 1 warning**. Ruff, Black y mypy están limpios sobre 297
+archivos. Los tests locales usan modo in-memory sin Docker/PostgreSQL. PRD-009
+fue validado con Docker/PostgreSQL real, migración `20260730_0010`, HMAC previo
+al parseo, idempotencia secuencial/concurrente, persistencia cifrada, lifecycle
+administrativo, RBAC de contenido y supervivencia tras reiniciar la API.
 
 | Area | Tests | Cobertura principal |
 |------|-------|---------------------|

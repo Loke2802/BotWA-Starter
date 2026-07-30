@@ -39,6 +39,10 @@ Permission = Literal[
     "whatsapp_config.delete",
     "whatsapp_config.activate",
     "whatsapp_config.rotate_secrets",
+    "conversation.read",
+    "conversation.read_content",
+    "conversation.close",
+    "conversation.archive",
     "platform.organizations.read",
     "platform.organizations.manage",
 ]
@@ -79,6 +83,10 @@ ALL_PERMISSIONS: tuple[Permission, ...] = (
     "whatsapp_config.delete",
     "whatsapp_config.activate",
     "whatsapp_config.rotate_secrets",
+    "conversation.read",
+    "conversation.read_content",
+    "conversation.close",
+    "conversation.archive",
     "platform.organizations.read",
     "platform.organizations.manage",
 )
@@ -114,6 +122,10 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "whatsapp_config.delete",
             "whatsapp_config.activate",
             "whatsapp_config.rotate_secrets",
+            "conversation.read",
+            "conversation.read_content",
+            "conversation.close",
+            "conversation.archive",
         )
     ),
     "organization_admin": frozenset(
@@ -144,6 +156,10 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "whatsapp_config.delete",
             "whatsapp_config.activate",
             "whatsapp_config.rotate_secrets",
+            "conversation.read",
+            "conversation.read_content",
+            "conversation.close",
+            "conversation.archive",
         )
     ),
     "operator": frozenset(
@@ -158,6 +174,9 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "whatsapp_config.read",
             "whatsapp_config.create",
             "whatsapp_config.update",
+            "conversation.read",
+            "conversation.read_content",
+            "conversation.close",
         )
     ),
     "viewer": frozenset(
@@ -167,6 +186,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "business_configuration.read",
             "knowledge.read",
             "whatsapp_config.read",
+            "conversation.read",
         )
     ),
 }

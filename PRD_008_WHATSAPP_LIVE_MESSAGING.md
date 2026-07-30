@@ -432,9 +432,9 @@ explicit `BOTWA_WHATSAPP_LIVE_CLIENT_MODE=meta`.
 
 ## Relationship With PRD-009
 
-PRD-008 stores only technical receipts and delivery attempts. PRD-009 will own
-administrative conversation management, history views, search, and filtering.
-No PRD-009 API or UI is included.
+PRD-008 stores only technical receipts and delivery attempts. PRD-009 now owns
+administrative conversation history and lifecycle while preserving the transport
+tables as the technical idempotency/delivery source of truth.
 
 ## Relationship With PRD-010
 

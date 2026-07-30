@@ -1,13 +1,13 @@
 # BotWA Product Roadmap v1.0
 
-**Status:** PRD-008 WhatsApp Live Messaging Pending CTO Review
+**Status:** PRD-009 Conversations Management In Progress
 **Date:** 2026-07-30
 
 ## Current State
 
 Core v1.0.0 and Product v1.0.0 are released. Phase 3 Product Development has
-completed PRD-001 through PRD-007. PRD-008 is implemented and validated on its
-feature branch and remains in progress pending CTO review and merge.
+completed PRD-001 through PRD-008. PRD-009 Conversations Management is in
+progress on its feature branch.
 
 **MVP milestone:** PRD-001 through PRD-010.
 
@@ -22,8 +22,8 @@ feature branch and remains in progress pending CTO review and merge.
 | 5 | PRD-005 Business Configuration | CLOSED |
 | 6 | PRD-006 Knowledge Management | CLOSED |
 | 7 | PRD-007 WhatsApp Configuration | CLOSED |
-| 8 | PRD-008 WhatsApp Live Messaging | IN PROGRESS - PENDING CTO REVIEW |
-| 9 | PRD-009 Conversations Management | NOT STARTED |
+| 8 | PRD-008 WhatsApp Live Messaging | CLOSED |
+| 9 | PRD-009 Conversations Management | IN PROGRESS |
 | 10 | PRD-010 Human Handoff | NOT STARTED |
 | 11 | PRD-011 Contacts and Customers | NOT STARTED |
 | 12 | PRD-012 Automation Management | NOT STARTED |
@@ -51,11 +51,11 @@ feature branch and remains in progress pending CTO review and merge.
 
 | Gate | Result |
 |---|---|
-| `pytest` | 603 passed, 1 warning |
+| `pytest` | 606 passed, 1 warning |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 286 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 286 source files |
-| Docker/PostgreSQL | PASS - `20260730_0009`, migration cycle, signed smoke, deduplication, and restart persistence |
+| `black --check app tests` | 297 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 297 source files |
+| Docker/PostgreSQL | PASS - migration cycle, signed flow, lifecycle/RBAC, and restart at `20260730_0010` |
 
 ## Channel Runtime Boundary
 
@@ -68,10 +68,17 @@ bot-scoped Knowledge lookup, the unchanged Conversation Core, durable
 idempotency, encrypted delivery attempts, and an injectable Meta-compatible
 client. Real Meta validation remains blocked by external credentials.
 
+## Conversation Management Boundary
+
+PRD-009 extends the existing Core conversation/message persistence with scoped
+administrative lifecycle, encrypted channel history, SQL pagination, and separate
+content-read authorization. Receipts and outbound attempts retain their PRD-008
+technical responsibilities. PRD-010 Human Handoff remains out of scope.
+
 ## Guardrails
 
 - Product work must use existing Engines.
 - Core architecture remains stable.
 - New functionality must be tied to PRDs.
 - Quality gates remain mandatory.
-- Do not start PRD-009 without explicit CTO approval.
+- Do not start PRD-010 without explicit CTO approval.

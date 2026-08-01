@@ -192,12 +192,14 @@ class WhatsAppLiveMessageProcessor:
                     }
                 )
                 outbound = self._handler.handle(message)
-                attempt_ids = await self._send_outbound(
-                    receipt.id,
-                    context,
-                    outbound,
-                    correlation_id,
-                )
+                attempt_ids = ()
+                if not outbound.metadata.get("handoff_blocked"):
+                    attempt_ids = await self._send_outbound(
+                        receipt.id,
+                        context,
+                        outbound,
+                        correlation_id,
+                    )
                 self._receipt_repository.mark_processed(receipt.id, self._now())
                 self._session.commit()
             except Exception:

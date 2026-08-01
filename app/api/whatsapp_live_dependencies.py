@@ -16,6 +16,7 @@ from app.application.conversation_management.managed_handler import (
 from app.application.conversation_management.service import (
     ConversationManagementService,
 )
+from app.application.human_handoff.service import HumanHandoffService
 from app.application.knowledge_management.provider import BotKnowledgeProvider
 from app.application.whatsapp_configuration.resolver import (
     WhatsAppChannelResolver,
@@ -30,6 +31,9 @@ from app.infrastructure.repositories.bot_repository import BotRepository
 from app.infrastructure.repositories.conversation_management_repository import (
     SqlAlchemyConversationManagementRepository,
     SqlAlchemyConversationMessageManagementRepository,
+)
+from app.infrastructure.repositories.human_handoff_repository import (
+    HumanHandoffRepository,
 )
 from app.infrastructure.repositories.knowledge_entry_repository import (
     SqlAlchemyKnowledgeEntryRepository,
@@ -87,6 +91,7 @@ def get_whatsapp_live_message_processor(
         cipher=secret_cipher,
         session=session,
     )
+    handoff = HumanHandoffService(HumanHandoffRepository(session), session)
     handler = ManagedChannelConversationHandler(
         ChannelConversationHandler(
             conversation_service,
@@ -94,6 +99,7 @@ def get_whatsapp_live_message_processor(
             persist_core_messages=False,
         ),
         management,
+        handoff,
     )
     sender = WhatsAppChannelMessageSender(
         configuration_repository,

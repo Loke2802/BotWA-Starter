@@ -145,5 +145,7 @@ reports no issues in 297 source files. Docker/PostgreSQL validation applied
 `20260730_0010`, exercised a signed inbound flow, lifecycle and RBAC, API restart,
 and downgrade/upgrade back to the single head.
 
-Non-blocking debt: retention policy, safe preview/full-text search, repair of
-legacy unscoped Core rows, and any human workflow belong to later approved work.
+Non-blocking debt: retention policy, safe preview/full-text search, and repair
+of legacy unscoped Core rows. PRD-010 now integrates through the managed
+conversation boundary: active handoffs prevent archive and suppress automatic
+Core delivery while retaining inbound administrative history.

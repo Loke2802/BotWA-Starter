@@ -209,7 +209,13 @@ Only the following items remain pending:
 
 **Complete final PRD-009 quality gates and submit its Draft PR for CTO review.**
 
-Do not start PRD-010 without explicit CTO approval.
+## PRD-010 Status
+
+In progress, pending CTO review. PostgreSQL validated lifecycle/RBAC, tenancy,
+archive protection, encrypted replies, idempotency, transport-error mapping,
+and isolated Docker smoke while preserving the original volume. The FK fix
+flushes `HandoffSession` before `HandoffEvent`. Real Meta remains external;
+PRD-011 is not started.
 
 ## CTO Review Status
 

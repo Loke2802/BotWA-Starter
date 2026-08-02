@@ -322,3 +322,11 @@ Configuration, where bot-to-channel routing will establish that identity.
 ### Blocked
 
 - WhatsApp real/live validation remains blocked pending external credentials or sandbox access.
+
+## PRD-010 Human Handoff (pending CTO review)
+
+- Added scoped lifecycle, events, RBAC/tenancy checks, archive protection, and
+  bot suppression/resume.
+- Added encrypted, attributed, idempotent human replies linked to outbound attempts.
+- Added migration `20260730_0011` and idempotency migration `20260730_0012`.
+- Validated an isolated PostgreSQL Docker smoke without deleting the original volume.

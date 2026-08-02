@@ -624,3 +624,12 @@ administrativo, RBAC de contenido y supervivencia tras reiniciar la API.
 - **Core v1.0.0** Phase 2 Closed: Docker/PostgreSQL, migraciones, persistencia DB-backed, smoke tests y quality gates validados
 - **PRD-001 Organizations** Phase 3: contratos, servicio de aplicación, API, persistencia PostgreSQL, migración Alembic y tests
 
+## PRD-010 Human Handoff
+
+PRD-001 through PRD-009 are closed. PRD-010 is **in progress, pending CTO
+review**: it adds a tenant-scoped handoff lifecycle, bot suppression, encrypted
+and attributed human replies through the generic channel sender, idempotency,
+archive protection, and safe transport errors. The technical MVP is implemented
+on this branch pending merge and post-merge validation; PRD-011 through PRD-022
+are not started. Real Meta validation needs external credentials.
+

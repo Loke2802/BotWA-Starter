@@ -184,4 +184,10 @@ Active post-closure debt:
 
 ## CTO Review Status
 
-READY FOR CTO REVIEW
+## PRD-010 Status
+
+PRD-001 through PRD-009 are closed. PRD-010 is in progress, pending CTO review:
+its technical MVP is implemented on branch, but official closure requires merge
+and post-merge validation. Preserve its boundaries: human replies use the
+generic sender, remain encrypted and idempotent, and active handoffs suppress
+automation. PRD-011 through PRD-022 are not started.

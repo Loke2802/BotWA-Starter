@@ -17,6 +17,7 @@ from app.domain.channel.contracts import (
 from app.domain.user.contracts import User
 from app.infrastructure.database import Base
 from app.infrastructure.models.bot import BotModel
+from app.infrastructure.models.human_handoff import HandoffSessionModel
 from app.infrastructure.models.message import MessageModel
 from app.infrastructure.models.organization import OrganizationModel
 from app.infrastructure.repositories.bot_repository import BotRepository
@@ -238,3 +239,26 @@ def test_tenant_bot_isolation_outbound_sync_and_pagination(session: Session) -> 
     )
     assert total == 1
     assert items[0].organization_id == organization_id
+
+
+def test_active_handoff_blocks_tenant_scoped_archive(session: Session) -> None:
+    organization_id, bot_id = uuid4(), uuid4()
+    managed = service(session, organization_id, bot_id)
+    conversation_id = uuid4()
+    conversation = managed.record_inbound(
+        inbound(organization_id, bot_id), conversation_id, uuid4()
+    )
+    session.add(
+        HandoffSessionModel(
+            conversation_id=conversation.id,
+            organization_id=organization_id,
+            bot_id=bot_id,
+            status="human_active",
+        )
+    )
+    session.commit()
+
+    with pytest.raises(ConversationManagementConflictError):
+        managed.transition(
+            organization_id, conversation.id, "archived", actor(organization_id)
+        )

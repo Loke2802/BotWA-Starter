@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import structlog
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.application.channel.messaging import (
@@ -37,6 +38,7 @@ from app.domain.whatsapp_live.contracts import (
     WhatsAppParsedWebhook,
     WhatsAppStatusEvent,
 )
+from app.infrastructure.models.message import MessageModel
 from app.infrastructure.models.whatsapp_message_transport import (
     InboundMessageReceiptModel,
     OutboundMessageAttemptModel,
@@ -192,12 +194,14 @@ class WhatsAppLiveMessageProcessor:
                     }
                 )
                 outbound = self._handler.handle(message)
-                attempt_ids = await self._send_outbound(
-                    receipt.id,
-                    context,
-                    outbound,
-                    correlation_id,
-                )
+                attempt_ids: tuple[UUID, ...] = ()
+                if not outbound.metadata.get("handoff_blocked"):
+                    attempt_ids = await self._send_outbound(
+                        receipt.id,
+                        context,
+                        outbound,
+                        correlation_id,
+                    )
                 self._receipt_repository.mark_processed(receipt.id, self._now())
                 self._session.commit()
             except Exception:
@@ -296,6 +300,83 @@ class WhatsAppLiveMessageProcessor:
             correlation_id or uuid4(),
         )
         return True
+
+    async def send_human_reply(
+        self,
+        *,
+        conversation_id: UUID,
+        organization_id: UUID,
+        bot_id: UUID,
+        channel_configuration_id: UUID,
+        recipient_id: str,
+        text: str,
+        idempotency_key: str,
+        author_user_id: UUID,
+    ) -> OutboundMessageAttemptModel:
+        existing = self._session.scalars(
+            select(OutboundMessageAttemptModel).where(
+                OutboundMessageAttemptModel.organization_id == organization_id,
+                OutboundMessageAttemptModel.idempotency_key == idempotency_key,
+            )
+        ).one_or_none()
+        if existing is not None:
+            return existing
+        configuration = self._configuration_repository.get_scoped(
+            channel_configuration_id, organization_id, bot_id
+        )
+        if configuration is None:
+            raise WhatsAppRuntimeRoutingError("channel configuration was not resolved")
+        context = ResolvedChannelContext(
+            channel_type="whatsapp",
+            organization_id=organization_id,
+            bot_id=bot_id,
+            channel_configuration_id=channel_configuration_id,
+            external_channel_id=configuration.phone_number_id,
+        )
+        message = OutboundChannelMessage(
+            channel_type="whatsapp",
+            external_recipient_id=recipient_id,
+            text=text,
+            metadata={"conversation_id": str(conversation_id)},
+        )
+        attempt = OutboundMessageAttemptModel(
+            id=uuid4(),
+            organization_id=organization_id,
+            bot_id=bot_id,
+            channel_configuration_id=channel_configuration_id,
+            external_recipient_hash=_identifier_hash(recipient_id),
+            external_recipient_ciphertext=self._secret_cipher.encrypt(recipient_id),
+            message_ciphertext=self._secret_cipher.encrypt(text),
+            idempotency_key=idempotency_key,
+            status="pending",
+            attempt_count=0,
+            created_at=self._now(),
+            updated_at=self._now(),
+        )
+        try:
+            self._outbound_repository.create_pending(attempt)
+            self._session.commit()
+        except Exception:
+            self._session.rollback()
+            existing = self._session.scalars(
+                select(OutboundMessageAttemptModel).where(
+                    OutboundMessageAttemptModel.organization_id == organization_id,
+                    OutboundMessageAttemptModel.idempotency_key == idempotency_key,
+                )
+            ).one_or_none()
+            if existing is not None:
+                return existing
+            raise
+        self._record_outbound(message, attempt, context)
+        record = self._session.scalars(
+            select(MessageModel).where(MessageModel.outbound_attempt_id == attempt.id)
+        ).one_or_none()
+        if record is not None:
+            record.author_user_id = author_user_id
+            self._session.commit()
+        await self._deliver(attempt.id, context, message, uuid4())
+        self._sync_outbound_attempt(attempt.id)
+        return self._outbound_repository.get(attempt.id) or attempt
 
     async def _send_outbound(
         self,

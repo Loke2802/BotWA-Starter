@@ -43,6 +43,13 @@ Permission = Literal[
     "conversation.read_content",
     "conversation.close",
     "conversation.archive",
+    "handoff.read",
+    "handoff.request",
+    "handoff.claim",
+    "handoff.release",
+    "handoff.transfer",
+    "handoff.resolve",
+    "handoff.reply",
     "platform.organizations.read",
     "platform.organizations.manage",
 ]
@@ -87,6 +94,13 @@ ALL_PERMISSIONS: tuple[Permission, ...] = (
     "conversation.read_content",
     "conversation.close",
     "conversation.archive",
+    "handoff.read",
+    "handoff.request",
+    "handoff.claim",
+    "handoff.release",
+    "handoff.transfer",
+    "handoff.resolve",
+    "handoff.reply",
     "platform.organizations.read",
     "platform.organizations.manage",
 )
@@ -126,6 +140,13 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "conversation.read_content",
             "conversation.close",
             "conversation.archive",
+            "handoff.read",
+            "handoff.request",
+            "handoff.claim",
+            "handoff.release",
+            "handoff.transfer",
+            "handoff.resolve",
+            "handoff.reply",
         )
     ),
     "organization_admin": frozenset(
@@ -160,6 +181,13 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "conversation.read_content",
             "conversation.close",
             "conversation.archive",
+            "handoff.read",
+            "handoff.request",
+            "handoff.claim",
+            "handoff.release",
+            "handoff.transfer",
+            "handoff.resolve",
+            "handoff.reply",
         )
     ),
     "operator": frozenset(
@@ -177,6 +205,11 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "conversation.read",
             "conversation.read_content",
             "conversation.close",
+            "handoff.read",
+            "handoff.claim",
+            "handoff.release",
+            "handoff.resolve",
+            "handoff.reply",
         )
     ),
     "viewer": frozenset(
@@ -187,6 +220,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "knowledge.read",
             "whatsapp_config.read",
             "conversation.read",
+            "handoff.read",
         )
     ),
 }

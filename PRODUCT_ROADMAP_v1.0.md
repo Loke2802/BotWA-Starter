@@ -73,7 +73,9 @@ client. Real Meta validation remains blocked by external credentials.
 PRD-009 extends the existing Core conversation/message persistence with scoped
 administrative lifecycle, encrypted channel history, SQL pagination, and separate
 content-read authorization. Receipts and outbound attempts retain their PRD-008
-technical responsibilities. PRD-010 Human Handoff remains out of scope.
+technical responsibilities. PRD-010 Human Handoff is in progress, pending CTO
+review: its technical MVP is implemented on branch and awaits merge and
+post-merge validation.
 
 ## Guardrails
 
@@ -81,4 +83,7 @@ technical responsibilities. PRD-010 Human Handoff remains out of scope.
 - Core architecture remains stable.
 - New functionality must be tied to PRDs.
 - Quality gates remain mandatory.
-- Do not start PRD-010 without explicit CTO approval.
+- PRD-001 through PRD-009 are closed; PRD-011 through PRD-022 are not started.
+- PRD-010 documents lifecycle/RBAC, tenant isolation, suppression/resume,
+  encrypted idempotent replies, archive protection, and migration chain
+  `0010` → `0011` → `0012`.

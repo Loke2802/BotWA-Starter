@@ -6,8 +6,8 @@ from fastapi import FastAPI
 from app.api.conversation_management_routes import (
     router as conversation_management_router,
 )
-from app.api.human_handoff_routes import router as human_handoff_router
 from app.api.dependencies import get_integration_health_checker
+from app.api.human_handoff_routes import router as human_handoff_router
 from app.api.knowledge_routes import router as knowledge_management_router
 from app.api.routes import router
 from app.api.whatsapp_configuration_routes import (

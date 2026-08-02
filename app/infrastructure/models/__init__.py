@@ -13,8 +13,11 @@ from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.conversation_state_history import (
     ConversationStateHistoryModel,
 )
+from app.infrastructure.models.human_handoff import (
+    HandoffEventModel,
+    HandoffSessionModel,
+)
 from app.infrastructure.models.integration_event import IntegrationEventModel
-from app.infrastructure.models.human_handoff import HandoffEventModel, HandoffSessionModel
 from app.infrastructure.models.knowledge_catalog_entry import (
     KnowledgeCatalogEntryModel,
 )

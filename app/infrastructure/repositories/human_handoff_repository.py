@@ -25,7 +25,9 @@ class HumanHandoffRepository:
         return self._session.scalars(stmt).one_or_none()
 
     def add(self, row: HandoffSessionModel, event: HandoffEventModel) -> None:
-        self._session.add_all((row, event))
+        self._session.add(row)
+        self._session.flush()
+        self._session.add(event)
         self._session.flush()
 
     def event(

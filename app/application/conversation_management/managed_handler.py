@@ -43,7 +43,7 @@ class ManagedChannelConversationHandler(ChannelMessageHandler):
             return OutboundChannelMessage(
                 channel_type=message.channel_type,
                 external_recipient_id=message.external_sender_id,
-                text="",
+                text="handoff-suppressed",
                 metadata={
                     "conversation_id": str(conversation_id),
                     "handoff_blocked": True,

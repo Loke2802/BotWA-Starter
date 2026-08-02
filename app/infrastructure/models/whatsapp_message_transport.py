@@ -98,6 +98,11 @@ class OutboundMessageAttemptModel(Base):
             "provider_message_id",
             name="uq_outbound_message_attempt_provider_message_id",
         ),
+        UniqueConstraint(
+            "organization_id",
+            "idempotency_key",
+            name="uq_outbound_message_attempt_organization_idempotency",
+        ),
         CheckConstraint(
             "status IN ('pending', 'sent', 'delivered', 'read', 'failed')",
             name="outbound_message_attempt_status",
@@ -152,6 +157,9 @@ class OutboundMessageAttemptModel(Base):
     reply_to_external_message_id: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
+    )
+    idempotency_key: Mapped[str | None] = mapped_column(
+        String(128), nullable=True, index=True
     )
     status: Mapped[str] = mapped_column(
         String(20),

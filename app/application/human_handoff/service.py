@@ -207,6 +207,17 @@ class HumanHandoffService:
         row = self._repository.get(conversation_id, organization_id)
         return row is not None and row.status in {"waiting_human", "human_active"}
 
+    def authorize_reply(
+        self, organization_id: UUID, conversation_id: UUID, actor: User
+    ) -> None:
+        self._authorize(actor, "handoff.reply", organization_id)
+        row = self._active(conversation_id, organization_id)
+        if row.status != "human_active":
+            raise HandoffConflictError("handoff is not assigned")
+        self._assigned_or_privileged(row, actor)
+        if row.assigned_user_id is not None:
+            self._active_user(row.assigned_user_id, organization_id)
+
     def _active(
         self, conversation_id: UUID, organization_id: UUID
     ) -> HandoffSessionModel:

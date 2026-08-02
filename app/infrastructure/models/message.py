@@ -27,6 +27,9 @@ class MessageModel(Base):
         Uuid, nullable=True, index=True
     )
     bot_id: Mapped[UUID | None] = mapped_column(Uuid, nullable=True, index=True)
+    author_user_id: Mapped[UUID | None] = mapped_column(
+        Uuid, ForeignKey("app_user.id"), nullable=True, index=True
+    )
     direction: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
     channel_type: Mapped[str | None] = mapped_column(
         String(50), nullable=True, index=True

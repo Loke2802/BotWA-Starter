@@ -2,6 +2,7 @@ from builtins import list as builtin_list
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -18,6 +19,7 @@ from app.domain.conversation_management.contracts import (
 )
 from app.domain.user.contracts import User
 from app.infrastructure.models.conversation import ConversationModel
+from app.infrastructure.models.human_handoff import HandoffSessionModel
 from app.infrastructure.models.message import MessageModel
 from app.infrastructure.repositories.bot_repository import BotRepository
 from app.security.authorization import AuthorizationError, require_scoped_permission
@@ -229,6 +231,20 @@ class ConversationManagementService:
         )
         self._validate(organization_id, actor, permission, None)
         model = self._get_scoped(conversation_id, organization_id)
+        if target == "archived":
+            active_handoff = self._session.scalars(
+                select(HandoffSessionModel)
+                .where(
+                    HandoffSessionModel.conversation_id == conversation_id,
+                    HandoffSessionModel.organization_id == organization_id,
+                    HandoffSessionModel.status.in_(("waiting_human", "human_active")),
+                )
+                .with_for_update()
+            ).one_or_none()
+            if active_handoff is not None:
+                raise ConversationManagementConflictError(
+                    "active handoff prevents conversation archive"
+                )
         allowed = {
             "open": {"closed", "archived"},
             "closed": {"open", "archived"},

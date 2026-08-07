@@ -1,6 +1,6 @@
 # PRD-006 Knowledge Management
 
-**Status:** IN PROGRESS - implementation complete, pending CTO review and merge  
+**Status:** CLOSED
 **Date:** 2026-07-29  
 **Product milestone:** MVP, increment 6 of 10
 

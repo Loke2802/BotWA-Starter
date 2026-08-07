@@ -1,15 +1,15 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-011 Contacts and Customers pendiente de revisión final
+## Estado actual - Phase 3 / PRD-011 Contacts and Customers CLOSED
 
 Quality Gates (PRD-011, validación técnica completada):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **642 passed, 1 warning** |
+| `pytest` | **645 passed, 1 warning** |
 | `ruff check app tests` | **All checks passed** |
-| `black --check app tests` | **297 files would be left unchanged** |
-| `mypy app tests` | **Success: no issues found in 297 source files** |
+| `black --check app tests` | **325 files would be left unchanged** |
+| `mypy app tests` | **Success: no issues found in 325 source files** |
 
 La base actual incluye 5 Engines:
 
@@ -23,16 +23,16 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial: **PRD-001 a PRD-010 CLOSED; PRD-011 Contacts and Customers implementa Contact y queda pendiente de revisión final. Customer y CRM están diferidos.**
+Estado oficial: **PRD-001 a PRD-011 CLOSED; PRD-011 Contacts and Customers implementa Contact. Customer está diferido, CRM no está implementado y PRD-012 a PRD-022 permanecen NOT STARTED.**
 
 PRD-011 añade Contact como Source of Truth tenant-safe: identidad normalizada por
 canal, HMAC segmentado por organización, cifrado en reposo, enlace inbound a
 Conversation, API administrativa con RBAC y backfill explícito por lotes
 (`python -m app.operations.backfill_contacts`). No cambia los cinco Core Engines.
 
-PRD-008 está cerrado. PRD-009 extiende la administración multi-tenant de
-conversaciones y mensajes sin iniciar Human Handoff. PRD-010 permanece sin
-iniciar. La validación contra Meta real sigue bloqueada por credenciales externas.
+PRD-008, PRD-009, PRD-010 y PRD-011 están cerrados. PRD-009 extendió la
+administración multi-tenant de conversaciones y mensajes; PRD-010 añadió Human
+Handoff. La validación contra Meta real sigue bloqueada por credenciales externas.
 
 Asistente conversacional multicanal con integración WhatsApp Cloud API, motor de conocimiento y persistencia.
 
@@ -629,12 +629,12 @@ administrativo, RBAC de contenido y supervivencia tras reiniciar la API.
 - **Core v1.0.0** Phase 2 Closed: Docker/PostgreSQL, migraciones, persistencia DB-backed, smoke tests y quality gates validados
 - **PRD-001 Organizations** Phase 3: contratos, servicio de aplicación, API, persistencia PostgreSQL, migración Alembic y tests
 
-## PRD-010 Human Handoff
+## PRD-010 Human Handoff (CLOSED)
 
-PRD-001 through PRD-009 are closed. PRD-010 is **in progress, pending CTO
-review**: it adds a tenant-scoped handoff lifecycle, bot suppression, encrypted
-and attributed human replies through the generic channel sender, idempotency,
-archive protection, and safe transport errors. The technical MVP is implemented
-on this branch pending merge and post-merge validation; PRD-011 through PRD-022
-are not started. Real Meta validation needs external credentials.
+PRD-001 through PRD-011 are closed. PRD-010 adds a tenant-scoped handoff
+lifecycle, bot suppression, encrypted and attributed human replies through the
+generic channel sender, idempotency, archive protection, and safe transport
+errors. PRD-011 adds the Contact increment; Customer is deferred and CRM is not
+implemented. PRD-012 through PRD-022 are not started. Real Meta validation needs
+external credentials.
 

@@ -1,6 +1,6 @@
 # PRD-008 WhatsApp Live Messaging
 
-**Status:** IN PROGRESS - implementation and local validation complete, pending CTO review
+**Status:** CLOSED
 **Date:** 2026-07-30
 **Product milestone:** MVP, increment 8 of 10
 **Depends on:** PRD-006 Knowledge Management and PRD-007 WhatsApp Configuration

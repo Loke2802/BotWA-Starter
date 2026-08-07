@@ -8,6 +8,7 @@ from app.infrastructure.models import (  # noqa: F401
     bot,
     business_configuration,
     business_event,
+    contact,
     conversation,
     knowledge_catalog_entry,
     knowledge_entry,

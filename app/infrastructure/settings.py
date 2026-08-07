@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     whatsapp_api_version: str = "v22.0"
     whatsapp_secret_encryption_key: str = ""
     whatsapp_secret_previous_encryption_keys: str = ""
+    contact_identity_hmac_key: str = ""
     whatsapp_live_client_mode: str = "disabled"
     whatsapp_webhook_max_body_bytes: int = Field(
         default=1_048_576,

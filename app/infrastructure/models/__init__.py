@@ -9,6 +9,7 @@ from app.infrastructure.models.business_configuration import (
     BusinessConfigurationModel,
 )
 from app.infrastructure.models.business_event import BusinessEventModel
+from app.infrastructure.models.contact import ContactModel
 from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.conversation_state_history import (
     ConversationStateHistoryModel,
@@ -42,6 +43,7 @@ __all__ = [
     "BusinessConfigurationModel",
     "BusinessEventModel",
     "ConversationModel",
+    "ContactModel",
     "ConversationStateHistoryModel",
     "IntegrationEventModel",
     "HandoffEventModel",

@@ -337,7 +337,7 @@ Configuration, where bot-to-channel routing will establish that identity.
 
 - WhatsApp real/live validation remains blocked pending external credentials or sandbox access.
 
-## PRD-010 Human Handoff (pending CTO review)
+## PRD-010 Human Handoff (CLOSED post-merge)
 
 - Added scoped lifecycle, events, RBAC/tenancy checks, archive protection, and
   bot suppression/resume.

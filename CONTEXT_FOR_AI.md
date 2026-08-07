@@ -1,7 +1,7 @@
 # BotWA Starter - Context For AI Assistants
 
 **Last updated:** 2026-08-06
-**Project phase:** Phase 3 - PRD-011 Contacts and Customers pending final review
+**Project phase:** Phase 3 - PRD-011 Contacts and Customers CLOSED
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
@@ -14,8 +14,9 @@ Product v1.0.0 is released. PRD-001 Organizations, PRD-002 Authentication and
 Users, PRD-003 Roles and Permissions, PRD-004 Bot Management, and PRD-005
 Business Configuration, PRD-006 Knowledge Management, and PRD-007 WhatsApp
 Configuration and PRD-008 WhatsApp Live Messaging are implemented and closed.
-PRD-009 and PRD-010 are closed. PRD-011 implements the Contact increment only;
-Customer, CRM and PRD-012 remain out of scope.
+PRD-009, PRD-010, and PRD-011 are closed. PRD-011 implements the Contact
+increment only; Customer is deferred, CRM is not implemented, and PRD-012
+remains out of scope.
 
 All five core engines are implemented and closed:
 
@@ -33,17 +34,17 @@ Current validated gates:
 
 | Gate | Result |
 |---|---|
-| `pytest` | 642 passed, 1 warning |
+| `pytest` | 645 passed, 1 warning |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 297 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 297 source files |
+| `black --check app tests` | 325 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 325 source files |
 
 ## Infrastructure Validation
 
 | Area | Result |
 |---|---|
 | Docker/PostgreSQL | PASS |
-| Alembic migrations | PASS - `20260730_0010 (head)`, one head, downgrade/upgrade validated |
+| Alembic migrations | PASS - `20260805_0013 (head)`, one head, post-merge smoke validated |
 | DB-backed product persistence | PASS - receipts, managed encrypted messages, and delivery attempts survive API restart |
 | Docker smoke tests | PASS - signed inbound, Core/Knowledge, fake outbound, lifecycle/RBAC, statuses, restart |
 | Integration controlled errors | PASS |
@@ -70,8 +71,8 @@ Current validated gates:
 
 ## Current Official Objective
 
-The current objective is validation and Draft PR preparation for PRD-009. Do not
-start PRD-010 without explicit CTO approval.
+No product increment is in progress. PRD-001 through PRD-011 are closed; do not
+start PRD-012 without explicit CTO approval.
 
 **Phase 3**
 
@@ -85,9 +86,10 @@ start PRD-010 without explicit CTO approval.
 | 6 | PRD-006 Knowledge Management | CLOSED |
 | 7 | PRD-007 WhatsApp Configuration | CLOSED |
 | 8 | PRD-008 WhatsApp Live Messaging | CLOSED |
-| 9 | PRD-009 Conversations Management | IN PROGRESS |
-| 10 | PRD-010 Human Handoff | NOT STARTED |
-| 11-22 | Future approved product increments | NOT STARTED |
+| 9 | PRD-009 Conversations Management | CLOSED |
+| 10 | PRD-010 Human Handoff | CLOSED |
+| 11 | PRD-011 Contacts and Customers | CLOSED (Contact only; Customer deferred; CRM not implemented) |
+| 12-22 | Future approved product increments | NOT STARTED |
 
 The MVP milestone comprises PRD-001 through PRD-010.
 
@@ -185,10 +187,9 @@ Active post-closure debt:
 
 ## CTO Review Status
 
-## PRD-010 Status
+## PRD-010 and PRD-011 Status
 
-PRD-001 through PRD-009 are closed. PRD-010 is in progress, pending CTO review:
-its technical MVP is implemented on branch, but official closure requires merge
-and post-merge validation. Preserve its boundaries: human replies use the
-generic sender, remain encrypted and idempotent, and active handoffs suppress
-automation. PRD-011 through PRD-022 are not started.
+PRD-001 through PRD-011 are closed. PRD-010 preserves its boundaries: human
+replies use the generic sender, remain encrypted and idempotent, and active
+handoffs suppress automation. PRD-011 delivers Contact only; Customer is deferred
+and CRM is not implemented. PRD-012 through PRD-022 are not started.

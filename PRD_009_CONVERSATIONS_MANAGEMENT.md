@@ -130,7 +130,7 @@ Legacy rows are preserved because the new management columns are nullable.
 - Reader and content-reader permissions remain distinct.
 - Closed conversations reopen only through the documented policy; archived rows do
   not silently reopen.
-- PRD-010 remains unimplemented.
+- PRD-010 is closed and integrates through the managed conversation boundary.
 
 ## Test Strategy And Future Debt
 

@@ -2,8 +2,8 @@
 
 **Date:** 2026-08-06
 **Role:** Lead Engineer  
-**Project phase:** Phase 3 - PRD-011 Contacts and Customers pending final review
-**Status source:** Current PRD-009 feature branch during validation
+**Project phase:** Phase 3 - PRD-011 Contacts and Customers CLOSED
+**Status source:** `master` after PRD-011 post-merge validation
 
 ## Executive Summary
 
@@ -21,18 +21,19 @@ core engines are implemented and closed:
 The Stabilization Sprint recovered all quality gates, and Docker/PostgreSQL
 validation confirmed real DB-backed runtime operation.
 
-PRD-001 through PRD-010 are closed. PRD-011 implements Contact without changing
+PRD-001 through PRD-011 are closed. PRD-011 implements Contact without changing
 Core Engine responsibilities: encrypted tenant-scoped identity, inbound resolution,
-administrative API, and explicit idempotent historical backfill. Customer is deferred.
+administrative API, and explicit idempotent historical backfill. Customer is
+deferred and CRM is not implemented.
 
 ## Quality Gates
 
 | Gate | Current result |
 |---|---|
-| `pytest` | 642 passed, 1 warning |
+| `pytest` | 645 passed, 1 warning |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 297 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 297 source files |
+| `black --check app tests` | 325 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 325 source files |
 
 ## Phase 3 Product Status
 
@@ -46,8 +47,10 @@ administrative API, and explicit idempotent historical backfill. Customer is def
 | PRD-006 Knowledge Management | CLOSED |
 | PRD-007 WhatsApp Configuration | CLOSED |
 | PRD-008 WhatsApp Live Messaging | CLOSED |
-| PRD-009 Conversations Management | IN PROGRESS |
-| PRD-010 through PRD-022 | NOT STARTED |
+| PRD-009 Conversations Management | CLOSED |
+| PRD-010 Human Handoff | CLOSED |
+| PRD-011 Contacts and Customers | CLOSED (Contact only; Customer deferred; CRM not implemented) |
+| PRD-012 through PRD-022 | NOT STARTED |
 
 ## PRD-004 Bot Management
 
@@ -146,7 +149,7 @@ context while preserving the generic channel and Core boundaries.
 | Automated regression suite | PASS - 603 passed, 1 warning |
 | Docker/PostgreSQL validation | PASS - clean volume, migration cycle, restart |
 | Real Meta validation | BLOCKED - EXTERNAL CREDENTIALS REQUIRED |
-| PRD-009 | In progress on its feature branch |
+| PRD-009 | CLOSED |
 
 ## PRD-009 Conversations Management
 
@@ -161,7 +164,7 @@ context while preserving the generic channel and Core boundaries.
 | Pagination and isolation | PASS - SQL-scoped list/detail/message history |
 | Alembic migration | PASS - `20260730_0010`, one head |
 | Docker/PostgreSQL | PASS - clean volume, signed flow, restart, and migration cycle |
-| PRD-010 | Not started |
+| PRD-010 | CLOSED |
 
 ## Infrastructure Validation
 
@@ -170,7 +173,7 @@ context while preserving the generic channel and Core boundaries.
 | Docker daemon | PASS - Docker Desktop 4.82.0, engine 29.6.1 |
 | Docker Compose | PASS - PostgreSQL and API started |
 | PostgreSQL | PASS - database `botwa`, user `botwa` |
-| Alembic | PASS - revision `20260730_0010 (head)`, downgrade/upgrade validated |
+| Alembic | PASS - revision `20260805_0013 (head)`, post-merge smoke validated |
 | DB persistence | PASS - receipts, conversations, messages, and encrypted outbound attempts survive API restart |
 | Docker smoke tests | PASS - health, version, signed inbound, Core/Knowledge, fake outbound, deduplication, statuses |
 | Integration controlled errors | PASS - covered by regression suite |
@@ -206,15 +209,16 @@ Only the following items remain pending:
 
 ## Next Official Objective
 
-**Complete final PRD-009 quality gates and submit its Draft PR for CTO review.**
+**No product increment is in progress. PRD-001 through PRD-011 are closed; do not
+start PRD-012 without explicit CTO approval.**
 
-## PRD-010 Status
+## PRD-010 and PRD-011 Status
 
-In progress, pending CTO review. PostgreSQL validated lifecycle/RBAC, tenancy,
+PRD-010 and PRD-011 are closed. PostgreSQL validated lifecycle/RBAC, tenancy,
 archive protection, encrypted replies, idempotency, transport-error mapping,
 and isolated Docker smoke while preserving the original volume. The FK fix
-flushes `HandoffSession` before `HandoffEvent`. Real Meta remains external;
-PRD-011 is not started.
+flushes `HandoffSession` before `HandoffEvent`. PRD-011 provides Contact only;
+Customer is deferred, CRM is not implemented, and PRD-012 remains not started.
 
 ## CTO Review Status
 

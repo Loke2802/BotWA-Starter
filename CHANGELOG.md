@@ -344,9 +344,3 @@ Configuration, where bot-to-channel routing will establish that identity.
 - Added encrypted, attributed, idempotent human replies linked to outbound attempts.
 - Added migration `20260730_0011` and idempotency migration `20260730_0012`.
 - Validated an isolated PostgreSQL Docker smoke without deleting the original volume.
-# Changelog
-
-## Unreleased
-
-- Added PRD-012 durable managed automation definitions, receipts, executions, API,
-  PostgreSQL worker, and `request_handoff` action.

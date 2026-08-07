@@ -192,8 +192,5 @@ Active post-closure debt:
 PRD-001 through PRD-011 are closed. PRD-010 preserves its boundaries: human
 replies use the generic sender, remain encrypted and idempotent, and active
 handoffs suppress automation. PRD-011 delivers Contact only; Customer is deferred
-and CRM is not implemented. PRD-012 through PRD-022 are not started.
-# Context for AI
-
-PRD-012 es un módulo de automatización administrativa durable. No modificar Core
-Automation; usar `managed_automation_*`, el worker PostgreSQL y snapshots seguros.
+and CRM is not implemented. PRD-012 is implemented, pending CTO review; PRD-013
+through PRD-022 are not started.

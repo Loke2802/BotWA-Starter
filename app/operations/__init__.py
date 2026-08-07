@@ -1,1 +1,1 @@
-"""Operational commands with no HTTP surface."""
+"""Operational entrypoints."""

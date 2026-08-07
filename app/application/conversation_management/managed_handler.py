@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from app.application.automation_management.service import ManagedAutomationService
 from app.application.channel.conversation_handler import ChannelConversationHandler
 from app.application.channel.messaging import ChannelMessageHandler
 from app.application.contacts.service import ContactResolutionService
@@ -19,11 +20,13 @@ class ManagedChannelConversationHandler(ChannelMessageHandler):
         management: ConversationManagementService,
         handoff: HumanHandoffService | None = None,
         contacts: ContactResolutionService | None = None,
+        automations: ManagedAutomationService | None = None,
     ) -> None:
         self._handler = handler
         self._management = management
         self._handoff = handoff
         self._contacts = contacts
+        self._automations = automations
 
     def handle(self, message: InboundChannelMessage) -> OutboundChannelMessage:
         conversation_id = self._handler.conversation_id_for(message)
@@ -37,12 +40,25 @@ class ManagedChannelConversationHandler(ChannelMessageHandler):
                 message.channel_type,
                 message.external_sender_id,
             ).id
-        self._management.record_inbound(
+        conversation = self._management.record_inbound(
             message,
             conversation_id,
             UUID(receipt_id),
             contact_id,
         )
+        if self._automations is not None:
+            self._automations.record_inbound(
+                organization_id=message.resolved_context.organization_id,
+                bot_id=message.resolved_context.bot_id,
+                conversation_id=conversation.id,
+                contact_id=contact_id,
+                channel_type=message.channel_type,
+                received_at=message.timestamp,
+                business_hours_state=self._automations.business_hours_state(
+                    message.resolved_context.bot_id, message.timestamp
+                ),
+                source_receipt_id=UUID(receipt_id),
+            )
         if self._handoff is not None and self._handoff.blocks_bot(
             message.resolved_context.organization_id,
             conversation_id,

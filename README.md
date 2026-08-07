@@ -638,3 +638,7 @@ errors. PRD-011 adds the Contact increment; Customer is deferred and CRM is not
 implemented. PRD-012 through PRD-022 are not started. Real Meta validation needs
 external credentials.
 
+# BotWA Starter
+
+PRD-012 Automation Management está implementado y pendiente de revisión CTO. Para
+procesar ejecuciones durables: `python -m app.operations.automation_worker`.

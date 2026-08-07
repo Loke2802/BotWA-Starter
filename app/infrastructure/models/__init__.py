@@ -25,6 +25,11 @@ from app.infrastructure.models.knowledge_catalog_entry import (
 from app.infrastructure.models.knowledge_entry import KnowledgeEntryModel
 from app.infrastructure.models.knowledge_query_log import KnowledgeQueryLogModel
 from app.infrastructure.models.knowledge_source import KnowledgeSourceModel
+from app.infrastructure.models.managed_automation import (
+    ManagedAutomationDefinitionModel,
+    ManagedAutomationEventReceiptModel,
+    ManagedAutomationExecutionModel,
+)
 from app.infrastructure.models.message import MessageModel
 from app.infrastructure.models.organization import OrganizationModel
 from app.infrastructure.models.user import UserModel
@@ -54,6 +59,9 @@ __all__ = [
     "KnowledgeQueryLogModel",
     "KnowledgeSourceModel",
     "MessageModel",
+    "ManagedAutomationDefinitionModel",
+    "ManagedAutomationEventReceiptModel",
+    "ManagedAutomationExecutionModel",
     "OrganizationModel",
     "OutboundMessageAttemptModel",
     "UserModel",

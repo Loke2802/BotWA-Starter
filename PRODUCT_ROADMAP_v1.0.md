@@ -87,3 +87,7 @@ post-merge validation.
 - PRD-010 documents lifecycle/RBAC, tenant isolation, suppression/resume,
   encrypted idempotent replies, archive protection, and migration chain
   `0010` → `0011` → `0012`.
+# Product Roadmap v1.0
+
+PRD-001 a PRD-011: CLOSED. PRD-012: implemented, pending CTO review. PRD-013 a
+PRD-022: NOT STARTED.

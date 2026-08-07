@@ -7,7 +7,9 @@ from app.api.automation_management_dependencies import get_managed_automation_se
 from app.api.dependencies import require_permission
 from app.application.automation_management.service import (
     AutomationConflictError,
+    AutomationForbiddenError,
     AutomationNotFoundError,
+    AutomationValidationError,
     ManagedAutomationService,
 )
 from app.domain.automation_management.contracts import (
@@ -26,16 +28,18 @@ router = APIRouter(
 
 
 def _raise(exc: ValueError) -> NoReturn:
-    code = (
-        status.HTTP_404_NOT_FOUND
-        if isinstance(exc, AutomationNotFoundError)
-        else (
-            status.HTTP_409_CONFLICT
-            if isinstance(exc, AutomationConflictError)
-            else status.HTTP_403_FORBIDDEN
-        )
+    codes = (
+        (AutomationNotFoundError, status.HTTP_404_NOT_FOUND),
+        (AutomationForbiddenError, status.HTTP_403_FORBIDDEN),
+        (AutomationConflictError, status.HTTP_409_CONFLICT),
+        (AutomationValidationError, status.HTTP_422_UNPROCESSABLE_ENTITY),
     )
-    raise HTTPException(status_code=code, detail=str(exc)) from exc
+    for error_type, code in codes:
+        if isinstance(exc, error_type):
+            raise HTTPException(
+                status_code=code, detail="automation operation failed"
+            ) from exc
+    raise exc
 
 
 @router.post(
@@ -173,10 +177,10 @@ def list_executions(
     page_size: int = Query(20, ge=1, le=100),
 ):
     try:
-        service.get(organization_id, automation_id, actor)
-        items, total = service.repo.executions(
+        items, total = service.list_executions(
             organization_id,
             automation_id,
+            actor,
             offset=(page - 1) * page_size,
             limit=page_size,
         )
@@ -203,11 +207,7 @@ def get_execution(
     actor: Annotated[User, Depends(require_permission("automation.executions.read"))],
 ):
     try:
-        service._auth(actor, "automation.executions.read", organization_id)
-        row = service.repo.execution(organization_id, execution_id)
-        if row is None:
-            raise AutomationNotFoundError("automation execution not found")
-        return row
+        return service.get_execution(organization_id, execution_id, actor)
     except ValueError as exc:
         _raise(exc)
 
@@ -225,20 +225,6 @@ def retry(
     actor: Annotated[User, Depends(require_permission("automation.executions.retry"))],
 ):
     try:
-        service._auth(actor, "automation.executions.retry", organization_id)
-        row = service.repo.execution(organization_id, execution_id, lock=True)
-        if row is None:
-            raise AutomationNotFoundError("automation execution not found")
-        if row.status != "failed" or row.attempt_count >= 3:
-            raise AutomationConflictError("execution cannot be retried")
-        from datetime import UTC, datetime
-
-        row.status, row.available_at, row.safe_error_code = (
-            "pending",
-            datetime.now(UTC),
-            None,
-        )
-        service.session.commit()
-        return row
+        return service.retry_execution(organization_id, execution_id, actor)
     except ValueError as exc:
         _raise(exc)

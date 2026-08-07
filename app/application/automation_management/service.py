@@ -33,6 +33,14 @@ class AutomationForbiddenError(AutomationError):
     pass
 
 
+class AutomationValidationError(AutomationError):
+    pass
+
+
+class AutomationRetryNotAllowedError(AutomationConflictError):
+    pass
+
+
 class ManagedAutomationService:
     def __init__(
         self,
@@ -88,6 +96,48 @@ class ManagedAutomationService:
     def list(self, organization_id: UUID, actor: User, **kwargs):
         self._auth(actor, "automation.read", organization_id)
         return self.repo.definitions(organization_id, **kwargs)
+
+    def list_executions(
+        self,
+        organization_id: UUID,
+        automation_id: UUID,
+        actor: User,
+        *,
+        offset: int,
+        limit: int,
+    ):
+        self._auth(actor, "automation.executions.read", organization_id)
+        if self.repo.definition(organization_id, automation_id) is None:
+            raise AutomationNotFoundError("automation not found")
+        return self.repo.executions(
+            organization_id, automation_id, offset=offset, limit=limit
+        )
+
+    def get_execution(
+        self, organization_id: UUID, execution_id: UUID, actor: User
+    ) -> ManagedAutomationExecutionModel:
+        self._auth(actor, "automation.executions.read", organization_id)
+        row = self.repo.execution(organization_id, execution_id)
+        if row is None:
+            raise AutomationNotFoundError("automation execution not found")
+        return row
+
+    def retry_execution(
+        self, organization_id: UUID, execution_id: UUID, actor: User
+    ) -> ManagedAutomationExecutionModel:
+        self._auth(actor, "automation.executions.retry", organization_id)
+        row = self.repo.execution(organization_id, execution_id, lock=True)
+        if row is None:
+            raise AutomationNotFoundError("automation execution not found")
+        if row.status != "failed" or row.attempt_count >= 3:
+            raise AutomationRetryNotAllowedError("execution cannot be retried")
+        row.status, row.available_at, row.safe_error_code = (
+            "pending",
+            datetime.now(UTC),
+            None,
+        )
+        self.session.commit()
+        return row
 
     def update(
         self, organization_id: UUID, automation_id: UUID, data: dict, actor: User

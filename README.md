@@ -1,12 +1,12 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-009 en progreso
+## Estado actual - Phase 3 / PRD-011 Contacts and Customers pendiente de revisión final
 
-Quality Gates (PRD-009, validación final completada):
+Quality Gates (PRD-011, validación técnica completada):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **606 passed, 1 warning** |
+| `pytest` | **642 passed, 1 warning** |
 | `ruff check app tests` | **All checks passed** |
 | `black --check app tests` | **297 files would be left unchanged** |
 | `mypy app tests` | **Success: no issues found in 297 source files** |
@@ -23,7 +23,12 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial del proyecto: **Product v1.0.0 Released - Phase 3 / PRD-009 Conversations Management In Progress**.
+Estado oficial: **PRD-001 a PRD-010 CLOSED; PRD-011 Contacts and Customers implementa Contact y queda pendiente de revisión final. Customer y CRM están diferidos.**
+
+PRD-011 añade Contact como Source of Truth tenant-safe: identidad normalizada por
+canal, HMAC segmentado por organización, cifrado en reposo, enlace inbound a
+Conversation, API administrativa con RBAC y backfill explícito por lotes
+(`python -m app.operations.backfill_contacts`). No cambia los cinco Core Engines.
 
 PRD-008 está cerrado. PRD-009 extiende la administración multi-tenant de
 conversaciones y mensajes sin iniciar Human Handoff. PRD-010 permanece sin

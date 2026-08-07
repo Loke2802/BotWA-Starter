@@ -54,9 +54,11 @@ def create(
         ManagedAutomationService, Depends(get_managed_automation_service)
     ],
     actor: Annotated[User, Depends(require_permission("automation.create"))],
-):
+) -> AutomationDefinitionResponse:
     try:
-        return service.create(organization_id, payload, actor)
+        return AutomationDefinitionResponse.model_validate(
+            service.create(organization_id, payload, actor)
+        )
     except ValueError as exc:
         _raise(exc)
 
@@ -73,7 +75,7 @@ def list_definitions(
     trigger_type: str | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-):
+) -> AutomationDefinitionListResponse:
     try:
         items, total = service.list(
             organization_id,
@@ -103,9 +105,11 @@ def get_definition(
         ManagedAutomationService, Depends(get_managed_automation_service)
     ],
     actor: Annotated[User, Depends(require_permission("automation.read"))],
-):
+) -> AutomationDefinitionResponse:
     try:
-        return service.get(organization_id, automation_id, actor)
+        return AutomationDefinitionResponse.model_validate(
+            service.get(organization_id, automation_id, actor)
+        )
     except ValueError as exc:
         _raise(exc)
 
@@ -121,45 +125,82 @@ def update(
         ManagedAutomationService, Depends(get_managed_automation_service)
     ],
     actor: Annotated[User, Depends(require_permission("automation.update"))],
-):
+) -> AutomationDefinitionResponse:
     try:
-        return service.update(
-            organization_id,
-            automation_id,
-            payload.model_dump(exclude_unset=True),
-            actor,
+        return AutomationDefinitionResponse.model_validate(
+            service.update(
+                organization_id,
+                automation_id,
+                payload.model_dump(exclude_unset=True),
+                actor,
+            )
         )
     except ValueError as exc:
         _raise(exc)
 
 
-def _transition(target: str):
-    def action(
-        organization_id: UUID,
-        automation_id: UUID,
-        service: Annotated[
-            ManagedAutomationService, Depends(get_managed_automation_service)
-        ],
-        actor: Annotated[User, Depends(require_permission(f"automation.{target}"))],
-    ):
-        try:
-            return service.transition(organization_id, automation_id, target, actor)
-        except ValueError as exc:
-            _raise(exc)
-
-    return action
+def _transition_response(
+    service: ManagedAutomationService,
+    organization_id: UUID,
+    automation_id: UUID,
+    target: str,
+    actor: User,
+) -> AutomationDefinitionResponse:
+    try:
+        return AutomationDefinitionResponse.model_validate(
+            service.transition(organization_id, automation_id, target, actor)
+        )
+    except ValueError as exc:
+        _raise(exc)
 
 
-router.post(
+@router.post(
     "/automations/{automation_id}/activate", response_model=AutomationDefinitionResponse
-)(_transition("activate"))
-router.post(
+)
+def activate_automation(
+    organization_id: UUID,
+    automation_id: UUID,
+    service: Annotated[
+        ManagedAutomationService, Depends(get_managed_automation_service)
+    ],
+    actor: Annotated[User, Depends(require_permission("automation.activate"))],
+) -> AutomationDefinitionResponse:
+    return _transition_response(
+        service, organization_id, automation_id, "activate", actor
+    )
+
+
+@router.post(
     "/automations/{automation_id}/deactivate",
     response_model=AutomationDefinitionResponse,
-)(_transition("deactivate"))
-router.post(
+)
+def deactivate_automation(
+    organization_id: UUID,
+    automation_id: UUID,
+    service: Annotated[
+        ManagedAutomationService, Depends(get_managed_automation_service)
+    ],
+    actor: Annotated[User, Depends(require_permission("automation.deactivate"))],
+) -> AutomationDefinitionResponse:
+    return _transition_response(
+        service, organization_id, automation_id, "deactivate", actor
+    )
+
+
+@router.post(
     "/automations/{automation_id}/archive", response_model=AutomationDefinitionResponse
-)(_transition("archive"))
+)
+def archive_automation(
+    organization_id: UUID,
+    automation_id: UUID,
+    service: Annotated[
+        ManagedAutomationService, Depends(get_managed_automation_service)
+    ],
+    actor: Annotated[User, Depends(require_permission("automation.archive"))],
+) -> AutomationDefinitionResponse:
+    return _transition_response(
+        service, organization_id, automation_id, "archive", actor
+    )
 
 
 @router.get(
@@ -175,7 +216,7 @@ def list_executions(
     actor: Annotated[User, Depends(require_permission("automation.executions.read"))],
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-):
+) -> AutomationExecutionListResponse:
     try:
         items, total = service.list_executions(
             organization_id,
@@ -205,9 +246,11 @@ def get_execution(
         ManagedAutomationService, Depends(get_managed_automation_service)
     ],
     actor: Annotated[User, Depends(require_permission("automation.executions.read"))],
-):
+) -> AutomationExecutionResponse:
     try:
-        return service.get_execution(organization_id, execution_id, actor)
+        return AutomationExecutionResponse.model_validate(
+            service.get_execution(organization_id, execution_id, actor)
+        )
     except ValueError as exc:
         _raise(exc)
 
@@ -223,8 +266,10 @@ def retry(
         ManagedAutomationService, Depends(get_managed_automation_service)
     ],
     actor: Annotated[User, Depends(require_permission("automation.executions.retry"))],
-):
+) -> AutomationExecutionResponse:
     try:
-        return service.retry_execution(organization_id, execution_id, actor)
+        return AutomationExecutionResponse.model_validate(
+            service.retry_execution(organization_id, execution_id, actor)
+        )
     except ValueError as exc:
         _raise(exc)

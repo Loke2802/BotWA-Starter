@@ -1,3 +1,4 @@
+from builtins import list as builtin_list
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
@@ -6,6 +7,7 @@ from app.domain.automation_management.contracts import AutomationDefinitionInput
 from app.domain.user.contracts import User
 from app.infrastructure.models.business_configuration import BusinessConfigurationModel
 from app.infrastructure.models.managed_automation import (
+    ManagedAutomationDefinitionModel,
     ManagedAutomationEventReceiptModel,
     ManagedAutomationExecutionModel,
 )
@@ -58,7 +60,7 @@ class ManagedAutomationService:
 
     def create(
         self, organization_id: UUID, payload: AutomationDefinitionInput, actor: User
-    ):
+    ) -> ManagedAutomationDefinitionModel:
         self._auth(actor, "automation.create", organization_id)
         from app.infrastructure.models.managed_automation import (
             ManagedAutomationDefinitionModel,
@@ -86,16 +88,35 @@ class ManagedAutomationService:
         self.session.commit()
         return row
 
-    def get(self, organization_id: UUID, automation_id: UUID, actor: User):
+    def get(
+        self, organization_id: UUID, automation_id: UUID, actor: User
+    ) -> ManagedAutomationDefinitionModel:
         self._auth(actor, "automation.read", organization_id)
         row = self.repo.definition(organization_id, automation_id)
         if row is None:
             raise AutomationNotFoundError("automation not found")
         return row
 
-    def list(self, organization_id: UUID, actor: User, **kwargs):
+    def list(
+        self,
+        organization_id: UUID,
+        actor: User,
+        *,
+        status: str | None,
+        bot_id: UUID | None,
+        trigger_type: str | None,
+        offset: int,
+        limit: int,
+    ) -> tuple[list[ManagedAutomationDefinitionModel], int]:
         self._auth(actor, "automation.read", organization_id)
-        return self.repo.definitions(organization_id, **kwargs)
+        return self.repo.definitions(
+            organization_id,
+            status=status,
+            bot_id=bot_id,
+            trigger_type=trigger_type,
+            offset=offset,
+            limit=limit,
+        )
 
     def list_executions(
         self,
@@ -105,7 +126,7 @@ class ManagedAutomationService:
         *,
         offset: int,
         limit: int,
-    ):
+    ) -> tuple[builtin_list[ManagedAutomationExecutionModel], int]:
         self._auth(actor, "automation.executions.read", organization_id)
         if self.repo.definition(organization_id, automation_id) is None:
             raise AutomationNotFoundError("automation not found")
@@ -140,8 +161,12 @@ class ManagedAutomationService:
         return row
 
     def update(
-        self, organization_id: UUID, automation_id: UUID, data: dict, actor: User
-    ):
+        self,
+        organization_id: UUID,
+        automation_id: UUID,
+        data: dict[str, object],
+        actor: User,
+    ) -> ManagedAutomationDefinitionModel:
         self._auth(actor, "automation.update", organization_id)
         row = self.repo.definition(organization_id, automation_id, lock=True)
         if row is None:
@@ -188,7 +213,7 @@ class ManagedAutomationService:
 
     def transition(
         self, organization_id: UUID, automation_id: UUID, target: str, actor: User
-    ):
+    ) -> ManagedAutomationDefinitionModel:
         self._auth(actor, f"automation.{target}", organization_id)
         row = self.repo.definition(organization_id, automation_id, lock=True)
         if row is None:
@@ -313,22 +338,50 @@ class ManagedAutomationService:
                 "sunday",
             )[local.weekday()]
             schedule = config.business_hours[day]
-            if not schedule["enabled"]:
+            if not isinstance(schedule, dict):
+                return "unknown"
+            enabled = schedule.get("enabled")
+            open_time = schedule.get("open_time")
+            close_time = schedule.get("close_time")
+            if (
+                not isinstance(enabled, bool)
+                or not isinstance(open_time, str)
+                or not isinstance(close_time, str)
+            ):
+                return "unknown"
+            if not enabled:
                 return "outside"
             current = local.strftime("%H:%M")
-            return (
-                "inside"
-                if schedule["open_time"] <= current < schedule["close_time"]
-                else "outside"
-            )
+            return "inside" if open_time <= current < close_time else "outside"
         except (KeyError, TypeError, ValueError):
             return "unknown"
 
     def run(self, row: ManagedAutomationExecutionModel) -> None:
-        conditions, event = (
-            row.definition_snapshot["conditions_data"],
-            row.event_snapshot,
-        )
+        definition = row.definition_snapshot
+        event = row.event_snapshot
+        if not isinstance(definition, dict) or not isinstance(event, dict):
+            row.status, row.safe_error_code, row.completed_at = (
+                "failed",
+                "INVALID_SNAPSHOT",
+                datetime.now(UTC),
+            )
+            self.session.commit()
+            return
+        conditions = definition.get("conditions_data")
+        action = definition.get("action_data")
+        conversation_id = event.get("conversation_id")
+        if (
+            not isinstance(conditions, dict)
+            or not isinstance(action, dict)
+            or not isinstance(conversation_id, str)
+        ):
+            row.status, row.safe_error_code, row.completed_at = (
+                "failed",
+                "INVALID_SNAPSHOT",
+                datetime.now(UTC),
+            )
+            self.session.commit()
+            return
         matches = all(event.get(k) == v for k, v in conditions.items() if v is not None)
         if not matches:
             row.status, row.completed_at = "skipped", datetime.now(UTC)
@@ -337,12 +390,13 @@ class ManagedAutomationService:
         try:
             if self.handoff is None:
                 raise RuntimeError("handoff service unavailable")
+            reason = action.get("reason_code", "automation_rule")
+            if reason not in {"outside_business_hours", "automation_rule"}:
+                raise ValueError("invalid action snapshot")
             self.handoff.request_automation(
                 row.organization_id,
-                UUID(event["conversation_id"]),
-                row.definition_snapshot["action_data"].get(
-                    "reason_code", "automation_rule"
-                ),
+                UUID(conversation_id),
+                reason,
             )
             row.status, row.completed_at, row.lease_owner, row.lease_expires_at = (
                 "succeeded",

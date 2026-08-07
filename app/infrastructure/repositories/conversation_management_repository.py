@@ -95,6 +95,31 @@ class SqlAlchemyConversationManagementRepository(ConversationManagementRepositor
         conversation.management_status = target
         conversation.closed_at = datetime.now(UTC) if target == "closed" else None
 
+    def list_by_contact(
+        self,
+        contact_id: UUID,
+        organization_id: UUID,
+        *,
+        offset: int,
+        limit: int,
+    ) -> tuple[list[ConversationModel], int]:
+        filters = [
+            ConversationModel.contact_id == contact_id,
+            ConversationModel.organization_id == organization_id,
+            ConversationModel.management_status.is_not(None),
+        ]
+        stmt = (
+            select(ConversationModel)
+            .where(*filters)
+            .order_by(ConversationModel.last_message_at.desc(), ConversationModel.id)
+            .offset(offset)
+            .limit(limit)
+        )
+        total_stmt = select(func.count()).select_from(ConversationModel).where(*filters)
+        return list(self._session.scalars(stmt).all()), int(
+            self._session.execute(total_stmt).scalar_one()
+        )
+
     def _get_identity(
         self, conversation: ConversationModel
     ) -> ConversationModel | None:

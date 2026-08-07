@@ -10,6 +10,8 @@ from app.api.whatsapp_configuration_dependencies import (
 from app.application.channel.conversation_handler import (
     ChannelConversationHandler,
 )
+from app.application.contacts.identity import ContactIdentityHasher
+from app.application.contacts.service import ContactResolutionService
 from app.application.conversation_management.managed_handler import (
     ManagedChannelConversationHandler,
 )
@@ -26,8 +28,12 @@ from app.application.whatsapp_live.processor import WhatsAppLiveMessageProcessor
 from app.application.whatsapp_live.sender import WhatsAppChannelMessageSender
 from app.channels.whatsapp.live_mapper import WhatsAppInboundMessageMapper
 from app.core.conversation.service import ConversationService
+from app.domain.contacts.contracts import ContactIdentityNormalizer
 from app.infrastructure.database import get_session
 from app.infrastructure.repositories.bot_repository import BotRepository
+from app.infrastructure.repositories.contact_repository import (
+    SqlAlchemyContactRepository,
+)
 from app.infrastructure.repositories.conversation_management_repository import (
     SqlAlchemyConversationManagementRepository,
     SqlAlchemyConversationMessageManagementRepository,
@@ -92,6 +98,15 @@ def get_whatsapp_live_message_processor(
         session=session,
     )
     handoff = HumanHandoffService(HumanHandoffRepository(session), session)
+    contacts = ContactResolutionService(
+        SqlAlchemyContactRepository(session),
+        ContactIdentityHasher(
+            settings.contact_identity_hmac_key,
+            ContactIdentityNormalizer(),
+        ),
+        secret_cipher,
+        session,
+    )
     handler = ManagedChannelConversationHandler(
         ChannelConversationHandler(
             conversation_service,
@@ -100,6 +115,7 @@ def get_whatsapp_live_message_processor(
         ),
         management,
         handoff,
+        contacts,
     )
     sender = WhatsAppChannelMessageSender(
         configuration_repository,

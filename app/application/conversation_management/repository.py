@@ -34,6 +34,16 @@ class ConversationManagementRepository(ABC):
     @abstractmethod
     def transition(self, conversation: ConversationModel, target: str) -> None: ...
 
+    @abstractmethod
+    def list_by_contact(
+        self,
+        contact_id: UUID,
+        organization_id: UUID,
+        *,
+        offset: int,
+        limit: int,
+    ) -> tuple[list[ConversationModel], int]: ...
+
 
 class ConversationMessageManagementRepository(ABC):
     @abstractmethod

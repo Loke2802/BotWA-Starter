@@ -18,6 +18,7 @@ from app.domain.conversation_management.contracts import (
     ConversationSummary,
 )
 from app.domain.user.contracts import User
+from app.infrastructure.models.contact import ContactModel
 from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.human_handoff import HandoffSessionModel
 from app.infrastructure.models.message import MessageModel
@@ -58,6 +59,7 @@ class ConversationManagementService:
         message: InboundChannelMessage,
         conversation_id: UUID,
         receipt_id: UUID,
+        contact_id: UUID | None = None,
     ) -> ConversationModel:
         context = message.resolved_context
         conversation, _ = self._conversations.get_or_create(
@@ -69,6 +71,7 @@ class ConversationManagementService:
                 bot_id=context.bot_id,
                 channel_configuration_id=context.channel_configuration_id,
                 external_customer_id=message.external_sender_id,
+                contact_id=contact_id,
                 masked_customer_identifier=_mask(message.external_sender_id),
                 channel=message.channel_type,
                 status="new",
@@ -78,6 +81,7 @@ class ConversationManagementService:
                 updated_at=datetime.now(UTC),
             )
         )
+        self._associate_contact(conversation, contact_id, context.organization_id)
         if conversation.management_status == "archived":
             raise ConversationManagementConflictError(
                 "archived conversation cannot receive messages"
@@ -105,6 +109,22 @@ class ConversationManagementService:
         del record
         self._commit()
         return conversation
+
+    def _associate_contact(
+        self,
+        conversation: ConversationModel,
+        contact_id: UUID | None,
+        organization_id: UUID,
+    ) -> None:
+        if contact_id is None:
+            return
+        contact = self._session.get(ContactModel, contact_id)
+        if contact is None or contact.organization_id != organization_id:
+            raise ConversationManagementConflictError("contact tenant mismatch")
+        if conversation.contact_id is None:
+            conversation.contact_id = contact.id
+        elif conversation.contact_id != contact.id:
+            raise ConversationManagementConflictError("conversation contact mismatch")
 
     def mark_inbound_processed(
         self, external_message_id: str, channel_type: str
@@ -201,6 +221,24 @@ class ConversationManagementService:
         self._validate(organization_id, actor, "conversation.read", None)
         model = self._get_scoped(conversation_id, organization_id)
         return _detail(model)
+
+    def list_for_contact(
+        self,
+        organization_id: UUID,
+        contact_id: UUID,
+        actor: User,
+        *,
+        page: int,
+        page_size: int,
+    ) -> tuple[builtin_list[ConversationSummary], int]:
+        self._validate(organization_id, actor, "conversation.read", None)
+        models, total = self._conversations.list_by_contact(
+            contact_id,
+            organization_id,
+            offset=(page - 1) * page_size,
+            limit=page_size,
+        )
+        return [_summary(model) for model in models], total
 
     def list_messages(
         self,

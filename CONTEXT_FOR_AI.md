@@ -1,7 +1,7 @@
 # BotWA Starter - Context For AI Assistants
 
-**Last updated:** 2026-07-30
-**Project phase:** Phase 3 - PRD-009 Conversations Management In Progress
+**Last updated:** 2026-08-06
+**Project phase:** Phase 3 - PRD-011 Contacts and Customers pending final review
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
@@ -14,7 +14,8 @@ Product v1.0.0 is released. PRD-001 Organizations, PRD-002 Authentication and
 Users, PRD-003 Roles and Permissions, PRD-004 Bot Management, and PRD-005
 Business Configuration, PRD-006 Knowledge Management, and PRD-007 WhatsApp
 Configuration and PRD-008 WhatsApp Live Messaging are implemented and closed.
-PRD-009 Conversations Management is in progress on its feature branch.
+PRD-009 and PRD-010 are closed. PRD-011 implements the Contact increment only;
+Customer, CRM and PRD-012 remain out of scope.
 
 All five core engines are implemented and closed:
 
@@ -32,7 +33,7 @@ Current validated gates:
 
 | Gate | Result |
 |---|---|
-| `pytest` | 606 passed, 1 warning |
+| `pytest` | 642 passed, 1 warning |
 | `ruff check app tests` | All checks passed |
 | `black --check app tests` | 297 files would be left unchanged |
 | `mypy app tests` | Success: no issues found in 297 source files |

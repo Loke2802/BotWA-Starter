@@ -2,6 +2,7 @@ from uuid import UUID
 
 from app.application.channel.conversation_handler import ChannelConversationHandler
 from app.application.channel.messaging import ChannelMessageHandler
+from app.application.contacts.service import ContactResolutionService
 from app.application.conversation_management.service import (
     ConversationManagementService,
 )
@@ -17,20 +18,30 @@ class ManagedChannelConversationHandler(ChannelMessageHandler):
         handler: ChannelConversationHandler,
         management: ConversationManagementService,
         handoff: HumanHandoffService | None = None,
+        contacts: ContactResolutionService | None = None,
     ) -> None:
         self._handler = handler
         self._management = management
         self._handoff = handoff
+        self._contacts = contacts
 
     def handle(self, message: InboundChannelMessage) -> OutboundChannelMessage:
         conversation_id = self._handler.conversation_id_for(message)
         receipt_id = message.metadata.get("receipt_id")
         if not isinstance(receipt_id, str):
             raise ValueError("managed message receipt is required")
+        contact_id = None
+        if self._contacts is not None:
+            contact_id = self._contacts.resolve(
+                message.resolved_context.organization_id,
+                message.channel_type,
+                message.external_sender_id,
+            ).id
         self._management.record_inbound(
             message,
             conversation_id,
             UUID(receipt_id),
+            contact_id,
         )
         if self._handoff is not None and self._handoff.blocks_bot(
             message.resolved_context.organization_id,

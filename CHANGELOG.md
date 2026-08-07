@@ -1,5 +1,19 @@
 # Changelog
 
+## PRD-011 Contacts and Customers (Contact increment) - 2026-08-06
+
+### Added
+
+- Tenant-scoped Contact identity with normalized WhatsApp identity, HMAC lookup,
+  encryption at rest, inbound resolution, and `conversation.contact_id`.
+- Administrative Contacts API with RBAC, sensitive/non-sensitive serialization,
+  exact sensitive lookup, SQL pagination, lifecycle operations, and linked conversations.
+- Explicit, idempotent batch backfill command with dry-run and safe aggregate metrics.
+
+### Not Included
+
+- Customer model, CRM, merge, anonymization, deletion, tags, import/export, and PRD-012.
+
 ## PRD-009 Conversations Management - 2026-07-30
 
 ### Added

@@ -1,7 +1,8 @@
 # PRD-010 — Human Handoff
 
 PRD-010 adds tenant-scoped human handoff to the WhatsApp channel runtime without
-changing the Conversation Core or starting PRD-011.
+changing the Conversation Core. PRD-011 subsequently adds Contact linking without
+placing Contact on Message or Handoff records.
 
 ## Lifecycle and authorization
 

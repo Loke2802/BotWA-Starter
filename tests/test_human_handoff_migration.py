@@ -101,6 +101,14 @@ def test_prd_010_migration_chain(migration_database: URL) -> None:
                 item["name"]
                 for item in inspector.get_indexes("outbound_message_attempt")
             }
+            assert "contact" in inspector.get_table_names()
+            assert "contact_id" in {
+                column["name"] for column in inspector.get_columns("conversation")
+            }
+            command.downgrade(config, "20260730_0012")
+            assert "contact" not in inspect(engine).get_table_names()
+            command.upgrade(config, "head")
+            assert "contact" in inspect(engine).get_table_names()
         finally:
             engine.dispose()
     finally:
@@ -112,4 +120,4 @@ def test_prd_010_migration_chain(migration_database: URL) -> None:
 
     script = ScriptDirectory.from_config(config)
     heads = script.get_heads()
-    assert heads == ["20260730_0012"]
+    assert heads == ["20260805_0013"]

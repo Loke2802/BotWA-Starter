@@ -34,6 +34,9 @@ class ConversationModel(Base):
     external_customer_id: Mapped[str | None] = mapped_column(
         String(255), nullable=True, index=True
     )
+    contact_id: Mapped[UUID | None] = mapped_column(
+        Uuid, ForeignKey("contact.id"), nullable=True, index=True
+    )
     masked_customer_identifier: Mapped[str | None] = mapped_column(
         String(255), nullable=True
     )

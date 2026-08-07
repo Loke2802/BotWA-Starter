@@ -1,6 +1,6 @@
 # PRD-009 Conversations Management
 
-**Status:** IN PROGRESS - implementation validated; Draft PR pending CTO review
+**Status:** CLOSED - integrated with PRD-010 and PRD-011 Contact linking
 **Date:** 2026-07-30
 **Product milestone:** MVP, increment 9 of 10
 **Depends on:** PRD-001 through PRD-008

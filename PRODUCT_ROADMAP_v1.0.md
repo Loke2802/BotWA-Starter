@@ -1,7 +1,7 @@
 # BotWA Product Roadmap v1.0
 
-**Status:** PRD-009 Conversations Management In Progress
-**Date:** 2026-07-30
+**Status:** PRD-011 Contacts and Customers implemented (Contact only), pending final review
+**Date:** 2026-08-06
 
 ## Current State
 
@@ -23,9 +23,9 @@ progress on its feature branch.
 | 6 | PRD-006 Knowledge Management | CLOSED |
 | 7 | PRD-007 WhatsApp Configuration | CLOSED |
 | 8 | PRD-008 WhatsApp Live Messaging | CLOSED |
-| 9 | PRD-009 Conversations Management | IN PROGRESS |
-| 10 | PRD-010 Human Handoff | NOT STARTED |
-| 11 | PRD-011 Contacts and Customers | NOT STARTED |
+| 9 | PRD-009 Conversations Management | CLOSED |
+| 10 | PRD-010 Human Handoff | CLOSED |
+| 11 | PRD-011 Contacts and Customers | IMPLEMENTED - PENDING FINAL REVIEW (Contact only; Customer deferred) |
 | 12 | PRD-012 Automation Management | NOT STARTED |
 | 13 | PRD-013 Integration Management | NOT STARTED |
 | 14 | PRD-014 Dashboard | NOT STARTED |
@@ -51,7 +51,7 @@ progress on its feature branch.
 
 | Gate | Result |
 |---|---|
-| `pytest` | 606 passed, 1 warning |
+| `pytest` | 642 passed, 1 warning |
 | `ruff check app tests` | All checks passed |
 | `black --check app tests` | 297 files would be left unchanged |
 | `mypy app tests` | Success: no issues found in 297 source files |
@@ -83,7 +83,8 @@ post-merge validation.
 - Core architecture remains stable.
 - New functionality must be tied to PRDs.
 - Quality gates remain mandatory.
-- PRD-001 through PRD-009 are closed; PRD-011 through PRD-022 are not started.
+- PRD-001 through PRD-010 are closed. PRD-011 implements Contact only and is
+  pending final review; Customer, CRM, and PRD-012 through PRD-022 are not started.
 - PRD-010 documents lifecycle/RBAC, tenant isolation, suppression/resume,
   encrypted idempotent replies, archive protection, and migration chain
   `0010` → `0011` → `0012`.

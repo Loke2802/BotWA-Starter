@@ -1,6 +1,6 @@
 # PRD-015 Business Hours & Holidays
 
-**Estado:** IMPLEMENTED — PENDING CTO REVIEW
+**Estado:** CLOSED
 
 **Tipo:** Product / Scheduling Domain
 
@@ -396,5 +396,21 @@ RBAC, auditoría e idempotencia transaccionales, API, observabilidad y pruebas
 unitarias, API y PostgreSQL. Google Calendar permanece exclusivamente como
 adaptador futuro y PRD-014 Dashboard permanece `NOT STARTED`.
 
-Los gates técnicos y la revisión CTO son obligatorios antes de mergear o declarar
-PRD-015 `CLOSED`.
+## 18. Cierre
+
+PRD-015 fue aprobado y fusionado mediante PR #18 en `master` con el merge commit
+`025c3058388d51219e05fff1ae253a296238be89`. El head final de la rama feature fue
+`8831de5a3b284e8ba28d7d86ff983254b643c9b5`.
+
+Validación final aprobada:
+
+- pytest: 702 passed, 12 skipped, 2 warnings;
+- PostgreSQL PRD-015: 3 passed;
+- mypy: PASS — 374 source files;
+- Ruff: PASS;
+- Black: PASS — 374 files;
+- `git diff --check`: PASS;
+- Alembic head: `20260808_0016`.
+
+PRD-015 queda `CLOSED`. PRD-014 Dashboard permanece `NOT STARTED` y PRD-016 en
+adelante conserva el estado definido en el roadmap, sin iniciar trabajo nuevo.

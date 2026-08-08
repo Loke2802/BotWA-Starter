@@ -1,6 +1,6 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-015 Business Hours & Holidays implemented
+## Estado actual - Phase 3 / PRD-015 Business Hours & Holidays CLOSED
 
 Quality Gates (PRD-015, validación técnica completada):
 
@@ -23,8 +23,8 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial: **PRD-001 a PRD-012 CLOSED; PRD-013 y PRD-015 están implemented,
-pending CTO review; PRD-014 Dashboard y PRD-016 a PRD-022 permanecen NOT STARTED.**
+Estado oficial: **PRD-001 a PRD-012 y PRD-015 CLOSED; PRD-013 está implemented,
+pending CTO review; PRD-014 Dashboard y PRD-016 a PRD-023 permanecen NOT STARTED.**
 
 PRD-015 añade calendarios operativos tenant-scoped, horarios semanales,
 excepciones, feriados, cierres parciales, overrides, precedencia determinista,
@@ -646,7 +646,7 @@ PRD-001 through PRD-012 are closed. PRD-010 adds a tenant-scoped handoff
 lifecycle, bot suppression, encrypted and attributed human replies through the
 generic channel sender, idempotency, archive protection, and safe transport
 errors. PRD-011 adds the Contact increment; Customer is deferred and CRM is not
-implemented. PRD-012 is closed; PRD-013 and PRD-015 are implemented pending CTO
-review. PRD-014 Dashboard and PRD-016 through PRD-022 are not started. Real Meta
+implemented. PRD-012 and PRD-015 are closed; PRD-013 is implemented pending CTO
+review. PRD-014 Dashboard and PRD-016 through PRD-023 are not started. Real Meta
 and Google validation need explicit external credentials.
 

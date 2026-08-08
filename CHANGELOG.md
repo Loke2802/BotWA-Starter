@@ -2,7 +2,14 @@
 
 ## PRD-015 Business Hours & Holidays - 2026-08-08
 
-### Implemented, pending CTO review
+### CLOSED after PR #18
+
+- Merged into `master` via PR #18 at
+  `025c3058388d51219e05fff1ae253a296238be89`; final feature head:
+  `8831de5a3b284e8ba28d7d86ff983254b643c9b5`.
+- Final validation: pytest 702 passed, 12 skipped, 2 warnings; PostgreSQL PRD-015
+  3 passed; mypy PASS across 374 source files; Ruff PASS; Black PASS across 374
+  files; `git diff --check` PASS; Alembic head `20260808_0016`.
 
 - Added a provider-agnostic, tenant-scoped operational calendar with regular
   weekly schedules, date exceptions, holidays, partial closures, and manual

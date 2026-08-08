@@ -1,7 +1,7 @@
 # BotWA Starter - Context For AI Assistants
 
 **Last updated:** 2026-08-08
-**Project phase:** Phase 3 - PRD-014 Dashboard IMPLEMENTED - PENDING CTO REVIEW
+**Project phase:** Phase 3 - PRD-001 through PRD-015 CLOSED
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
@@ -19,8 +19,10 @@ Contact increment only; Customer is deferred and CRM is not implemented.
 PRD-012 adds tenant-scoped Automation Management without changing Core Automation.
 PRD-013 Integration Management is CLOSED after the final security merge via PR
 #20. PRD-015 Business Hours & Holidays is CLOSED after merge via PR #18. PRD-014
-Dashboard is implemented pending CTO review. PRD-016 through PRD-023 remain NOT
-STARTED.
+Dashboard is CLOSED after merge via PR #22 at
+`04256eb0cb17e3d1fdb548edeae143578606d508`, with final approved head
+`8b836d7bb7b12fcf82ffb5bb8bbada4f3db758c6`. PRD-016 through PRD-023
+remain NOT STARTED.
 
 All five core engines are implemented and closed:
 
@@ -38,10 +40,11 @@ Current validated gates:
 
 | Gate | Result |
 |---|---|
-| `pytest` | 710 passed, 13 skipped, 2 warnings |
-| Focused PRD-014 | 5 passed |
+| `pytest` | 714 passed, 13 skipped, 2 warnings |
+| Focused PRD-014 | 9 passed |
 | PostgreSQL PRD-014 | 1 passed |
 | PRD-014 performance sanity | PASS with 10,000 conversations |
+| PRD-014 repository query budget | organization 7 SELECTs O(1); bot 8 SELECTs O(1) |
 | `ruff check app tests` | All checks passed |
 | `black --check app tests` | 387 files would be left unchanged |
 | `mypy app tests` | Success: no issues found in 387 source files |
@@ -79,8 +82,7 @@ Current validated gates:
 
 ## Current Official Objective
 
-PRD-001 through PRD-013 and PRD-015 are closed. PRD-014 Dashboard is implemented
-pending CTO review. PRD-016 through PRD-023 remain NOT STARTED.
+PRD-001 through PRD-015 are closed. PRD-016 through PRD-023 remain NOT STARTED.
 
 **Phase 3**
 
@@ -99,7 +101,7 @@ pending CTO review. PRD-016 through PRD-023 remain NOT STARTED.
 | 11 | PRD-011 Contacts and Customers | CLOSED (Contact only; Customer deferred; CRM not implemented) |
 | 12 | PRD-012 Automation Management | CLOSED |
 | 13 | PRD-013 Integration Management | CLOSED |
-| 14 | PRD-014 Dashboard | implemented, pending CTO review |
+| 14 | PRD-014 Dashboard | CLOSED |
 | 15 | PRD-015 Business Hours & Holidays | CLOSED |
 | 16-23 | Future approved product increments | NOT STARTED |
 
@@ -209,5 +211,7 @@ CLOSED after final security merge via PR #20, merge commit
 `be52bbc49c6b34fc6b515e915564810068a74da3`, final review head
 `beb3a6a01c5a983ab5d83a485f268dfc3202fa3b`. PRD-015 is CLOSED after merge via
 PR #18, merge commit `025c3058388d51219e05fff1ae253a296238be89`.
-PRD-014 Dashboard is implemented pending CTO review. PRD-016 through PRD-023 are
+PRD-014 Dashboard is CLOSED after PR #22, merge commit
+`04256eb0cb17e3d1fdb548edeae143578606d508`, final approved head
+`8b836d7bb7b12fcf82ffb5bb8bbada4f3db758c6`. PRD-016 through PRD-023 are
 NOT STARTED.

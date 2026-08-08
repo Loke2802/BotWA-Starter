@@ -2,9 +2,10 @@
 
 **Date:** 2026-08-08
 **Role:** Lead Engineer  
-**Project phase:** Phase 3 - PRD-014 Dashboard IMPLEMENTED - PENDING CTO REVIEW
-**Status source:** `feat/prd-014-dashboard` from verified `master` at
-`c7088ae5d7ff492254536685891a0ef95c003b2c`; pending Draft PR
+**Project phase:** Phase 3 - PRD-001 through PRD-015 CLOSED
+**Status source:** `master` after PR #22 merge commit
+`04256eb0cb17e3d1fdb548edeae143578606d508`; final approved head
+`8b836d7bb7b12fcf82ffb5bb8bbada4f3db758c6`
 
 ## Executive Summary
 
@@ -33,17 +34,23 @@ health.
 PRD-015 is CLOSED after merge via PR #18 with a provider-agnostic operational
 calendar, deterministic precedence, IANA timezone/DST handling, tenant-scoped
 administration, RBAC, durable audit/idempotency, and PostgreSQL persistence.
-PRD-014 is implemented pending CTO review as a tenant-scoped, query-only
-operational read model over the existing product Sources of Truth.
+PRD-014 is CLOSED after merge via PR #22 as a tenant-scoped, query-only
+operational read model over the existing product Sources of Truth. Its closure
+freezes the read-only boundary: no Dashboard tables or migration, frontend,
+activity endpoint or PRD-016 scope; no health checks, OAuth refresh, automation
+execution, handoff claims or Business Hours writes; organization-scoped Contacts,
+active-only Integration health breakdown, canonical PRD-015/PRD-005 resolution
+and no PII in responses.
 
 ## Quality Gates
 
 | Gate | Current result |
 |---|---|
-| `pytest` | 710 passed, 13 skipped, 2 warnings |
-| Focused PRD-014 | 5 passed |
+| `pytest` | 714 passed, 13 skipped, 2 warnings |
+| Focused PRD-014 | 9 passed |
 | PostgreSQL PRD-014 | 1 passed |
 | PRD-014 performance sanity | PASS with 10,000 conversations |
+| PRD-014 repository query budget | organization 7 SELECTs O(1); bot 8 SELECTs O(1) |
 | `ruff check app tests` | All checks passed |
 | `black --check app tests` | 387 files would be left unchanged |
 | `mypy app tests` | Success: no issues found in 387 source files |
@@ -67,7 +74,7 @@ operational read model over the existing product Sources of Truth.
 | PRD-011 Contacts and Customers | CLOSED (Contact only; Customer deferred; CRM not implemented) |
 | PRD-012 Automation Management | CLOSED |
 | PRD-013 Integration Management | CLOSED |
-| PRD-014 Dashboard | implemented, pending CTO review |
+| PRD-014 Dashboard | CLOSED |
 | PRD-015 Business Hours & Holidays | CLOSED |
 | PRD-016 through PRD-023 | NOT STARTED |
 
@@ -228,8 +235,8 @@ Only the following items remain pending:
 
 ## Next Official Objective
 
-**PRD-001 through PRD-013 and PRD-015 are closed. PRD-014 Dashboard is
-implemented pending CTO review; PRD-016 through PRD-023 remain NOT STARTED.**
+**PRD-001 through PRD-015 are closed. PRD-016 through PRD-023 remain NOT
+STARTED.**
 
 ## PRD-010 through PRD-015 Status
 
@@ -242,9 +249,14 @@ CLOSED after PR #20 at merge commit
 `be52bbc49c6b34fc6b515e915564810068a74da3`, final review head
 `beb3a6a01c5a983ab5d83a485f268dfc3202fa3b`. PRD-015 is CLOSED after PR #18 at
 merge commit `025c3058388d51219e05fff1ae253a296238be89`. PRD-014 Dashboard is
-implemented pending CTO review; PRD-016 through PRD-023 remain NOT STARTED.
+CLOSED after PR #22 at merge commit
+`04256eb0cb17e3d1fdb548edeae143578606d508`, final approved head
+`8b836d7bb7b12fcf82ffb5bb8bbada4f3db758c6`; PRD-016 through PRD-023 remain
+NOT STARTED.
 
 ## CTO Review Status
+
+PRD-014 CLOSED - PR #22 MERGED
 
 PRD-013 CLOSED - PR #20 MERGED
 

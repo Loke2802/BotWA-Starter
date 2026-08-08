@@ -1,7 +1,10 @@
 # PRD-014 Dashboard v1
 
-**Status:** IMPLEMENTED - PENDING CTO REVIEW
+**Status:** CLOSED
 **Initial master:** `c7088ae5d7ff492254536685891a0ef95c003b2c`
+**Merged via:** PR #22
+**Merge commit:** `04256eb0cb17e3d1fdb548edeae143578606d508`
+**Final approved head:** `8b836d7bb7b12fcf82ffb5bb8bbada4f3db758c6`
 **Alembic head:** `20260808_0016`
 
 ## Scope
@@ -158,6 +161,20 @@ Low-cardinality internal metrics record request totals, accumulated duration and
 query errors with only `endpoint` and `result` labels. Structured Dashboard logs
 contain the same safe labels and no tenant, bot or user identifiers.
 
+## Closed architectural decisions
+
+- Dashboard is read-only and is not a Source of Truth.
+- It owns no tables or migration and has no frontend or activity endpoint.
+- It does not advance PRD-016 Analytics & Reports.
+- It does not execute health checks, refresh OAuth, execute automations, claim
+  handoffs or modify Business Hours.
+- Contacts remain organization-scoped because they have no canonical bot
+  ownership.
+- Integration health breakdown includes only active integrations.
+- Business status remains delegated to the canonical PRD-015 resolver and PRD-005
+  compatibility boundary.
+- Responses contain no PII or provider secrets.
+
 ## Validation strategy
 
 Automated coverage includes empty and populated summaries, all period presets,
@@ -169,9 +186,11 @@ performance, safe persistence errors and real PostgreSQL tenant isolation.
 
 Final validation:
 
-- local PRD-014: 9 passed;
+- focused PRD-014: 9 passed;
 - PostgreSQL PRD-014: 1 passed;
 - performance sanity with 10,000 conversations: PASS;
+- repository query budget: 7 SELECTs O(1) for organization scope and 8 SELECTs
+  O(1) for bot scope;
 - full pytest: 714 passed, 13 skipped, 2 warnings;
 - mypy: PASS, 387 source files;
 - Ruff: PASS;
@@ -179,5 +198,5 @@ Final validation:
 - `git diff --check`: PASS;
 - Alembic head: `20260808_0016`.
 
-PRD-001 through PRD-013 remain CLOSED. PRD-015 remains CLOSED. PRD-016 and later
-increments remain NOT STARTED.
+PRD-001 through PRD-015 are CLOSED. PRD-016 and later increments remain NOT
+STARTED.

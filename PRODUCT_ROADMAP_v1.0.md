@@ -26,7 +26,7 @@ deferred and CRM is not implemented.
 | 9 | PRD-009 Conversations Management | CLOSED |
 | 10 | PRD-010 Human Handoff | CLOSED |
 | 11 | PRD-011 Contacts and Customers | CLOSED (Contact only; Customer deferred; CRM not implemented) |
-| 12 | PRD-012 Automation Management | NOT STARTED |
+| 12 | PRD-012 Automation Management | implemented, pending CTO review |
 | 13 | PRD-013 Integration Management | NOT STARTED |
 | 14 | PRD-014 Dashboard | NOT STARTED |
 | 15 | PRD-015 Analytics and Reports | NOT STARTED |

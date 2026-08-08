@@ -50,7 +50,8 @@ deferred and CRM is not implemented.
 | PRD-009 Conversations Management | CLOSED |
 | PRD-010 Human Handoff | CLOSED |
 | PRD-011 Contacts and Customers | CLOSED (Contact only; Customer deferred; CRM not implemented) |
-| PRD-012 through PRD-022 | NOT STARTED |
+| PRD-012 | implemented, pending CTO review |
+| PRD-013 through PRD-022 | NOT STARTED |
 
 ## PRD-004 Bot Management
 
@@ -218,7 +219,8 @@ PRD-010 and PRD-011 are closed. PostgreSQL validated lifecycle/RBAC, tenancy,
 archive protection, encrypted replies, idempotency, transport-error mapping,
 and isolated Docker smoke while preserving the original volume. The FK fix
 flushes `HandoffSession` before `HandoffEvent`. PRD-011 provides Contact only;
-Customer is deferred, CRM is not implemented, and PRD-012 remains not started.
+Customer is deferred, CRM is not implemented, PRD-012 is implemented pending CTO
+review, and PRD-013 through PRD-022 remain not started.
 
 ## CTO Review Status
 

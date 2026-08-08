@@ -88,6 +88,51 @@ class HumanHandoffService:
         self._commit()
         return _response(existing)
 
+    def request_automation(
+        self,
+        organization_id: UUID,
+        conversation_id: UUID,
+        reason_code: str,
+    ) -> HandoffSessionResponse:
+        """Internal, deliberately narrow entrypoint used by durable automation.
+
+        It can only request a handoff and deliberately records no impersonated user.
+        """
+        if reason_code not in {"outside_business_hours", "automation_rule"}:
+            raise HandoffForbiddenError("automation reason is not allowed")
+        conversation = self._conversation(conversation_id, organization_id)
+        existing = self._repository.get(conversation_id, organization_id, lock=True)
+        if existing and existing.status in {"waiting_human", "human_active"}:
+            raise HandoffConflictError("handoff is already active")
+        now = datetime.now(UTC)
+        if existing is None:
+            existing = HandoffSessionModel(
+                id=uuid4(),
+                conversation_id=conversation.id,
+                organization_id=organization_id,
+                bot_id=conversation.bot_id,
+                status="waiting_human",
+                requested_at=now,
+                reason_code=reason_code,
+                last_activity_at=now,
+            )
+            self._repository.add(
+                existing,
+                HandoffEventModel(
+                    handoff_session_id=existing.id,
+                    organization_id=organization_id,
+                    actor_user_id=None,
+                    event_type="requested",
+                    reason_code=reason_code,
+                ),
+            )
+        else:
+            existing.status, existing.assigned_user_id = "waiting_human", None
+            existing.requested_at, existing.reason_code = now, reason_code
+            self._repository.event(existing, "requested", None, reason_code)
+        self._commit()
+        return _response(existing)
+
     def claim(
         self, organization_id: UUID, conversation_id: UUID, actor: User
     ) -> HandoffSessionResponse:

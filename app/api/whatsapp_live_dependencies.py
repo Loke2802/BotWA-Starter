@@ -7,6 +7,7 @@ from app.api.dependencies import get_conversation_service
 from app.api.whatsapp_configuration_dependencies import (
     get_whatsapp_secret_cipher,
 )
+from app.application.automation_management.service import ManagedAutomationService
 from app.application.channel.conversation_handler import (
     ChannelConversationHandler,
 )
@@ -43,6 +44,9 @@ from app.infrastructure.repositories.human_handoff_repository import (
 )
 from app.infrastructure.repositories.knowledge_entry_repository import (
     SqlAlchemyKnowledgeEntryRepository,
+)
+from app.infrastructure.repositories.managed_automation_repository import (
+    ManagedAutomationRepository,
 )
 from app.infrastructure.repositories.whatsapp_configuration_repository import (
     SqlAlchemyWhatsAppConfigurationRepository,
@@ -116,6 +120,9 @@ def get_whatsapp_live_message_processor(
         management,
         handoff,
         contacts,
+        ManagedAutomationService(
+            ManagedAutomationRepository(session), session, handoff
+        ),
     )
     sender = WhatsAppChannelMessageSender(
         configuration_repository,

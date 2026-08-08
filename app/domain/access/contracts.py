@@ -54,6 +54,14 @@ Permission = Literal[
     "handoff.transfer",
     "handoff.resolve",
     "handoff.reply",
+    "automation.read",
+    "automation.create",
+    "automation.update",
+    "automation.activate",
+    "automation.deactivate",
+    "automation.archive",
+    "automation.executions.read",
+    "automation.executions.retry",
     "platform.organizations.read",
     "platform.organizations.manage",
 ]
@@ -109,6 +117,14 @@ ALL_PERMISSIONS: tuple[Permission, ...] = (
     "handoff.transfer",
     "handoff.resolve",
     "handoff.reply",
+    "automation.read",
+    "automation.create",
+    "automation.update",
+    "automation.activate",
+    "automation.deactivate",
+    "automation.archive",
+    "automation.executions.read",
+    "automation.executions.retry",
     "platform.organizations.read",
     "platform.organizations.manage",
 )
@@ -159,6 +175,14 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "handoff.transfer",
             "handoff.resolve",
             "handoff.reply",
+            "automation.read",
+            "automation.create",
+            "automation.update",
+            "automation.activate",
+            "automation.deactivate",
+            "automation.archive",
+            "automation.executions.read",
+            "automation.executions.retry",
         )
     ),
     "organization_admin": frozenset(
@@ -204,6 +228,14 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "handoff.transfer",
             "handoff.resolve",
             "handoff.reply",
+            "automation.read",
+            "automation.create",
+            "automation.update",
+            "automation.activate",
+            "automation.deactivate",
+            "automation.archive",
+            "automation.executions.read",
+            "automation.executions.retry",
         )
     ),
     "operator": frozenset(
@@ -228,6 +260,8 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "handoff.release",
             "handoff.resolve",
             "handoff.reply",
+            "automation.read",
+            "automation.executions.read",
         )
     ),
     "viewer": frozenset(

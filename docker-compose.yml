@@ -27,6 +27,15 @@ services:
       db:
         condition: service_healthy
 
+  automation-worker:
+    build: .
+    command: ["python", "-m", "app.operations.automation_worker"]
+    environment:
+      BOTWA_DATABASE_URL: ${BOTWA_DATABASE_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+
   db:
     image: postgres:17
     environment:

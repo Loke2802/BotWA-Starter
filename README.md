@@ -23,7 +23,7 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial: **PRD-001 a PRD-011 CLOSED; PRD-011 Contacts and Customers implementa Contact. Customer está diferido, CRM no está implementado y PRD-012 a PRD-022 permanecen NOT STARTED.**
+Estado oficial: **PRD-001 a PRD-011 CLOSED; PRD-012 Automation Management está implemented, pending CTO review; PRD-013 a PRD-022 permanecen NOT STARTED.**
 
 PRD-011 añade Contact como Source of Truth tenant-safe: identidad normalizada por
 canal, HMAC segmentado por organización, cifrado en reposo, enlace inbound a

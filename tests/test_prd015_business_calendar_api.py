@@ -9,9 +9,12 @@ from app.api.business_calendar_routes import router
 from app.api.dependencies import require_authenticated_user
 from app.domain.user.contracts import User
 from app.infrastructure.database import Base
+from app.infrastructure.models.business_calendar import (
+    BusinessCalendarAuditEventModel,
+)
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -116,12 +119,10 @@ def test_business_calendar_management_and_resolution_api(session: Session) -> No
     assert resolution.json()["local_date"] == "2026-08-10"
     assert resolution.json()["local_time"].startswith("10:30:00")
 
-    audit = client.get(
-        f"/organizations/{organization_id}/business-calendars/{calendar_id}/audit"
+    audit_actions = set(
+        session.scalars(select(BusinessCalendarAuditEventModel.action)).all()
     )
-    assert audit.status_code == 200, audit.text
-    assert audit.json()["total"] == 5
-    assert {item["action"] for item in audit.json()["items"]} >= {
+    assert audit_actions >= {
         "calendar.created",
         "weekly_schedule.replaced",
         "holiday.created",

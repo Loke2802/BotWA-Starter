@@ -8,7 +8,6 @@ from app.api.business_calendar_dependencies import get_business_calendar_service
 from app.api.dependencies import require_permission
 from app.application.business_calendar.service import BusinessCalendarService
 from app.domain.business_calendar.contracts import (
-    AuditEventListResponse,
     BusinessCalendarCreate,
     BusinessCalendarListResponse,
     BusinessCalendarResponse,
@@ -538,34 +537,6 @@ def resolve_calendar(
             at,
             actor,
             correlation_id=_correlation(correlation_id),
-        )
-    except BusinessCalendarError as exc:
-        _raise(exc)
-
-
-@router.get("/{calendar_id}/audit", response_model=AuditEventListResponse)
-def get_audit_history(
-    organization_id: UUID,
-    calendar_id: UUID,
-    service: Annotated[BusinessCalendarService, Depends(get_business_calendar_service)],
-    actor: Annotated[User, Depends(require_permission("business_calendar.read"))],
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
-) -> AuditEventListResponse:
-    try:
-        items, total = service.audit_history(
-            organization_id,
-            calendar_id,
-            actor,
-            offset=(page - 1) * page_size,
-            limit=page_size,
-        )
-        return AuditEventListResponse(
-            items=items,
-            total=total,
-            page=page,
-            page_size=page_size,
-            has_next=page * page_size < total,
         )
     except BusinessCalendarError as exc:
         _raise(exc)

@@ -1,15 +1,15 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-011 Contacts and Customers CLOSED
+## Estado actual - Phase 3 / PRD-012 Automation Management CLOSED
 
-Quality Gates (PRD-011, validación técnica completada):
+Quality Gates (PRD-012, validación post-merge completada):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **645 passed, 1 warning** |
+| `pytest` | **652 passed, 1 warning** |
 | `ruff check app tests` | **All checks passed** |
-| `black --check app tests` | **325 files would be left unchanged** |
-| `mypy app tests` | **Success: no issues found in 325 source files** |
+| `black --check app tests` | **336 files would be left unchanged** |
+| `mypy app tests` | **Success: no issues found in 336 source files** |
 
 La base actual incluye 5 Engines:
 
@@ -23,7 +23,7 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial: **PRD-001 a PRD-011 CLOSED; PRD-012 Automation Management está implemented, pending CTO review; PRD-013 a PRD-022 permanecen NOT STARTED.**
+Estado oficial: **PRD-001 a PRD-012 CLOSED; PRD-013 a PRD-022 permanecen NOT STARTED.**
 
 PRD-011 añade Contact como Source of Truth tenant-safe: identidad normalizada por
 canal, HMAC segmentado por organización, cifrado en reposo, enlace inbound a
@@ -631,10 +631,10 @@ administrativo, RBAC de contenido y supervivencia tras reiniciar la API.
 
 ## PRD-010 Human Handoff (CLOSED)
 
-PRD-001 through PRD-011 are closed. PRD-010 adds a tenant-scoped handoff
+PRD-001 through PRD-012 are closed. PRD-010 adds a tenant-scoped handoff
 lifecycle, bot suppression, encrypted and attributed human replies through the
 generic channel sender, idempotency, archive protection, and safe transport
 errors. PRD-011 adds the Contact increment; Customer is deferred and CRM is not
-implemented. PRD-012 through PRD-022 are not started. Real Meta validation needs
-external credentials.
+implemented. PRD-012 is closed; PRD-013 through PRD-022 are not started. Real
+Meta validation needs external credentials.
 

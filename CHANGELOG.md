@@ -1,5 +1,19 @@
 # Changelog
 
+## PRD-012 Automation Management - 2026-08-07
+
+### Closed
+
+- Added durable, tenant-scoped Automation Management for the allowlisted
+  `conversation.inbound_received -> request_handoff` flow.
+- Validated PostgreSQL idempotency, leasing, two-worker concurrency, retries,
+  terminal cleanup, RBAC, tenant isolation, and safe no-PII snapshots.
+- Merged PR #14 into `master` with merge commit
+  `924dc34e31e43504325d82d195ed7c31c71b1ca4`.
+- Post-merge gates: 652 tests passed; mypy, Ruff, Black, and `git diff --check`
+  passed; Alembic head is `20260807_0014`.
+- PRD-013 remains NOT STARTED.
+
 ## PRD-011 Contacts and Customers (Contact increment) - 2026-08-06
 
 ### Added

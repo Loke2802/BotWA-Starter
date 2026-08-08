@@ -396,6 +396,50 @@ def test_credential_rotation_is_tenant_scoped(session: Session) -> None:
         )
 
 
+def test_credential_rotation_db_failure_rolls_back_existing_secret(
+    session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service, _adapter, actor, organization_id, _bot_id = _setup(session)
+    integration_id = _created(service, actor, organization_id)
+    service.update_credentials(
+        organization_id,
+        integration_id,
+        IntegrationCredentialInput(refresh_token="original-refresh"),
+        actor,
+    )
+    original = service.repository.credential(organization_id, integration_id)
+    assert original is not None
+    original_encrypted_payload = original.encrypted_payload
+    real_rollback = session.rollback
+    rollback_calls = 0
+
+    def fail_commit() -> None:
+        raise SQLAlchemyError("forced commit failure")
+
+    def track_rollback() -> None:
+        nonlocal rollback_calls
+        rollback_calls += 1
+        real_rollback()
+
+    monkeypatch.setattr(session, "commit", fail_commit)
+    monkeypatch.setattr(session, "rollback", track_rollback)
+
+    with pytest.raises(IntegrationProviderOperationError) as error:
+        service.update_credentials(
+            organization_id,
+            integration_id,
+            IntegrationCredentialInput(refresh_token="replacement-refresh"),
+            actor,
+        )
+
+    assert error.value.safe_code == "INTEGRATION_PROVIDER_ERROR"
+    assert rollback_calls == 1
+    credential = service.repository.credential(organization_id, integration_id)
+    assert credential is not None
+    assert credential.encrypted_payload == original_encrypted_payload
+
+
 def test_lifecycle_versioning_and_archive_terminal(session: Session) -> None:
     service, _adapter, actor, organization_id, bot_id = _setup(session)
     integration_id = _created(service, actor, organization_id)
@@ -506,6 +550,32 @@ def test_health_persists_rotated_refresh_token_atomically(session: Session) -> N
     assert "rotated-refresh" not in credential.encrypted_payload
 
 
+def test_health_failure_does_not_destroy_valid_credential(session: Session) -> None:
+    service, adapter, actor, organization_id, _bot_id = _setup(session)
+    integration_id = _created(service, actor, organization_id)
+    service.update_credentials(
+        organization_id,
+        integration_id,
+        IntegrationCredentialInput(refresh_token="stable-refresh"),
+        actor,
+    )
+    service.activate(organization_id, integration_id, actor)
+    original = service.repository.credential(organization_id, integration_id)
+    assert original is not None
+    original_encrypted_payload = original.encrypted_payload
+    adapter.health_failure = "unreachable"
+
+    result = service.check_health(organization_id, integration_id, actor)
+
+    assert result.status == "unreachable"
+    credential = service.repository.credential(organization_id, integration_id)
+    assert credential is not None
+    assert credential.encrypted_payload == original_encrypted_payload
+    assert service._refresh_token(
+        service._connection(organization_id, integration_id)
+    ) == ("stable-refresh")
+
+
 def test_health_db_failure_rolls_back_credential_and_history(
     session: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -563,6 +633,37 @@ def test_oauth_start_callback_encrypts_refresh_and_rejects_replay(
     assert "ephemeral-access" not in credential.encrypted_payload
     with pytest.raises(IntegrationOAuthStateReplayed):
         service.complete_google_oauth(state, "second-code")
+
+
+def test_oauth_replaces_refresh_token_when_new_one_is_returned(
+    session: Session,
+) -> None:
+    service, adapter, actor, organization_id, _bot_id = _setup(session)
+    integration_id = _created(service, actor, organization_id)
+    service.update_credentials(
+        organization_id,
+        integration_id,
+        IntegrationCredentialInput(refresh_token="existing-refresh"),
+        actor,
+    )
+    original = service.repository.credential(organization_id, integration_id)
+    assert original is not None
+    original_id = original.id
+    original_encrypted_payload = original.encrypted_payload
+    adapter.oauth_refresh_token = "provider-replacement-refresh"
+    start = service.start_google_oauth(organization_id, integration_id, actor)
+    state = start.authorization_url.split("state=", maxsplit=1)[1]
+
+    service.complete_google_oauth(state, "authorization-code")
+
+    credential = service.repository.credential(organization_id, integration_id)
+    assert credential is not None
+    assert credential.id == original_id
+    assert credential.encrypted_payload != original_encrypted_payload
+    assert "provider-replacement-refresh" not in credential.encrypted_payload
+    assert service._refresh_token(
+        service._connection(organization_id, integration_id)
+    ) == ("provider-replacement-refresh")
 
 
 @pytest.mark.parametrize("new_refresh_token", [None, ""])
@@ -701,7 +802,7 @@ def test_oauth_db_failure_after_exchange_rolls_back_partial_credential(
     assert stored_state.consumed_at is not None
 
 
-def test_oauth_rejects_tampering_expiration_and_provider_mismatch(
+def test_oauth_rejects_tampering_expiration_and_scope_mismatch(
     session: Session,
 ) -> None:
     service, _adapter, actor, organization_id, _bot_id = _setup(session)
@@ -725,23 +826,28 @@ def test_oauth_rejects_tampering_expiration_and_provider_mismatch(
     with pytest.raises(IntegrationOAuthStateExpired):
         service.complete_google_oauth(expired, "code")
 
-    wrong_state, claims = service.oauth_state_signer.issue(
-        organization_id=organization_id,
-        integration_id=integration_id,
-        provider="wrong_provider",
-    )
-    session.add(
-        IntegrationOAuthStateModel(
-            organization_id=organization_id,
-            integration_connection_id=integration_id,
-            provider="google_calendar",
-            nonce_hash=claims.nonce_hash,
-            expires_at=claims.expires_at,
+    for claim_organization_id, claim_integration_id, claim_provider in (
+        (uuid4(), integration_id, "google_calendar"),
+        (organization_id, uuid4(), "google_calendar"),
+        (organization_id, integration_id, "wrong_provider"),
+    ):
+        wrong_state, claims = service.oauth_state_signer.issue(
+            organization_id=claim_organization_id,
+            integration_id=claim_integration_id,
+            provider=claim_provider,
         )
-    )
-    session.commit()
-    with pytest.raises(IntegrationOAuthStateError):
-        service.complete_google_oauth(wrong_state, "code")
+        session.add(
+            IntegrationOAuthStateModel(
+                organization_id=organization_id,
+                integration_connection_id=integration_id,
+                provider="google_calendar",
+                nonce_hash=claims.nonce_hash,
+                expires_at=claims.expires_at,
+            )
+        )
+        session.commit()
+        with pytest.raises(IntegrationOAuthStateError):
+            service.complete_google_oauth(wrong_state, "code")
 
 
 def test_runtime_calendar_capabilities_use_active_tenant_connection(

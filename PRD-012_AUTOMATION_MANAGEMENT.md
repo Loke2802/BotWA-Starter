@@ -46,7 +46,11 @@ contratos, lifecycle, RBAC, isolation, worker y regresiones. El cierre exige gat
 y smoke PostgreSQL; el riesgo residual es operativo y se mitiga con leases/retries.
 PRD-013 permanece NOT STARTED.
 
-Estado: implemented, pending CTO review.
+Estado: CLOSED.
+
+PRD-012 fue aprobado por CTO y fusionado en `master` mediante el PR #14. La
+validacion post-merge cerro con 652 pruebas, mypy/Ruff/Black PASS y Alembic head
+`20260807_0014`.
 
 PRD-012 añade automatizaciones administrativas durables con el único par permitido
 `conversation.inbound_received -> request_handoff`. Las definiciones son aisladas

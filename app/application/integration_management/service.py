@@ -118,14 +118,18 @@ class IntegrationManagementService:
         self.oauth_state_signer = oauth_state_signer
         self.providers = providers
 
-    def _commit_provider_transaction(self) -> None:
+    def _persistence_error(
+        self,
+        exc: SQLAlchemyError,
+    ) -> IntegrationProviderOperationError:
+        self.session.rollback()
+        return IntegrationProviderOperationError("INTEGRATION_PROVIDER_ERROR")
+
+    def _commit_transaction(self) -> None:
         try:
             self.session.commit()
         except SQLAlchemyError as exc:
-            self.session.rollback()
-            raise IntegrationProviderOperationError(
-                "INTEGRATION_PROVIDER_ERROR"
-            ) from exc
+            raise self._persistence_error(exc) from exc
 
     @staticmethod
     def _authorize(actor: User, permission: Permission, organization_id: UUID) -> None:
@@ -364,21 +368,30 @@ class IntegrationManagementService:
         if row.status == "archived":
             raise IntegrationConflictError("archived integration is terminal")
         refresh_token = payload.refresh_token.get_secret_value()
-        credential = self._store_refresh_token(row, refresh_token)
-        self.session.commit()
-        return IntegrationCredentialResponse(
+        try:
+            credential = self._store_refresh_token(row, refresh_token)
+        except SQLAlchemyError as exc:
+            raise self._persistence_error(exc) from exc
+        response = IntegrationCredentialResponse(
             integration_id=row.id,
             credential_type=credential.credential_type,
             configured=True,
             rotated_at=credential.rotated_at,
         )
+        self._commit_transaction()
+        return response
 
     def _store_refresh_token(
         self, row: IntegrationConnectionModel, refresh_token: str
     ) -> IntegrationCredentialModel:
-        encrypted = self.cipher.encrypt(
-            json.dumps({"refresh_token": refresh_token}, separators=(",", ":"))
-        )
+        try:
+            encrypted = self.cipher.encrypt(
+                json.dumps({"refresh_token": refresh_token}, separators=(",", ":"))
+            )
+        except SecretCipherError as exc:
+            raise IntegrationCredentialError(
+                "integration credential could not be encrypted"
+            ) from exc
         now = datetime.now(UTC)
         credential = self.repository.credential(row.organization_id, row.id, lock=True)
         if credential is None:
@@ -448,7 +461,7 @@ class IntegrationManagementService:
                 expires_at=claims.expires_at,
             )
         )
-        self.session.commit()
+        self._commit_transaction()
         return OAuthStartResponse(
             authorization_url=authorization_url, expires_at=claims.expires_at
         )
@@ -483,7 +496,7 @@ class IntegrationManagementService:
         if row.provider != claims.provider or row.status == "archived":
             raise IntegrationOAuthStateError("oauth state invalid")
         stored_state.consumed_at = now
-        self._commit_provider_transaction()
+        self._commit_transaction()
         try:
             adapter = self.providers.calendar(row.provider)
             tokens = adapter.exchange_authorization_code(code)
@@ -498,15 +511,18 @@ class IntegrationManagementService:
             raise IntegrationProviderOperationError(
                 "INTEGRATION_PROVIDER_ERROR"
             ) from exc
-        if tokens.refresh_token:
-            self._store_refresh_token(row, tokens.refresh_token)
-        elif self.repository.credential(row.organization_id, row.id) is None:
-            self.session.rollback()
-            raise IntegrationCredentialRequiredError(
-                "google did not return a refresh token"
-            )
-        self._record_oauth_health(row, adapter, tokens.access_token)
-        self._commit_provider_transaction()
+        try:
+            if tokens.refresh_token:
+                self._store_refresh_token(row, tokens.refresh_token)
+            elif self.repository.credential(row.organization_id, row.id) is None:
+                self.session.rollback()
+                raise IntegrationCredentialRequiredError(
+                    "google did not return a refresh token"
+                )
+            self._record_oauth_health(row, adapter, tokens.access_token)
+        except SQLAlchemyError as exc:
+            raise self._persistence_error(exc) from exc
+        self._commit_transaction()
         return OAuthCallbackResponse()
 
     def _record_oauth_health(
@@ -534,29 +550,32 @@ class IntegrationManagementService:
         row = self._connection(organization_id, integration_id, lock=True)
         if row.status != "active":
             raise IntegrationNotActiveError("integration is not active")
-        start = perf_counter()
         try:
-            refresh_token = self._refresh_token(row)
-            adapter = self.providers.calendar(row.provider)
-            rotated_refresh_token = adapter.get_health(refresh_token)
-            if rotated_refresh_token:
-                self._store_refresh_token(row, rotated_refresh_token)
-            status, safe_error = "healthy", None
-        except IntegrationCredentialRequiredError:
-            status, safe_error = "auth_error", "INTEGRATION_AUTH_REQUIRED"
-        except IntegrationCredentialError:
-            status, safe_error = "auth_error", "INTEGRATION_CREDENTIAL_INVALID"
-        except IntegrationProviderAuthError:
-            status, safe_error = "auth_error", "INTEGRATION_AUTH_FAILED"
-        except IntegrationProviderUnreachableError:
-            status, safe_error = "unreachable", "INTEGRATION_UNREACHABLE"
-        except (
-            IntegrationProviderNotSupportedError,
-            IntegrationProviderResponseError,
-        ):
-            status, safe_error = "degraded", "INTEGRATION_PROVIDER_ERROR"
-        health = self._persist_health(row, status, safe_error, start)
-        self._commit_provider_transaction()
+            start = perf_counter()
+            try:
+                refresh_token = self._refresh_token(row)
+                adapter = self.providers.calendar(row.provider)
+                rotated_refresh_token = adapter.get_health(refresh_token)
+                if rotated_refresh_token:
+                    self._store_refresh_token(row, rotated_refresh_token)
+                status, safe_error = "healthy", None
+            except IntegrationCredentialRequiredError:
+                status, safe_error = "auth_error", "INTEGRATION_AUTH_REQUIRED"
+            except IntegrationCredentialError:
+                status, safe_error = "auth_error", "INTEGRATION_CREDENTIAL_INVALID"
+            except IntegrationProviderAuthError:
+                status, safe_error = "auth_error", "INTEGRATION_AUTH_FAILED"
+            except IntegrationProviderUnreachableError:
+                status, safe_error = "unreachable", "INTEGRATION_UNREACHABLE"
+            except (
+                IntegrationProviderNotSupportedError,
+                IntegrationProviderResponseError,
+            ):
+                status, safe_error = "degraded", "INTEGRATION_PROVIDER_ERROR"
+            health = self._persist_health(row, status, safe_error, start)
+        except SQLAlchemyError as exc:
+            raise self._persistence_error(exc) from exc
+        self._commit_transaction()
         return IntegrationHealthCheckResponse.model_validate(health)
 
     def _persist_health(

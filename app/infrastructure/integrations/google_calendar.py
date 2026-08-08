@@ -83,14 +83,16 @@ class GoogleCalendarAdapter:
         )
         access_token = self._required_string(payload, "access_token")
         refresh_value = payload.get("refresh_token")
-        if refresh_value is not None and not isinstance(refresh_value, str):
+        if refresh_value is not None and (
+            not isinstance(refresh_value, str) or not refresh_value
+        ):
             raise IntegrationProviderResponseError("invalid oauth token response")
         return OAuthTokenResult(
             access_token=access_token,
             refresh_token=refresh_value,
         )
 
-    def _refresh_access_token(self, refresh_token: str) -> str:
+    def _refresh_access_token(self, refresh_token: str) -> OAuthTokenResult:
         self._require_server_configuration()
         payload = self._request_json(
             "POST",
@@ -103,10 +105,21 @@ class GoogleCalendarAdapter:
             },
             auth_failure=True,
         )
-        return self._required_string(payload, "access_token")
+        access_token = self._required_string(payload, "access_token")
+        refresh_value = payload.get("refresh_token")
+        if refresh_value is not None and (
+            not isinstance(refresh_value, str) or not refresh_value
+        ):
+            raise IntegrationProviderResponseError("invalid oauth token response")
+        return OAuthTokenResult(
+            access_token=access_token,
+            refresh_token=refresh_value,
+        )
 
-    def get_health(self, refresh_token: str) -> None:
-        self.get_health_with_access_token(self._refresh_access_token(refresh_token))
+    def get_health(self, refresh_token: str) -> str | None:
+        tokens = self._refresh_access_token(refresh_token)
+        self.get_health_with_access_token(tokens.access_token)
+        return tokens.refresh_token
 
     def get_health_with_access_token(self, access_token: str) -> None:
         payload = self._authorized_json(
@@ -120,7 +133,7 @@ class GoogleCalendarAdapter:
             raise IntegrationProviderResponseError("invalid calendar response")
 
     def list_calendars(self, refresh_token: str) -> list[CalendarMetadata]:
-        access_token = self._refresh_access_token(refresh_token)
+        access_token = self._refresh_access_token(refresh_token).access_token
         payload = self._authorized_json(
             "GET",
             f"{self.calendar_api_base}/users/me/calendarList",
@@ -140,7 +153,7 @@ class GoogleCalendarAdapter:
     def get_calendar_metadata(
         self, refresh_token: str, calendar_id: str
     ) -> CalendarMetadata:
-        access_token = self._refresh_access_token(refresh_token)
+        access_token = self._refresh_access_token(refresh_token).access_token
         encoded_calendar_id = quote(calendar_id, safe="")
         payload = self._authorized_json(
             "GET",
@@ -152,7 +165,7 @@ class GoogleCalendarAdapter:
     def get_availability(
         self, refresh_token: str, request: AvailabilityRequest
     ) -> list[CalendarAvailability]:
-        access_token = self._refresh_access_token(refresh_token)
+        access_token = self._refresh_access_token(refresh_token).access_token
         body: dict[str, object] = {
             "timeMin": request.start.isoformat(),
             "timeMax": request.end.isoformat(),

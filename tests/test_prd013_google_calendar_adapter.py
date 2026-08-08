@@ -59,6 +59,40 @@ def test_exchange_code_returns_tokens_without_raw_provider_object() -> None:
     assert not hasattr(result, "unexpected")
 
 
+def test_exchange_rejects_empty_refresh_token() -> None:
+    transport = httpx.MockTransport(
+        lambda _: httpx.Response(
+            200, json={"access_token": "ephemeral", "refresh_token": ""}
+        )
+    )
+
+    with pytest.raises(IntegrationProviderResponseError):
+        _adapter(transport).exchange_authorization_code("authorization-code")
+
+
+def test_health_returns_rotated_refresh_token_without_exposing_provider_payload() -> (
+    None
+):
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "oauth2.googleapis.com":
+            return httpx.Response(
+                200,
+                json={
+                    "access_token": "ephemeral",
+                    "refresh_token": "rotated-refresh",
+                    "unexpected": "ignored",
+                },
+            )
+        assert request.headers["Authorization"] == "Bearer ephemeral"
+        return httpx.Response(200, json={"items": []})
+
+    rotated_refresh_token = _adapter(httpx.MockTransport(handler)).get_health(
+        "original-refresh"
+    )
+
+    assert rotated_refresh_token == "rotated-refresh"
+
+
 def test_list_metadata_refreshes_token_and_returns_canonical_models() -> None:
     calls: list[str] = []
 

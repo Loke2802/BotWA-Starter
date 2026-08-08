@@ -15,12 +15,14 @@ from app.application.integration_management.providers import (
 from app.application.integration_management.service import (
     IntegrationConflictError,
     IntegrationCredentialError,
+    IntegrationCredentialRequiredError,
     IntegrationForbiddenError,
     IntegrationManagementService,
     IntegrationNotFoundError,
     IntegrationOAuthStateError,
     IntegrationOAuthStateExpired,
     IntegrationOAuthStateReplayed,
+    IntegrationProviderOperationError,
     IntegrationValidationError,
 )
 from app.domain.access.contracts import ROLE_PERMISSIONS
@@ -38,6 +40,7 @@ from app.infrastructure.integrations.registry import IntegrationProviderRegistry
 from app.infrastructure.models.bot import BotModel
 from app.infrastructure.models.integration_management import (
     IntegrationCredentialModel,
+    IntegrationHealthCheckModel,
     IntegrationOAuthStateModel,
 )
 from app.infrastructure.models.organization import OrganizationModel
@@ -48,6 +51,7 @@ from app.infrastructure.repositories.integration_management_repository import (
 from app.security.secret_cipher import EnvironmentSecretCipher
 from pydantic import ValidationError
 from sqlalchemy import create_engine, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -62,13 +66,22 @@ class FakeGoogleCalendarAdapter:
     def __init__(self) -> None:
         self.health_failure: str | None = None
         self.exchanged_code: str | None = None
+        self.exchange_failure: str | None = None
+        self.oauth_refresh_token: str | None = "provider-refresh-token"
+        self.health_rotated_refresh_token: str | None = None
 
     def build_authorization_url(self, state: str) -> str:
         return f"https://accounts.example/authorize?state={state}"
 
     def exchange_authorization_code(self, code: str) -> OAuthTokenResult:
         self.exchanged_code = code
-        return OAuthTokenResult("ephemeral-access", "provider-refresh-token")
+        if self.exchange_failure == "auth":
+            raise IntegrationProviderAuthError("auth")
+        if self.exchange_failure == "unreachable":
+            raise IntegrationProviderUnreachableError("unreachable")
+        if self.exchange_failure == "provider":
+            raise IntegrationProviderResponseError("provider")
+        return OAuthTokenResult("ephemeral-access", self.oauth_refresh_token)
 
     def _health(self) -> None:
         if self.health_failure == "auth":
@@ -78,9 +91,10 @@ class FakeGoogleCalendarAdapter:
         if self.health_failure == "provider":
             raise IntegrationProviderResponseError("provider")
 
-    def get_health(self, refresh_token: str) -> None:
+    def get_health(self, refresh_token: str) -> str | None:
         assert refresh_token
         self._health()
+        return self.health_rotated_refresh_token
 
     def get_health_with_access_token(self, access_token: str) -> None:
         assert access_token == "ephemeral-access"
@@ -305,6 +319,83 @@ def test_credentials_are_encrypted_rotatable_and_never_returned(
     ) == ("second-refresh-token")
 
 
+def test_credential_rotation_is_tenant_scoped(session: Session) -> None:
+    service, _adapter, actor, organization_id, _bot_id = _setup(session)
+    local_integration_id = _created(service, actor, organization_id)
+    service.update_credentials(
+        organization_id,
+        local_integration_id,
+        IntegrationCredentialInput(refresh_token="local-original"),
+        actor,
+    )
+
+    foreign_organization_id = uuid4()
+    foreign_actor = _actor(foreign_organization_id)
+    session.add_all(
+        (
+            OrganizationModel(
+                id=foreign_organization_id,
+                name="Foreign",
+                slug=str(foreign_organization_id)[:12],
+                status="active",
+            ),
+            UserModel(
+                id=foreign_actor.id,
+                organization_id=foreign_organization_id,
+                email=foreign_actor.email,
+                password_hash="x",
+                role=foreign_actor.role,
+                status="active",
+            ),
+        )
+    )
+    session.commit()
+    foreign_integration_id = _created(service, foreign_actor, foreign_organization_id)
+    service.update_credentials(
+        foreign_organization_id,
+        foreign_integration_id,
+        IntegrationCredentialInput(refresh_token="foreign-original"),
+        foreign_actor,
+    )
+    foreign_credential = service.repository.credential(
+        foreign_organization_id, foreign_integration_id
+    )
+    assert foreign_credential is not None
+    foreign_encrypted_payload = foreign_credential.encrypted_payload
+
+    service.update_credentials(
+        organization_id,
+        local_integration_id,
+        IntegrationCredentialInput(refresh_token="local-rotated"),
+        actor,
+    )
+    assert service._refresh_token(
+        service._connection(organization_id, local_integration_id)
+    ) == ("local-rotated")
+    unchanged_foreign_credential = service.repository.credential(
+        foreign_organization_id, foreign_integration_id
+    )
+    assert unchanged_foreign_credential is not None
+    assert unchanged_foreign_credential.encrypted_payload == foreign_encrypted_payload
+
+    with pytest.raises(IntegrationNotFoundError):
+        service.update_credentials(
+            foreign_organization_id,
+            local_integration_id,
+            IntegrationCredentialInput(refresh_token="cross-tenant"),
+            foreign_actor,
+        )
+
+    service.archive(organization_id, local_integration_id, actor)
+    with pytest.raises(IntegrationConflictError):
+        service.update_credentials(
+            organization_id,
+            local_integration_id,
+            IntegrationCredentialInput(refresh_token="archived-rotation"),
+            actor,
+        )
+
+
 def test_lifecycle_versioning_and_archive_terminal(session: Session) -> None:
     service, _adapter, actor, organization_id, bot_id = _setup(session)
     integration_id = _created(service, actor, organization_id)
@@ -392,6 +483,70 @@ def test_on_demand_health_maps_safe_history(
         )
 
 
+def test_health_persists_rotated_refresh_token_atomically(session: Session) -> None:
+    service, adapter, actor, organization_id, _bot_id = _setup(session)
+    integration_id = _created(service, actor, organization_id)
+    service.update_credentials(
+        organization_id,
+        integration_id,
+        IntegrationCredentialInput(refresh_token="original-refresh"),
+        actor,
+    )
+    service.activate(organization_id, integration_id, actor)
+    adapter.health_rotated_refresh_token = "rotated-refresh"
+
+    result = service.check_health(organization_id, integration_id, actor)
+
+    assert result.status == "healthy"
+    assert service._refresh_token(
+        service._connection(organization_id, integration_id)
+    ) == ("rotated-refresh")
+    credential = service.repository.credential(organization_id, integration_id)
+    assert credential is not None
+    assert "rotated-refresh" not in credential.encrypted_payload
+
+
+def test_health_db_failure_rolls_back_credential_and_history(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    service, adapter, actor, organization_id, _bot_id = _setup(session)
+    integration_id = _created(service, actor, organization_id)
+    service.update_credentials(
+        organization_id,
+        integration_id,
+        IntegrationCredentialInput(refresh_token="original-refresh"),
+        actor,
+    )
+    service.activate(organization_id, integration_id, actor)
+    original_credential = service.repository.credential(organization_id, integration_id)
+    assert original_credential is not None
+    original_encrypted_payload = original_credential.encrypted_payload
+    adapter.health_rotated_refresh_token = "rotated-refresh"
+    real_rollback = session.rollback
+    rollback_calls = 0
+
+    def fail_commit() -> None:
+        raise SQLAlchemyError("forced commit failure")
+
+    def track_rollback() -> None:
+        nonlocal rollback_calls
+        rollback_calls += 1
+        real_rollback()
+
+    monkeypatch.setattr(session, "commit", fail_commit)
+    monkeypatch.setattr(session, "rollback", track_rollback)
+
+    with pytest.raises(IntegrationProviderOperationError) as error:
+        service.check_health(organization_id, integration_id, actor)
+
+    assert error.value.safe_code == "INTEGRATION_PROVIDER_ERROR"
+    assert rollback_calls == 1
+    credential = service.repository.credential(organization_id, integration_id)
+    assert credential is not None
+    assert credential.encrypted_payload == original_encrypted_payload
+    assert session.scalars(select(IntegrationHealthCheckModel)).all() == []
+
+
 def test_oauth_start_callback_encrypts_refresh_and_rejects_replay(
     session: Session,
 ) -> None:
@@ -408,6 +563,142 @@ def test_oauth_start_callback_encrypts_refresh_and_rejects_replay(
     assert "ephemeral-access" not in credential.encrypted_payload
     with pytest.raises(IntegrationOAuthStateReplayed):
         service.complete_google_oauth(state, "second-code")
+
+
+@pytest.mark.parametrize("new_refresh_token", [None, ""])
+def test_oauth_preserves_existing_refresh_token_when_google_omits_new_one(
+    session: Session, new_refresh_token: str | None
+) -> None:
+    service, adapter, actor, organization_id, _bot_id = _setup(session)
+    integration_id = _created(service, actor, organization_id)
+    service.update_credentials(
+        organization_id,
+        integration_id,
+        IntegrationCredentialInput(refresh_token="existing-refresh"),
+        actor,
+    )
+    original = service.repository.credential(organization_id, integration_id)
+    assert original is not None
+    original_id = original.id
+    original_encrypted_payload = original.encrypted_payload
+    original_rotated_at = original.rotated_at
+    adapter.oauth_refresh_token = new_refresh_token
+    start = service.start_google_oauth(organization_id, integration_id, actor)
+    state = start.authorization_url.split("state=", maxsplit=1)[1]
+
+    service.complete_google_oauth(state, "authorization-code")
+
+    credential = service.repository.credential(organization_id, integration_id)
+    assert credential is not None
+    assert credential.id == original_id
+    assert credential.encrypted_payload == original_encrypted_payload
+    assert credential.rotated_at == original_rotated_at
+
+
+def test_oauth_without_refresh_token_and_without_existing_credential_fails_safely(
+    session: Session,
+) -> None:
+    service, adapter, actor, organization_id, _bot_id = _setup(session)
+    integration_id = _created(service, actor, organization_id)
+    adapter.oauth_refresh_token = None
+    start = service.start_google_oauth(organization_id, integration_id, actor)
+    state = start.authorization_url.split("state=", maxsplit=1)[1]
+
+    with pytest.raises(IntegrationCredentialRequiredError) as error:
+        service.complete_google_oauth(state, "authorization-code")
+
+    assert error.value.safe_code == "INTEGRATION_AUTH_REQUIRED"
+    assert session.scalars(select(IntegrationCredentialModel)).all() == []
+    assert session.scalars(select(IntegrationHealthCheckModel)).all() == []
+    stored_state = session.scalars(select(IntegrationOAuthStateModel)).one()
+    assert stored_state.consumed_at is not None
+
+
+def test_consumed_state_cannot_replay_after_provider_exchange_failure(
+    session: Session,
+) -> None:
+    service, adapter, actor, organization_id, _bot_id = _setup(session)
+    integration_id = _created(service, actor, organization_id)
+    adapter.exchange_failure = "unreachable"
+    start = service.start_google_oauth(organization_id, integration_id, actor)
+    state = start.authorization_url.split("state=", maxsplit=1)[1]
+
+    with pytest.raises(IntegrationProviderOperationError) as error:
+        service.complete_google_oauth(state, "authorization-code")
+    assert error.value.safe_code == "INTEGRATION_UNREACHABLE"
+
+    adapter.exchange_failure = None
+    with pytest.raises(IntegrationOAuthStateReplayed):
+        service.complete_google_oauth(state, "replay-code")
+
+
+def test_failed_oauth_exchange_does_not_persist_partial_credential(
+    session: Session,
+) -> None:
+    service, adapter, actor, organization_id, _bot_id = _setup(session)
+    integration_id = _created(service, actor, organization_id)
+    adapter.exchange_failure = "provider"
+    start = service.start_google_oauth(organization_id, integration_id, actor)
+    state = start.authorization_url.split("state=", maxsplit=1)[1]
+
+    with pytest.raises(IntegrationProviderOperationError):
+        service.complete_google_oauth(state, "sensitive-authorization-code")
+
+    assert session.scalars(select(IntegrationCredentialModel)).all() == []
+    assert session.scalars(select(IntegrationHealthCheckModel)).all() == []
+    stored_state = session.scalars(select(IntegrationOAuthStateModel)).one()
+    assert stored_state.consumed_at is not None
+    assert "sensitive-authorization-code" not in stored_state.nonce_hash
+
+
+def test_oauth_db_failure_after_exchange_rolls_back_partial_credential(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    service, adapter, actor, organization_id, _bot_id = _setup(session)
+    integration_id = _created(service, actor, organization_id)
+    service.update_credentials(
+        organization_id,
+        integration_id,
+        IntegrationCredentialInput(refresh_token="existing-refresh"),
+        actor,
+    )
+    original = service.repository.credential(organization_id, integration_id)
+    assert original is not None
+    original_encrypted_payload = original.encrypted_payload
+    start = service.start_google_oauth(organization_id, integration_id, actor)
+    state = start.authorization_url.split("state=", maxsplit=1)[1]
+    adapter.oauth_refresh_token = "replacement-refresh"
+    real_commit = session.commit
+    real_rollback = session.rollback
+    commit_calls = 0
+    rollback_calls = 0
+
+    def fail_final_commit() -> None:
+        nonlocal commit_calls
+        commit_calls += 1
+        if commit_calls == 2:
+            raise SQLAlchemyError("forced commit failure")
+        real_commit()
+
+    def track_rollback() -> None:
+        nonlocal rollback_calls
+        rollback_calls += 1
+        real_rollback()
+
+    monkeypatch.setattr(session, "commit", fail_final_commit)
+    monkeypatch.setattr(session, "rollback", track_rollback)
+
+    with pytest.raises(IntegrationProviderOperationError) as error:
+        service.complete_google_oauth(state, "authorization-code")
+
+    assert error.value.safe_code == "INTEGRATION_PROVIDER_ERROR"
+    assert rollback_calls == 1
+    credential = service.repository.credential(organization_id, integration_id)
+    assert credential is not None
+    assert credential.encrypted_payload == original_encrypted_payload
+    assert session.scalars(select(IntegrationHealthCheckModel)).all() == []
+    stored_state = session.scalars(select(IntegrationOAuthStateModel)).one()
+    assert stored_state.consumed_at is not None
 
 
 def test_oauth_rejects_tampering_expiration_and_provider_mismatch(

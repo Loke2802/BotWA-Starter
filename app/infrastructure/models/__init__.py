@@ -5,6 +5,15 @@ from app.infrastructure.models.automation_task_execution import (
     AutomationTaskExecutionModel,
 )
 from app.infrastructure.models.bot import BotModel
+from app.infrastructure.models.business_calendar import (
+    BusinessCalendarAuditEventModel,
+    BusinessCalendarDateExceptionModel,
+    BusinessCalendarHolidayModel,
+    BusinessCalendarIdempotencyReceiptModel,
+    BusinessCalendarModel,
+    BusinessCalendarOverrideModel,
+    BusinessCalendarWeeklyIntervalModel,
+)
 from app.infrastructure.models.business_configuration import (
     BusinessConfigurationModel,
 )
@@ -51,6 +60,13 @@ __all__ = [
     "AutomationExecutionModel",
     "AutomationTaskExecutionModel",
     "BotModel",
+    "BusinessCalendarAuditEventModel",
+    "BusinessCalendarDateExceptionModel",
+    "BusinessCalendarHolidayModel",
+    "BusinessCalendarIdempotencyReceiptModel",
+    "BusinessCalendarModel",
+    "BusinessCalendarOverrideModel",
+    "BusinessCalendarWeeklyIntervalModel",
     "BusinessConfigurationModel",
     "BusinessEventModel",
     "ConversationModel",

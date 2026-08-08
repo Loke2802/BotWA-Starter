@@ -1,6 +1,6 @@
 # PRD-015 Business Hours & Holidays
 
-**Estado:** NOT STARTED
+**Estado:** IMPLEMENTED — PENDING CTO REVIEW
 
 **Tipo:** Product / Scheduling Domain
 
@@ -73,6 +73,18 @@ resolución operativa. La estructura `business_hours` de PRD-005 se considera
 configuración legacy hasta que una estrategia de migración explícita la importe
 o retire. Durante la implementación no podrán existir dos rutas de escritura
 activas que produzcan decisiones contradictorias.
+
+El contrato de compatibilidad es explícito: un calendario PRD-015 activo y
+aplicable es el Source of Truth. Se selecciona primero el calendario activo del
+bot y, si no existe, el calendario activo general de la organización. Solo puede
+existir un calendario activo por cada scope. Si ninguno existe, PRD-012 conserva
+temporalmente el cálculo legacy de PRD-005. Calendarios `draft`, `inactive` o
+`archived` no deshabilitan ese fallback.
+
+El fallback no combina decisiones ni copia reglas. Un calendario activo que no
+pueda resolverse retorna `unknown`; no cae silenciosamente a PRD-005. Su retiro
+futuro exige migrar y activar calendarios para los tenants restantes y aprobar
+separadamente la deprecación de la lectura legacy.
 
 ### 4.3 Aislamiento tenant
 
@@ -258,10 +270,19 @@ la revisión de implementación antes de crear la migración.
 - `business_calendar.override.manage`;
 - `business_calendar.resolve`.
 
-Owner y organization admin reciben administración completa. Operator puede leer,
-resolver y, si el contrato de producto lo confirma, administrar overrides.
-Viewer no recibe permisos por defecto. Platform admin siempre opera con
-organización explícita.
+Owner y organization admin reciben administración completa. Por mínimo
+privilegio, Operator solo puede leer y resolver; no puede administrar overrides,
+horarios, excepciones, feriados ni lifecycle. Cualquier ampliación futura requiere
+un contrato de producto explícito. Viewer no recibe permisos por defecto.
+Platform admin siempre opera con organización explícita.
+
+## 10.1 Compatibilidad con PRD-012
+
+`conversation.inbound_received` obtiene `business_hours_state` mediante el
+contrato de compatibilidad anterior. Una resolución PRD-015 `open` se traduce a
+`inside` y `closed` a `outside`; sin calendario activo se usa PRD-005, y sin una
+configuración legacy válida se usa `unknown`. El snapshot durable de PRD-012
+conserva ese estado sin duplicar reglas ni cambiar su trigger o acción.
 
 ## 11. Auditoría, observabilidad y seguridad
 
@@ -347,7 +368,7 @@ frontera de conexiones y credenciales externas.
 ## 16. Exclusiones
 
 - Implementación de PRD-014 Dashboard.
-- Implementación funcional de PRD-015 en este cambio documental.
+- Eliminación física de calendarios o historial desde la API v1.
 - Google Calendar u otro adaptador real.
 - OAuth, almacenamiento de credenciales o cambios en PRD-013.
 - Sincronización bidireccional, webhooks, polling o workers externos.
@@ -358,7 +379,7 @@ frontera de conexiones y credenciales externas.
 - Eliminar físicamente historial o reglas auditadas.
 - Cambios al Core Automation Engine.
 
-## 17. Entregables futuros de implementación
+## 17. Entregables de implementación
 
 - contratos y resolver de dominio;
 - modelos, repositorios y migración Alembic;
@@ -368,5 +389,12 @@ frontera de conexiones y credenciales externas.
 - pruebas focalizadas, PostgreSQL y gates completos;
 - documentación de migración desde el horario básico de PRD-005.
 
-Hasta que exista autorización CTO explícita, todos estos entregables permanecen
-NOT STARTED.
+La implementación autorizada está disponible en la rama
+`feat/prd-015-business-hours-holidays`, con migración `20260808_0016`. Incluye
+dominio y resolver agnósticos de proveedor, gestión administrativa tenant-scoped,
+RBAC, auditoría e idempotencia transaccionales, API, observabilidad y pruebas
+unitarias, API y PostgreSQL. Google Calendar permanece exclusivamente como
+adaptador futuro y PRD-014 Dashboard permanece `NOT STARTED`.
+
+Los gates técnicos y la revisión CTO son obligatorios antes de mergear o declarar
+PRD-015 `CLOSED`.

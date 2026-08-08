@@ -6,6 +6,7 @@ from app.infrastructure.models import (  # noqa: F401
     automation_execution,
     automation_task_execution,
     bot,
+    business_calendar,
     business_configuration,
     business_event,
     contact,

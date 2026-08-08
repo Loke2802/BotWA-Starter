@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api.automation_management_routes import router as automation_management_router
+from app.api.business_calendar_routes import router as business_calendar_router
 from app.api.contacts_routes import router as contacts_router
 from app.api.conversation_management_routes import (
     router as conversation_management_router,
@@ -54,6 +55,7 @@ def create_app() -> FastAPI:
     app.include_router(contacts_router)
     app.include_router(human_handoff_router)
     app.include_router(automation_management_router)
+    app.include_router(business_calendar_router)
     app.include_router(integration_management_router)
     app.include_router(integration_oauth_router)
     app.include_router(knowledge_management_router)

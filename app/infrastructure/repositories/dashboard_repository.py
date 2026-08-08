@@ -19,6 +19,7 @@ from app.domain.dashboard.ports import (
     DashboardHandoffAggregate,
     DashboardScope,
 )
+from app.domain.organization.contracts import DEFAULT_ORGANIZATION_TIMEZONE
 from app.infrastructure.models.bot import BotModel
 from app.infrastructure.models.contact import ContactModel
 from app.infrastructure.models.conversation import ConversationModel
@@ -56,7 +57,7 @@ class SqlAlchemyDashboardRepository:
             )
             if settings is None:
                 return None
-            timezone = "America/Lima"
+            timezone = DEFAULT_ORGANIZATION_TIMEZONE
             configured_timezone = settings.get("timezone")
             if isinstance(configured_timezone, str):
                 timezone = configured_timezone
@@ -261,7 +262,10 @@ class SqlAlchemyDashboardRepository:
                 .label("active"),
                 *(
                     func.count()
-                    .filter(IntegrationConnectionModel.health_status == state)
+                    .filter(
+                        IntegrationConnectionModel.status == "active",
+                        IntegrationConnectionModel.health_status == state,
+                    )
                     .label(state)
                     for state in (
                         "healthy",

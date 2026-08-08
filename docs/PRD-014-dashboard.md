@@ -70,7 +70,12 @@ Filters:
 - or the explicit timezone-aware pair `from` and `to`;
 - preset periods use local calendar-day boundaries in the canonical organization
   timezone, or bot timezone when `bot_id` is present;
+- organization settings without an explicit timezone use the canonical
+  `OrganizationSettings` default, `America/Lima`; Dashboard does not define an
+  independent fallback;
 - every interval is `[from, to)` and explicit ranges cannot exceed 90 days;
+- the explicit-range limit is exactly 90 times 24 elapsed hours after UTC
+  normalization (not 90 local calendar days); exactly 90 days is accepted;
 - presets and explicit ranges cannot be mixed.
 
 Safe error codes are `DASHBOARD_INVALID_RANGE`, `DASHBOARD_RANGE_TOO_LARGE`,
@@ -84,14 +89,20 @@ resolved period, `generated_at`, and these sections:
 
 - `business`: canonical `open`, `closed` or `unknown`, safe source and optional
   `next_change_at`;
-- `bots`: total, active and inactive current bot lifecycle counts;
-- `conversations`: total/open/closed/archived plus starts in the selected period;
+- `bots`: `active` and `inactive` are the complete canonical Bot lifecycle;
+  therefore `total = active + inactive`;
+- `conversations`: `open`, `closed` and `archived` are the complete canonical
+  Conversation Management lifecycle and `total` is their sum. Legacy Core rows
+  whose product `management_status` is null are intentionally outside this
+  product-scoped read model;
 - `handoffs`: `human_active` as active, `waiting_human` as pending, creations and
   resolutions in period, plus age of the oldest waiting/active request;
 - `automations`: period execution counts for pending, running, succeeded, failed,
   skipped and cancelled real states;
-- `integrations`: current total/lifecycle count and last persisted health states
-  healthy, degraded, unreachable, auth_error and unknown;
+- `integrations`: `total` includes every current connection lifecycle (`draft`,
+  `active`, `inactive`, `archived`), while the persisted health breakdown covers
+  only `active` connections. Thus `active = healthy + degraded + unreachable +
+  auth_error + unknown`; inactive states cannot create operational alerts;
 - `contacts`: organization-wide total and creations in period.
 
 With `bot_id`, bots, conversations, handoffs, automations, integrations and
@@ -116,17 +127,27 @@ contains no messages, body/text, phone, email, sender, display name, notes,
 external customer IDs, ciphertext, hashes, tokens, secrets, authorization data,
 provider payloads or raw external data.
 
-Dashboard code has no `session.add`, `session.delete`, `commit`, update statement
-or audit write. A query does not update last-seen state or trigger any domain
-action. `generated_at` communicates the read-side composition time; no global
-serializable snapshot or domain locking is attempted.
+Dashboard code and its PRD-015/PRD-005 read dependencies perform no
+`session.add`, `session.delete`, `commit`, update statement, audit write or
+idempotency receipt during a GET. A query does not update last-seen state or
+trigger any domain action. `generated_at` communicates the read-side composition
+time; no global serializable snapshot or domain locking is attempted.
 
 ## Performance and observability
 
 The repository uses one fixed aggregate query per section, regardless of tenant
-row count. The performance test loads 10,000 conversations and proves a single
-SQL `COUNT` query handles that section with a fixed seven-query repository budget
-for an organization summary. No ORM conversation identity columns are selected.
+row count. Organization scope has a fixed budget of seven repository SELECTs:
+one organization scope lookup plus six aggregates. Bot scope has eight: the
+organization lookup, a same-tenant bot lookup and the same six aggregates. The
+performance test loads 10,000 conversations and proves both budgets remain O(1),
+with a single SQL `COUNT` query for conversations and no selected ORM identity
+columns.
+
+PRD-015/PRD-005 Business Hours resolution is outside that repository budget and
+has its own read-query cost depending on whether an applicable calendar or the
+legacy fallback is used. Consequently, PRD-014 does not claim that the complete
+HTTP request always executes seven SQL statements. Neither boundary queries per
+bot or hydrates Dashboard collections.
 
 Existing tenant/status indexes support the v1 access paths. No speculative index
 or migration was added: the implementation introduces no table and retains the
@@ -144,14 +165,14 @@ custom ranges, `[from, to)`, the 90-day limit, IANA timezone/DST behavior,
 same-tenant and cross-tenant bot filters, all aggregate sections, PRD-015
 resolution, indirect PRD-005 fallback, all approved RBAC roles, Platform Admin
 explicit organization scope, PII absence, no DB side effects, SQL aggregate
-performance and real PostgreSQL tenant isolation.
+performance, safe persistence errors and real PostgreSQL tenant isolation.
 
 Final validation:
 
-- local PRD-014: 5 passed;
+- local PRD-014: 9 passed;
 - PostgreSQL PRD-014: 1 passed;
 - performance sanity with 10,000 conversations: PASS;
-- full pytest: 710 passed, 13 skipped, 2 warnings;
+- full pytest: 714 passed, 13 skipped, 2 warnings;
 - mypy: PASS, 387 source files;
 - Ruff: PASS;
 - Black: PASS, 387 files;

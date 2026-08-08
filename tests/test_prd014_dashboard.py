@@ -1,6 +1,6 @@
 from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
-from typing import cast
+from typing import cast, get_args
 from uuid import UUID, uuid4
 
 import pytest
@@ -14,17 +14,22 @@ from app.application.business_calendar.service import BusinessCalendarService
 from app.application.dashboard.business import DashboardBusinessStatusReader
 from app.application.dashboard.service import DashboardQueryService
 from app.domain.access.contracts import Role
+from app.domain.bot.contracts import BotStatus
+from app.domain.business_calendar.errors import BusinessCalendarPersistenceError
+from app.domain.conversation_management.contracts import ConversationStatus
 from app.domain.dashboard.contracts import DashboardBusinessSummary
 from app.domain.dashboard.errors import (
     DashboardInvalidFilter,
     DashboardNotFound,
     DashboardRangeTooLarge,
 )
+from app.domain.organization.contracts import DEFAULT_ORGANIZATION_TIMEZONE
 from app.domain.user.contracts import User
 from app.infrastructure.database import Base
 from app.infrastructure.models.bot import BotModel
 from app.infrastructure.models.business_calendar import (
     BusinessCalendarAuditEventModel,
+    BusinessCalendarIdempotencyReceiptModel,
     BusinessCalendarModel,
     BusinessCalendarWeeklyIntervalModel,
 )
@@ -51,6 +56,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event, func, select
 from sqlalchemy.engine import Connection
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -386,6 +392,52 @@ def _populate(
     return bot_b
 
 
+def _business_write_counts(session: Session) -> tuple[int, int]:
+    return (
+        session.scalar(
+            select(func.count()).select_from(BusinessCalendarAuditEventModel)
+        )
+        or 0,
+        session.scalar(
+            select(func.count()).select_from(BusinessCalendarIdempotencyReceiptModel)
+        )
+        or 0,
+    )
+
+
+def test_dashboard_lifecycle_totals_follow_canonical_contracts(
+    session: Session,
+) -> None:
+    assert set(get_args(BotStatus)) == {"active", "inactive"}
+    assert set(get_args(ConversationStatus)) == {"open", "closed", "archived"}
+    organization_id, _foreign_id, bot_a1, _bot_a2, actor = _base(session)
+    canonical = tuple(
+        _conversation(organization_id, bot_a1, status, NOW - timedelta(hours=index))
+        for index, status in enumerate(("open", "closed", "archived"), start=1)
+    )
+    legacy = _conversation(organization_id, bot_a1, "open", NOW)
+    legacy.management_status = None
+    session.add_all((*canonical, legacy))
+    session.commit()
+
+    result = _service(session).summary(
+        organization_id, actor, period="today", generated_at=NOW
+    )
+
+    assert result.bots.total == result.bots.active + result.bots.inactive
+    assert result.conversations.total == (
+        result.conversations.open
+        + result.conversations.closed
+        + result.conversations.archived
+    )
+    assert result.conversations.model_dump(exclude={"scope", "started_in_period"}) == {
+        "total": 3,
+        "open": 1,
+        "closed": 1,
+        "archived": 1,
+    }
+
+
 def test_empty_and_populated_dashboard_aggregate_without_cross_tenant_data(
     session: Session,
 ) -> None:
@@ -422,12 +474,23 @@ def test_empty_and_populated_dashboard_aggregate_without_cross_tenant_data(
     assert result.integrations.total == 2
     assert result.integrations.active == 1
     assert result.integrations.healthy == 1
-    assert result.integrations.degraded == 1
+    assert result.integrations.degraded == 0
+    assert result.integrations.active == (
+        result.integrations.healthy
+        + result.integrations.degraded
+        + result.integrations.unreachable
+        + result.integrations.auth_error
+        + result.integrations.unknown
+    )
     assert result.contacts.total == 2
     assert result.contacts.created_in_period == 1
     assert result.contacts.scope == "organization"
     assert result.business.status == "open"
     assert result.business.source == "prd_015"
+    assert not session.new
+    assert not session.dirty
+    assert not session.deleted
+    assert _business_write_counts(session) == (0, 0)
 
     bot_result = _service(session).summary(
         organization_id,
@@ -443,6 +506,12 @@ def test_empty_and_populated_dashboard_aggregate_without_cross_tenant_data(
     assert bot_result.automations.failed == 0
     assert bot_result.integrations.total == 1
     assert bot_result.contacts.total == 2
+    assert bot_result.business.status == "open"
+    assert bot_result.business.source == "prd_015"
+    assert not session.new
+    assert not session.dirty
+    assert not session.deleted
+    assert _business_write_counts(session) == (0, 0)
 
     with pytest.raises(DashboardNotFound):
         _service(session).summary(
@@ -482,11 +551,19 @@ def test_periods_timezone_ranges_and_read_only_guarantee(session: Session) -> No
     )
     assert custom.period.preset == "custom"
     assert custom.period.to == NOW
+    exact_limit = service.summary(
+        organization_id,
+        actor,
+        from_=NOW - timedelta(days=90),
+        to=NOW,
+        generated_at=NOW,
+    )
+    assert exact_limit.period.from_ == NOW - timedelta(days=90)
     with pytest.raises(DashboardRangeTooLarge):
         service.summary(
             organization_id,
             actor,
-            from_=NOW - timedelta(days=91),
+            from_=NOW - timedelta(days=90, microseconds=1),
             to=NOW,
             generated_at=NOW,
         )
@@ -502,12 +579,15 @@ def test_periods_timezone_ranges_and_read_only_guarantee(session: Session) -> No
     assert not session.new
     assert not session.dirty
     assert not session.deleted
-    assert (
-        session.scalar(
-            select(func.count()).select_from(BusinessCalendarAuditEventModel)
-        )
-        == 0
-    )
+    assert _business_write_counts(session) == (0, 0)
+
+    organization = session.get(OrganizationModel, organization_id)
+    assert organization is not None
+    organization.settings = {"locale": "es"}
+    session.commit()
+    fallback = service.summary(organization_id, actor, period="today", generated_at=NOW)
+    assert fallback.period.timezone == DEFAULT_ORGANIZATION_TIMEZONE
+    assert fallback.period.from_ == datetime(2026, 8, 10, 5, 0, tzinfo=UTC)
 
 
 def test_timezone_dst_and_prd005_fallback_use_canonical_contracts(
@@ -568,6 +648,35 @@ def test_timezone_dst_and_prd005_fallback_use_canonical_contracts(
     )
     assert bot_result.business.status == "open"
     assert bot_result.business.source == "prd_005"
+    assert not session.new
+    assert not session.dirty
+    assert not session.deleted
+    assert _business_write_counts(session) == (0, 0)
+
+
+def test_dashboard_business_resolution_error_is_unknown_and_read_only(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    organization_id, _foreign_id, _bot_a1, _bot_a2, _actor = _base(session)
+    repository = BusinessCalendarRepository(session)
+    calendars = BusinessCalendarService(repository, session)
+
+    def fail(_organization_id: UUID) -> BusinessCalendarModel | None:
+        raise BusinessCalendarPersistenceError("persistence failed")
+
+    monkeypatch.setattr(repository, "active_default_calendar", fail)
+    result = DashboardBusinessStatusReader(
+        calendars,
+        BusinessHoursStateCompatibilityService(calendars, session),
+    ).status(organization_id, None, NOW)
+
+    assert result == DashboardBusinessSummary(
+        scope="organization", status="unknown", source="none"
+    )
+    assert not session.new
+    assert not session.dirty
+    assert not session.deleted
+    assert _business_write_counts(session) == (0, 0)
 
 
 def _json_keys(value: object) -> set[str]:
@@ -644,6 +753,42 @@ def test_dashboard_api_rbac_safe_errors_and_pii_contract(session: Session) -> No
         assert denied.status_code == 403
 
 
+@pytest.mark.parametrize("fail_at_select", (1, 2))
+def test_dashboard_sqlalchemy_errors_return_only_safe_unavailable_code(
+    session: Session, fail_at_select: int
+) -> None:
+    organization_id, _foreign_id, _bot_a1, _bot_a2, actor = _base(session)
+    app = FastAPI()
+    app.include_router(router)
+    app.dependency_overrides[get_dashboard_query_service] = lambda: _service(session)
+    app.dependency_overrides[require_authenticated_user] = lambda: actor
+    client = TestClient(app, raise_server_exceptions=False)
+    select_count = 0
+
+    def fail_query(
+        _connection: Connection,
+        _cursor: object,
+        _statement: str,
+        _parameters: object,
+        _context: object,
+        _executemany: bool,
+    ) -> None:
+        nonlocal select_count
+        select_count += 1
+        if select_count == fail_at_select:
+            raise SQLAlchemyError("SELECT secret_identifier FROM private_table")
+
+    event.listen(session.get_bind(), "before_cursor_execute", fail_query)
+    try:
+        response = client.get(f"/organizations/{organization_id}/dashboard")
+    finally:
+        event.remove(session.get_bind(), "before_cursor_execute", fail_query)
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": {"code": "DASHBOARD_UNAVAILABLE"}}
+    assert "secret_identifier" not in response.text
+
+
 class _UnknownBusinessReader:
     def status(
         self,
@@ -691,11 +836,27 @@ def test_performance_sanity_uses_fixed_sql_aggregates_without_orm_hydration(
         result = DashboardQueryService(
             SqlAlchemyDashboardRepository(session), _UnknownBusinessReader()
         ).summary(organization_id, actor, period="today", generated_at=NOW)
+        organization_statements = list(statements)
+        statements.clear()
+        bot_result = DashboardQueryService(
+            SqlAlchemyDashboardRepository(session), _UnknownBusinessReader()
+        ).summary(
+            organization_id,
+            actor,
+            bot_id=bot_a1,
+            period="today",
+            generated_at=NOW,
+        )
+        bot_statements = list(statements)
     finally:
         event.remove(session.get_bind(), "before_cursor_execute", capture)
     assert result.conversations.total == 10_000
-    assert len(statements) == 7
-    conversation_queries = [item for item in statements if "from conversation" in item]
+    assert bot_result.conversations.total == 10_000
+    assert len(organization_statements) == 7
+    assert len(bot_statements) == 8
+    conversation_queries = [
+        item for item in organization_statements if "from conversation" in item
+    ]
     assert len(conversation_queries) == 1
     assert "count(" in conversation_queries[0]
     assert "conversation.id" not in conversation_queries[0].split("from", maxsplit=1)[0]

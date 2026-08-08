@@ -7,6 +7,7 @@ from app.domain.access.contracts import ROLE_PERMISSIONS
 from app.domain.business_calendar.contracts import (
     BusinessCalendarCreate,
     DateExceptionCreate,
+    ImportedCalendarRule,
     LocalTimeInterval,
     WeeklyDayInput,
     WeeklyScheduleReplace,
@@ -15,6 +16,7 @@ from app.domain.business_calendar.errors import (
     LocalTimeAmbiguous,
     LocalTimeNonexistent,
 )
+from app.domain.business_calendar.ports import ExternalCalendarAdapter
 from app.domain.business_calendar.resolver import (
     BusinessHoursResolver,
     CanonicalDateException,
@@ -235,6 +237,39 @@ def test_prd015_permissions_apply_minimum_operator_access() -> None:
         "business_calendar.read",
         "business_calendar.resolve",
     }.intersection(ROLE_PERMISSIONS["viewer"])
+
+
+def test_external_calendar_adapter_contract_stays_provider_agnostic() -> None:
+    class FakeExternalCalendar:
+        provider = "fake"
+
+        def import_rules(
+            self,
+            *,
+            organization_id: object,
+            connection_id: object,
+            starts_at: datetime,
+            ends_at: datetime,
+        ) -> tuple[ImportedCalendarRule, ...]:
+            del organization_id, connection_id, starts_at, ends_at
+            return (
+                ImportedCalendarRule(
+                    external_reference="non-sensitive-reference",
+                    local_date=date(2026, 12, 25),
+                    name="Imported closure",
+                    scope="full_day",
+                ),
+            )
+
+    adapter: ExternalCalendarAdapter = FakeExternalCalendar()
+    rules = adapter.import_rules(
+        organization_id=uuid4(),
+        connection_id=uuid4(),
+        starts_at=datetime(2026, 12, 1, tzinfo=UTC),
+        ends_at=datetime(2027, 1, 1, tzinfo=UTC),
+    )
+    assert adapter.provider == "fake"
+    assert rules[0].name == "Imported closure"
 
 
 def test_migration_declares_single_prd015_revision_and_all_tables() -> None:

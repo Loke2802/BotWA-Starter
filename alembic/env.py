@@ -10,6 +10,7 @@ from app.infrastructure.models import (  # noqa: F401
     business_event,
     contact,
     conversation,
+    integration_management,
     knowledge_catalog_entry,
     knowledge_entry,
     knowledge_query_log,

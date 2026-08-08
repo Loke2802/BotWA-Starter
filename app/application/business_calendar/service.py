@@ -1204,6 +1204,24 @@ class BusinessCalendarService:
             correlation_id=correlation_id,
         )
 
+    def resolve_default(
+        self,
+        organization_id: UUID,
+        evaluated_at: datetime,
+        *,
+        correlation_id: UUID | None = None,
+    ) -> BusinessHoursResolutionResponse | None:
+        """Resolve only the active organization-default calendar."""
+        calendar = self.repository.active_default_calendar(organization_id)
+        if calendar is None:
+            return None
+        return self._resolve_calendar_row(
+            organization_id,
+            calendar,
+            evaluated_at,
+            correlation_id=correlation_id,
+        )
+
     def _resolve_calendar_row(
         self,
         organization_id: UUID,

@@ -1,11 +1,12 @@
 import re
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Final, Literal
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 OrganizationStatus = Literal["active", "inactive"]
+DEFAULT_ORGANIZATION_TIMEZONE: Final = "America/Lima"
 
 _SLUG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
@@ -25,7 +26,7 @@ class OrganizationSettings(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     locale: str = "es"
-    timezone: str = "America/Lima"
+    timezone: str = DEFAULT_ORGANIZATION_TIMEZONE
 
 
 class Organization(BaseModel):

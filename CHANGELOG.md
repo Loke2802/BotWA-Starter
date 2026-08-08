@@ -1,5 +1,20 @@
 # Changelog
 
+## PRD-013 Integration Management - 2026-08-07
+
+### Implemented, pending CTO review
+
+- Added tenant-scoped Integration Management with lifecycle, RBAC, optional bot
+  scope, safe health history and migration `20260807_0015`.
+- Added encrypted/rotatable Google OAuth refresh credentials and signed,
+  expiring, single-use OAuth state with replay protection.
+- Added provider registry and real Google Calendar adapter for metadata and
+  free/busy only, with explicit timeouts and safe error mapping.
+- Added deterministic unit/API/OAuth/adapter tests, PostgreSQL smoke and optional
+  explicit Google development smoke.
+- Excludes event writes/sync, booking, CRM/ERP providers, generic HTTP, polling,
+  Redis/Celery, Core Automation changes and PRD-014.
+
 ## PRD-012 Automation Management - 2026-08-07
 
 ### Closed

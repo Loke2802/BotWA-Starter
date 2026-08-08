@@ -1,15 +1,15 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-012 Automation Management CLOSED
+## Estado actual - Phase 3 / PRD-013 Integration Management implemented
 
-Quality Gates (PRD-012, validación post-merge completada):
+Quality Gates (PRD-013, validación técnica completada):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **652 passed, 1 warning** |
+| `pytest` | **678 passed, 1 skipped, 1 warning** |
 | `ruff check app tests` | **All checks passed** |
-| `black --check app tests` | **336 files would be left unchanged** |
-| `mypy app tests` | **Success: no issues found in 336 source files** |
+| `black --check app tests` | **354 files would be left unchanged** |
+| `mypy app tests` | **Success: no issues found in 354 source files** |
 
 La base actual incluye 5 Engines:
 
@@ -23,7 +23,12 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial: **PRD-001 a PRD-012 CLOSED; PRD-013 a PRD-022 permanecen NOT STARTED.**
+Estado oficial: **PRD-001 a PRD-012 CLOSED; PRD-013 Integration Management está implemented, pending CTO review; PRD-014 a PRD-022 permanecen NOT STARTED.**
+
+PRD-013 añade conexiones externas tenant-scoped, credenciales cifradas, OAuth
+Google real con state firmado/single-use, Google Calendar metadata/free-busy,
+health on-demand, RBAC y persistencia PostgreSQL. No cambia Core Automation ni
+implementa escritura de events, booking o providers adicionales.
 
 PRD-011 añade Contact como Source of Truth tenant-safe: identidad normalizada por
 canal, HMAC segmentado por organización, cifrado en reposo, enlace inbound a
@@ -635,6 +640,7 @@ PRD-001 through PRD-012 are closed. PRD-010 adds a tenant-scoped handoff
 lifecycle, bot suppression, encrypted and attributed human replies through the
 generic channel sender, idempotency, archive protection, and safe transport
 errors. PRD-011 adds the Contact increment; Customer is deferred and CRM is not
-implemented. PRD-012 is closed; PRD-013 through PRD-022 are not started. Real
-Meta validation needs external credentials.
+implemented. PRD-012 is closed; PRD-013 is implemented pending CTO review, and
+PRD-014 through PRD-022 are not started. Real Meta and Google validation need
+explicit external credentials.
 

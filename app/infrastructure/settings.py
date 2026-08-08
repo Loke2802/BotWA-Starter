@@ -26,6 +26,14 @@ class Settings(BaseSettings):
     whatsapp_api_version: str = "v22.0"
     whatsapp_secret_encryption_key: str = ""
     whatsapp_secret_previous_encryption_keys: str = ""
+    integration_secret_encryption_key: str = ""
+    integration_secret_previous_encryption_keys: str = ""
+    integration_oauth_state_secret: str = ""
+    integration_oauth_state_ttl_seconds: int = Field(default=600, ge=60, le=3600)
+    google_oauth_client_id: str = ""
+    google_oauth_client_secret: str = ""
+    google_oauth_redirect_uri: str = ""
+    google_calendar_timeout_seconds: float = Field(default=10.0, gt=0, le=120)
     contact_identity_hmac_key: str = ""
     whatsapp_live_client_mode: str = "disabled"
     whatsapp_webhook_max_body_bytes: int = Field(

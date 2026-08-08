@@ -59,6 +59,21 @@ class EnvironmentSecretCipher(SecretCipher):
             previous_keys=previous_keys,
         )
 
+    @classmethod
+    def from_integration_settings(cls, settings: Settings) -> "EnvironmentSecretCipher":
+        primary_key = (
+            settings.integration_secret_encryption_key
+            or settings.whatsapp_secret_encryption_key
+        )
+        previous_raw = (
+            settings.integration_secret_previous_encryption_keys
+            or settings.whatsapp_secret_previous_encryption_keys
+        )
+        previous_keys = tuple(
+            key.strip() for key in previous_raw.split(",") if key.strip()
+        )
+        return cls(primary_key, previous_keys=previous_keys)
+
     def encrypt(self, value: str) -> str:
         if not value:
             raise SecretCipherError("secret cannot be empty")

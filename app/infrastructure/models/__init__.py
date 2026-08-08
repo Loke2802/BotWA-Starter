@@ -19,6 +19,12 @@ from app.infrastructure.models.human_handoff import (
     HandoffSessionModel,
 )
 from app.infrastructure.models.integration_event import IntegrationEventModel
+from app.infrastructure.models.integration_management import (
+    IntegrationConnectionModel,
+    IntegrationCredentialModel,
+    IntegrationHealthCheckModel,
+    IntegrationOAuthStateModel,
+)
 from app.infrastructure.models.knowledge_catalog_entry import (
     KnowledgeCatalogEntryModel,
 )
@@ -51,6 +57,10 @@ __all__ = [
     "ContactModel",
     "ConversationStateHistoryModel",
     "IntegrationEventModel",
+    "IntegrationConnectionModel",
+    "IntegrationCredentialModel",
+    "IntegrationHealthCheckModel",
+    "IntegrationOAuthStateModel",
     "HandoffEventModel",
     "HandoffSessionModel",
     "InboundMessageReceiptModel",

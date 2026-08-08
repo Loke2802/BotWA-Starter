@@ -1,7 +1,7 @@
 # PRD-016 — Analytics & Reports v1
 
-**Status:** IMPLEMENTED — PENDING CTO REVIEW  
-**Date:** 2026-08-08  
+**Status:** IMPLEMENTED — PENDING CTO REVIEW
+**Date:** 2026-08-08
 **Alembic revision:** `20260808_0017`
 
 ## Purpose

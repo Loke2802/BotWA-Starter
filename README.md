@@ -6,7 +6,7 @@ Quality Gates (PRD-015, validación técnica completada):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **698 passed, 12 skipped, 3 warnings** |
+| `pytest` | **698 passed, 12 skipped, 2 warnings** |
 | `ruff check app tests` | **All checks passed** |
 | `black --check app tests` | **371 files would be left unchanged** |
 | `mypy app tests` | **Success: no issues found in 371 source files** |

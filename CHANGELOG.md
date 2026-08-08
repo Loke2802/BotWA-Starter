@@ -1,5 +1,29 @@
 # Changelog
 
+## PRD-014 Dashboard v1 - 2026-08-08
+
+### Implemented, pending CTO review
+
+- Added a tenant-scoped, read-only operational Dashboard at
+  `GET /organizations/{organization_id}/dashboard` with optional bot and bounded
+  period filters.
+- Added SQL aggregate composition for Bots, Conversations, Human Handoff,
+  Automation executions, Integration last-known state and Contacts without
+  Dashboard tables, N+1 queries or ORM collection hydration.
+- Reused the official PRD-015 resolver and the established PRD-005 compatibility
+  boundary without duplicating business-hours, timezone or DST logic.
+- Added `dashboard.read` for Viewer, Operator, Organization Admin, Organization
+  Owner and explicitly scoped Platform Admin access.
+- Responses contain safe counts/states only and exclude PII, secrets, domain
+  payloads, write operations, health checks, automation execution and handoff
+  claims.
+- No migration was required; Alembic remains at `20260808_0016` and PRD-016
+  Analytics & Reports remains NOT STARTED.
+- Final validation: pytest 710 passed, 13 skipped, 2 warnings; focused PRD-014
+  5 passed; PostgreSQL PRD-014 1 passed; performance sanity PASS with 10,000
+  conversations; mypy PASS across 387 source files; Ruff PASS; Black PASS across
+  387 files; `git diff --check` PASS; Alembic head `20260808_0016`.
+
 ## PRD-015 Business Hours & Holidays - 2026-08-08
 
 ### CLOSED after PR #18

@@ -1,6 +1,6 @@
 # BotWA Product Roadmap v1.0
 
-**Status:** PRD-013 Integration Management and PRD-015 Business Hours & Holidays CLOSED
+**Status:** PRD-014 Dashboard IMPLEMENTED - PENDING CTO REVIEW
 **Date:** 2026-08-08
 
 ## Current State
@@ -8,8 +8,8 @@
 Core v1.0.0 and Product v1.0.0 are released. Phase 3 Product Development has
 completed PRD-001 through PRD-013. PRD-013 Integration Management is closed after
 the final security merge via PR #20, and PRD-015 Business Hours & Holidays is
-closed after merge via PR #18. PRD-014 Dashboard and PRD-016 through PRD-023 are
-not started.
+closed after merge via PR #18. PRD-014 Dashboard is implemented and pending CTO
+review. PRD-016 through PRD-023 are not started.
 
 **MVP milestone:** PRD-001 through PRD-010.
 
@@ -30,7 +30,7 @@ not started.
 | 11 | PRD-011 Contacts and Customers | CLOSED (Contact only; Customer deferred; CRM not implemented) |
 | 12 | PRD-012 Automation Management | CLOSED |
 | 13 | PRD-013 Integration Management | CLOSED |
-| 14 | PRD-014 Dashboard | NOT STARTED |
+| 14 | PRD-014 Dashboard | implemented, pending CTO review |
 | 15 | PRD-015 Business Hours & Holidays | CLOSED |
 | 16 | PRD-016 Analytics and Reports | NOT STARTED |
 | 17 | PRD-017 Audit Log | NOT STARTED |
@@ -54,13 +54,13 @@ not started.
 
 | Gate | Result |
 |---|---|
-| `pytest` | 705 passed, 12 skipped, 2 warnings |
-| Focused PRD-013 | 39 passed |
-| PostgreSQL PRD-013 | 1 passed |
-| PRD-012/015 compatibility | 18 passed |
+| `pytest` | 710 passed, 13 skipped, 2 warnings |
+| Focused PRD-014 | 5 passed |
+| PostgreSQL PRD-014 | 1 passed |
+| PRD-014 performance sanity | PASS with 10,000 conversations |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 374 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 374 source files |
+| `black --check app tests` | 387 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 387 source files |
 | `git diff --check` | PASS |
 | Alembic | `20260808_0016 (head)` |
 
@@ -89,8 +89,8 @@ post-merge validation.
 - Core architecture remains stable.
 - New functionality must be tied to PRDs.
 - Quality gates remain mandatory.
-- PRD-001 through PRD-013 and PRD-015 are closed. PRD-014 Dashboard and PRD-016
-  through PRD-023 are not started.
+- PRD-001 through PRD-013 and PRD-015 are closed. PRD-014 Dashboard is
+  implemented pending CTO review; PRD-016 through PRD-023 are not started.
 - PRD-010 documents lifecycle/RBAC, tenant isolation, suppression/resume,
   encrypted idempotent replies, archive protection, and migration chain
   `0010` → `0011` → `0012`.

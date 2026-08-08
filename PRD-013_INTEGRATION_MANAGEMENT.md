@@ -1,8 +1,8 @@
 # PRD-013 Integration Management
 
-Estado: implemented, pending CTO review.
+Estado: CLOSED.
 
-PRD-001 a PRD-012 y PRD-015 permanecen CLOSED. PRD-014 Dashboard y PRD-016 a
+PRD-001 a PRD-013 y PRD-015 permanecen CLOSED. PRD-014 Dashboard y PRD-016 a
 PRD-023 permanecen NOT STARTED.
 
 ## Alcance
@@ -178,14 +178,18 @@ Los resultados externos se reducen a codigos allowlisted:
 
 ## Validacion
 
+- cierre tecnico final: PR #20 merged;
+- merge commit: `be52bbc49c6b34fc6b515e915564810068a74da3`;
+- final review head: `beb3a6a01c5a983ab5d83a485f268dfc3202fa3b`;
 - suite completa: 705 passed, 12 skipped, 2 warnings;
 - pruebas focalizadas PRD-013: 39 passed;
+- compatibilidad PRD-012/015: 18 passed;
 - Google real smoke: SKIPPED sin credenciales explicitas;
 - mypy: PASS, 374 source files;
 - Ruff: PASS;
 - Black: PASS, 374 files;
 - `git diff --check`: PASS;
-- PostgreSQL PRD-013 smoke: PASS; valida persistencia cifrada, nonce single-use,
+- PostgreSQL PRD-013 smoke: 1 passed; valida persistencia cifrada, nonce single-use,
   rollback real y aislamiento tenant;
 - cadena Alembic: `20260807_0014 -> 20260807_0015 -> 20260808_0016`;
 - Alembic head unico: `20260808_0016`.
@@ -201,7 +205,8 @@ las cuatro variables de desarrollo requeridas para client ID, client secret,
 redirect URI y refresh token. Deben inyectarse en el entorno seguro del proceso;
 no se guardan en archivos, comandos compartidos ni logs. El flujo manual obtiene
 el refresh token mediante OAuth start/callback y despues valida health y metadata
-read-only. Este smoke no bloquea PRD-013 cuando no existen credenciales externas.
+read-only. Este smoke es un gate operativo de habilitacion externa y no bloquea
+el cierre de PRD-013 cuando no existen credenciales externas aprobadas.
 
 Antes de habilitar Google Calendar en staging o produccion es obligatorio ejecutar
 el smoke real con credenciales de desarrollo aprobadas y validar consent,

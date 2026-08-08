@@ -1,15 +1,20 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-015 Business Hours & Holidays CLOSED
+## Estado actual - Phase 3 / PRD-013 y PRD-015 CLOSED
 
-Quality Gates (PRD-015, validación técnica completada):
+Quality Gates (cierre técnico final PRD-013):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **702 passed, 12 skipped, 2 warnings** |
+| `pytest` | **705 passed, 12 skipped, 2 warnings** |
+| PRD-013 focalizadas | **39 passed** |
+| PostgreSQL PRD-013 | **1 passed** |
+| Compatibilidad PRD-012/015 | **18 passed** |
 | `ruff check app tests` | **All checks passed** |
 | `black --check app tests` | **374 files would be left unchanged** |
 | `mypy app tests` | **Success: no issues found in 374 source files** |
+| `git diff --check` | **PASS** |
+| Alembic | **20260808_0016 (head)** |
 
 La base actual incluye 5 Engines:
 
@@ -23,8 +28,8 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial: **PRD-001 a PRD-012 y PRD-015 CLOSED; PRD-013 está implemented,
-pending CTO review; PRD-014 Dashboard y PRD-016 a PRD-023 permanecen NOT STARTED.**
+Estado oficial: **PRD-001 a PRD-013 y PRD-015 CLOSED; PRD-014 Dashboard y PRD-016
+a PRD-023 permanecen NOT STARTED.**
 
 PRD-015 añade calendarios operativos tenant-scoped, horarios semanales,
 excepciones, feriados, cierres parciales, overrides, precedencia determinista,
@@ -35,6 +40,13 @@ PRD-013 añade conexiones externas tenant-scoped, credenciales cifradas, OAuth
 Google real con state firmado/single-use, Google Calendar metadata/free-busy,
 health on-demand, RBAC y persistencia PostgreSQL. No cambia Core Automation ni
 implementa escritura de events, booking o providers adicionales.
+
+PRD-013 cerró después del merge final de seguridad vía PR #20, merge commit
+`be52bbc49c6b34fc6b515e915564810068a74da3`, con final review head
+`beb3a6a01c5a983ab5d83a485f268dfc3202fa3b`. El smoke real de Google permanece
+`SKIPPED` por falta de credenciales externas aprobadas. Antes de habilitar Google
+Calendar en staging o producción deben validarse OAuth consent, callback,
+refresh, Calendar List y FreeBusy; es un gate operativo, no un bloqueo del cierre.
 
 PRD-011 añade Contact como Source of Truth tenant-safe: identidad normalizada por
 canal, HMAC segmentado por organización, cifrado en reposo, enlace inbound a
@@ -646,7 +658,7 @@ PRD-001 through PRD-012 are closed. PRD-010 adds a tenant-scoped handoff
 lifecycle, bot suppression, encrypted and attributed human replies through the
 generic channel sender, idempotency, archive protection, and safe transport
 errors. PRD-011 adds the Contact increment; Customer is deferred and CRM is not
-implemented. PRD-012 and PRD-015 are closed; PRD-013 is implemented pending CTO
-review. PRD-014 Dashboard and PRD-016 through PRD-023 are not started. Real Meta
-and Google validation need explicit external credentials.
+implemented. PRD-012, PRD-013 and PRD-015 are closed. PRD-014 Dashboard and
+PRD-016 through PRD-023 are not started. Real Meta and Google validation need
+explicit external credentials.
 

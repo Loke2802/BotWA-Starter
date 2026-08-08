@@ -2,9 +2,9 @@
 
 **Date:** 2026-08-08
 **Role:** Lead Engineer  
-**Project phase:** Phase 3 - PRD-015 Business Hours & Holidays CLOSED
-**Status source:** PR #18 merged into `master` at
-`025c3058388d51219e05fff1ae253a296238be89`
+**Project phase:** Phase 3 - PRD-013 Integration Management and PRD-015 Business Hours & Holidays CLOSED
+**Status source:** PR #20 merged into `master` at
+`be52bbc49c6b34fc6b515e915564810068a74da3`
 
 ## Executive Summary
 
@@ -27,8 +27,9 @@ Core Engine responsibilities: encrypted tenant-scoped identity, inbound resoluti
 administrative API, and explicit idempotent historical backfill. Customer is
 deferred and CRM is not implemented. PRD-012 adds durable, tenant-scoped Automation
 Management while remaining separate from Core Automation Engine.
-PRD-013 is implemented pending CTO review with encrypted credentials, secure
-Google OAuth, read-only Calendar capabilities and on-demand health.
+PRD-013 is CLOSED after the final security merge via PR #20, with encrypted
+credentials, secure Google OAuth, read-only Calendar capabilities and on-demand
+health.
 PRD-015 is CLOSED after merge via PR #18 with a provider-agnostic operational
 calendar, deterministic precedence, IANA timezone/DST handling, tenant-scoped
 administration, RBAC, durable audit/idempotency, and PostgreSQL persistence.
@@ -37,11 +38,13 @@ administration, RBAC, durable audit/idempotency, and PostgreSQL persistence.
 
 | Gate | Current result |
 |---|---|
-| `pytest` | 702 passed, 12 skipped, 2 warnings |
+| `pytest` | 705 passed, 12 skipped, 2 warnings |
+| Focused PRD-013 | 39 passed |
+| PostgreSQL PRD-013 | 1 passed |
+| PRD-012/015 compatibility | 18 passed |
 | `ruff check app tests` | All checks passed |
 | `black --check app tests` | 374 files would be left unchanged |
 | `mypy app tests` | Success: no issues found in 374 source files |
-| PostgreSQL PRD-015 | 3 passed |
 | `git diff --check` | PASS |
 | Alembic | `20260808_0016 (head)` |
 
@@ -61,7 +64,7 @@ administration, RBAC, durable audit/idempotency, and PostgreSQL persistence.
 | PRD-010 Human Handoff | CLOSED |
 | PRD-011 Contacts and Customers | CLOSED (Contact only; Customer deferred; CRM not implemented) |
 | PRD-012 Automation Management | CLOSED |
-| PRD-013 Integration Management | implemented, pending CTO review |
+| PRD-013 Integration Management | CLOSED |
 | PRD-014 Dashboard | NOT STARTED |
 | PRD-015 Business Hours & Holidays | CLOSED |
 | PRD-016 through PRD-023 | NOT STARTED |
@@ -223,8 +226,8 @@ Only the following items remain pending:
 
 ## Next Official Objective
 
-**PRD-013 is implemented pending CTO review. PRD-001 through PRD-012 and PRD-015
-are closed; PRD-014 Dashboard remains NOT STARTED.**
+**PRD-001 through PRD-013 and PRD-015 are closed; PRD-014 Dashboard and PRD-016
+through PRD-023 remain NOT STARTED.**
 
 ## PRD-010 through PRD-015 Status
 
@@ -233,10 +236,19 @@ archive protection, encrypted replies, idempotency, transport-error mapping,
 and isolated Docker smoke while preserving the original volume. The FK fix
 flushes `HandoffSession` before `HandoffEvent`. PRD-011 provides Contact only;
 Customer is deferred and CRM is not implemented. PRD-012 is CLOSED. PRD-013 is
-implemented pending CTO review. PRD-015 is CLOSED after PR #18 at merge commit
-`025c3058388d51219e05fff1ae253a296238be89`; PRD-014 Dashboard and PRD-016
-through PRD-023 remain NOT STARTED.
+CLOSED after PR #20 at merge commit
+`be52bbc49c6b34fc6b515e915564810068a74da3`, final review head
+`beb3a6a01c5a983ab5d83a485f268dfc3202fa3b`. PRD-015 is CLOSED after PR #18 at
+merge commit `025c3058388d51219e05fff1ae253a296238be89`; PRD-014 Dashboard and
+PRD-016 through PRD-023 remain NOT STARTED.
 
 ## CTO Review Status
+
+PRD-013 CLOSED - PR #20 MERGED
+
+Google real smoke remains `SKIPPED` because approved external credentials are
+not available. Before enabling Google Calendar in staging or production, OAuth
+consent, callback, refresh, Calendar List and FreeBusy must pass the real smoke.
+This is an operational external-enablement gate, not a blocker for PRD-013 closure.
 
 PRD-015 CLOSED — PR #18 MERGED

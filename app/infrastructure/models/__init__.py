@@ -5,9 +5,6 @@ from app.infrastructure.models.automation_task_execution import (
     AutomationTaskExecutionModel,
 )
 from app.infrastructure.models.bot import BotModel
-from app.infrastructure.models.business_configuration import (
-    BusinessConfigurationModel,
-)
 from app.infrastructure.models.business_calendar import (
     BusinessCalendarAuditEventModel,
     BusinessCalendarDateExceptionModel,
@@ -16,6 +13,9 @@ from app.infrastructure.models.business_calendar import (
     BusinessCalendarModel,
     BusinessCalendarOverrideModel,
     BusinessCalendarWeeklyIntervalModel,
+)
+from app.infrastructure.models.business_configuration import (
+    BusinessConfigurationModel,
 )
 from app.infrastructure.models.business_event import BusinessEventModel
 from app.infrastructure.models.contact import ContactModel

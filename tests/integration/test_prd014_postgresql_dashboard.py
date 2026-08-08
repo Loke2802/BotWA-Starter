@@ -10,8 +10,13 @@ from app.infrastructure.models.business_calendar import (
     BusinessCalendarWeeklyIntervalModel,
 )
 from app.infrastructure.models.contact import ContactModel
+from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.human_handoff import HandoffSessionModel
 from app.infrastructure.models.integration_management import IntegrationConnectionModel
+from app.infrastructure.models.managed_automation import (
+    ManagedAutomationDefinitionModel,
+    ManagedAutomationEventReceiptModel,
+)
 from app.infrastructure.models.organization import OrganizationModel
 from app.infrastructure.models.user import UserModel
 from sqlalchemy import create_engine, inspect
@@ -246,6 +251,29 @@ def test_prd014_postgresql_dashboard_is_read_only_and_tenant_scoped() -> None:
                     NOW - timedelta(hours=1),
                 ),
             )
+        )
+        session.flush(
+            [row for row in session.new if isinstance(row, OrganizationModel)]
+        )
+        session.flush(
+            [row for row in session.new if isinstance(row, (UserModel, BotModel))]
+        )
+        session.flush(
+            [
+                row
+                for row in session.new
+                if isinstance(
+                    row,
+                    (
+                        ConversationModel,
+                        ContactModel,
+                        IntegrationConnectionModel,
+                        BusinessCalendarModel,
+                        ManagedAutomationDefinitionModel,
+                        ManagedAutomationEventReceiptModel,
+                    ),
+                )
+            ]
         )
         session.commit()
 

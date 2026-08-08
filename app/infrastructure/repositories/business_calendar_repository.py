@@ -93,6 +93,16 @@ class BusinessCalendarRepository:
         )
         return self.session.scalars(stmt).one_or_none()
 
+    def active_default_calendar(
+        self, organization_id: UUID
+    ) -> BusinessCalendarModel | None:
+        stmt = select(BusinessCalendarModel).where(
+            BusinessCalendarModel.organization_id == organization_id,
+            BusinessCalendarModel.status == "active",
+            BusinessCalendarModel.bot_id.is_(None),
+        )
+        return self.session.scalars(stmt).one_or_none()
+
     def weekly_intervals(
         self, organization_id: UUID, calendar_id: UUID
     ) -> list[BusinessCalendarWeeklyIntervalModel]:

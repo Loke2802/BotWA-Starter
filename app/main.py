@@ -9,6 +9,7 @@ from app.api.contacts_routes import router as contacts_router
 from app.api.conversation_management_routes import (
     router as conversation_management_router,
 )
+from app.api.dashboard_routes import router as dashboard_router
 from app.api.dependencies import get_integration_health_checker
 from app.api.human_handoff_routes import router as human_handoff_router
 from app.api.integration_management_routes import (
@@ -53,6 +54,7 @@ def create_app() -> FastAPI:
     app.include_router(router)
     app.include_router(conversation_management_router)
     app.include_router(contacts_router)
+    app.include_router(dashboard_router)
     app.include_router(human_handoff_router)
     app.include_router(automation_management_router)
     app.include_router(business_calendar_router)

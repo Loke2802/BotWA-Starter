@@ -16,8 +16,13 @@
 - Added Alembic revision `20260808_0016`, local/API/regression tests, and real
   PostgreSQL constraint, tenant-isolation, lock, rollback, and migration-cycle
   tests.
-- Added the explicit PRD-005 migration runbook. PRD-014 Dashboard remains NOT
-  STARTED, and no Google Calendar/OAuth adapter was added.
+- Added the explicit PRD-005 migration runbook and PRD-012 compatibility bridge:
+  an applicable active PRD-015 calendar is authoritative, otherwise legacy
+  PRD-005 behavior remains as a temporary fallback.
+- Enforced one active organization default and one active calendar per bot to
+  keep applicable-calendar selection deterministic under concurrency.
+- PRD-014 Dashboard remains NOT STARTED, and no Google Calendar/OAuth adapter was
+  added.
 
 ## PRD-013 Integration Management - 2026-08-07
 

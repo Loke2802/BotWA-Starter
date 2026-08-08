@@ -74,6 +74,18 @@ configuración legacy hasta que una estrategia de migración explícita la impor
 o retire. Durante la implementación no podrán existir dos rutas de escritura
 activas que produzcan decisiones contradictorias.
 
+El contrato de compatibilidad es explícito: un calendario PRD-015 activo y
+aplicable es el Source of Truth. Se selecciona primero el calendario activo del
+bot y, si no existe, el calendario activo general de la organización. Solo puede
+existir un calendario activo por cada scope. Si ninguno existe, PRD-012 conserva
+temporalmente el cálculo legacy de PRD-005. Calendarios `draft`, `inactive` o
+`archived` no deshabilitan ese fallback.
+
+El fallback no combina decisiones ni copia reglas. Un calendario activo que no
+pueda resolverse retorna `unknown`; no cae silenciosamente a PRD-005. Su retiro
+futuro exige migrar y activar calendarios para los tenants restantes y aprobar
+separadamente la deprecación de la lectura legacy.
+
 ### 4.3 Aislamiento tenant
 
 Toda entidad persistida incluye `organization_id`. Las consultas y mutaciones
@@ -258,10 +270,19 @@ la revisión de implementación antes de crear la migración.
 - `business_calendar.override.manage`;
 - `business_calendar.resolve`.
 
-Owner y organization admin reciben administración completa. Operator puede leer,
-resolver y, si el contrato de producto lo confirma, administrar overrides.
-Viewer no recibe permisos por defecto. Platform admin siempre opera con
-organización explícita.
+Owner y organization admin reciben administración completa. Por mínimo
+privilegio, Operator solo puede leer y resolver; no puede administrar overrides,
+horarios, excepciones, feriados ni lifecycle. Cualquier ampliación futura requiere
+un contrato de producto explícito. Viewer no recibe permisos por defecto.
+Platform admin siempre opera con organización explícita.
+
+## 10.1 Compatibilidad con PRD-012
+
+`conversation.inbound_received` obtiene `business_hours_state` mediante el
+contrato de compatibilidad anterior. Una resolución PRD-015 `open` se traduce a
+`inside` y `closed` a `outside`; sin calendario activo se usa PRD-005, y sin una
+configuración legacy válida se usa `unknown`. El snapshot durable de PRD-012
+conserva ese estado sin duplicar reglas ni cambiar su trigger o acción.
 
 ## 11. Auditoría, observabilidad y seguridad
 

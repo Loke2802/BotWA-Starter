@@ -7,9 +7,16 @@ owned by PRD-005 to the tenant-scoped operational calendar introduced by
 PRD-015. It does not perform an automatic migration and does not change
 PRD-005 behavior.
 
-PRD-015 is the only Source of Truth for calls to the new business-hours resolver.
-The legacy field is not read, merged, or inferred by that resolver. Existing
-consumers are not switched automatically by this implementation.
+An active applicable PRD-015 calendar is the Source of Truth. Resolution selects
+an active bot-specific calendar first and then an active organization-wide
+calendar. If neither exists, the PRD-012 `business_hours_state` calculation falls
+back temporarily to the PRD-005 field. Draft, inactive, and archived calendars do
+not disable that fallback.
+
+The two rule sets are never merged or copied implicitly. If an active PRD-015
+calendar cannot be resolved, the result is `unknown`, not a silent PRD-005
+decision. Organizations therefore retain legacy behavior until they explicitly
+activate an applicable PRD-015 calendar.
 
 ## Preconditions
 
@@ -35,8 +42,17 @@ consumers are not switched automatically by this implementation.
 6. Resolve representative instants in UTC, including exact boundaries and any
    applicable DST transitions, while the calendar remains in `draft`.
 7. Activate the calendar only after the normalized results are accepted.
-8. Switch each consumer to the PRD-015 resolver in its own authorized change.
-   Do not combine PRD-005 and PRD-015 decisions.
+8. PRD-012 switches automatically at activation through the compatibility
+   contract: PRD-015 `open` becomes `inside` and `closed` becomes `outside`.
+   Switch any other consumer in its own authorized change. Do not combine
+   PRD-005 and PRD-015 decisions.
+
+## Fallback retirement
+
+The fallback is transitional. Retire it only after every applicable tenant has a
+validated active PRD-015 calendar, consumer telemetry confirms no legacy reads,
+and a separate product change approves PRD-005 deprecation. Removing the fallback
+must not reinterpret or delete legacy data silently.
 
 ## Rollback
 

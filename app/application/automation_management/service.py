@@ -387,6 +387,7 @@ class ManagedAutomationService:
                 "INVALID_SNAPSHOT",
                 datetime.now(UTC),
             )
+            row.lease_owner = row.lease_expires_at = None
             self.session.commit()
             return
         conditions = definition.get("conditions_data")
@@ -402,6 +403,7 @@ class ManagedAutomationService:
                 "INVALID_SNAPSHOT",
                 datetime.now(UTC),
             )
+            row.lease_owner = row.lease_expires_at = None
             self.session.commit()
             return
         matches = all(event.get(k) == v for k, v in conditions.items() if v is not None)

@@ -1,5 +1,6 @@
 import base64
 import os
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -7,6 +8,8 @@ from app.application.integration_management.oauth_state import OAuthStateSigner
 from app.application.integration_management.service import (
     IntegrationManagementService,
     IntegrationNotFoundError,
+    IntegrationOAuthStateReplayed,
+    IntegrationProviderOperationError,
 )
 from app.domain.integration_management.contracts import (
     IntegrationConnectionCreate,
@@ -19,6 +22,7 @@ from app.infrastructure.models.integration_management import (
     IntegrationConnectionModel,
     IntegrationCredentialModel,
     IntegrationHealthCheckModel,
+    IntegrationOAuthStateModel,
 )
 from app.infrastructure.models.organization import OrganizationModel
 from app.infrastructure.models.user import UserModel
@@ -54,7 +58,9 @@ def _service(
     )
 
 
-def test_prd013_postgresql_persistence_security_and_tenant_isolation() -> None:
+def test_prd013_postgresql_persistence_security_and_tenant_isolation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     assert DATABASE_URL is not None
     engine = create_engine(DATABASE_URL)
     assert engine.dialect.name == "postgresql"
@@ -158,13 +164,92 @@ def test_prd013_postgresql_persistence_security_and_tenant_isolation() -> None:
         assert service.check_health(organization_id, created.id, owner).status == (
             "healthy"
         )
+        oauth_start = service.start_google_oauth(organization_id, created.id, owner)
+        oauth_state = oauth_start.authorization_url.split("state=", maxsplit=1)[1]
+        service.complete_google_oauth(oauth_state, "postgres-one-time-code")
+        with pytest.raises(IntegrationOAuthStateReplayed):
+            service.complete_google_oauth(oauth_state, "postgres-replay-code")
+
         with pytest.raises(IntegrationNotFoundError):
             service.get(foreign_org_id, created.id, foreign_owner)
-        credential = session.scalars(select(IntegrationCredentialModel)).one()
+        credential = session.scalars(
+            select(IntegrationCredentialModel).where(
+                IntegrationCredentialModel.integration_connection_id == created.id
+            )
+        ).one()
         assert "postgres-smoke-refresh" not in credential.encrypted_payload
         row = session.get(IntegrationConnectionModel, created.id)
         assert row is not None
         assert "refresh" not in str(row.configuration).lower()
+        encrypted_before_failed_callback = credential.encrypted_payload
+        health_count_before_failed_callback = len(
+            session.scalars(
+                select(IntegrationHealthCheckModel).where(
+                    IntegrationHealthCheckModel.integration_connection_id == created.id
+                )
+            ).all()
+        )
+        adapter.oauth_refresh_token = "postgres-rollback-refresh"
+        rollback_start = service.start_google_oauth(
+            organization_id,
+            created.id,
+            owner,
+        )
+        rollback_state = rollback_start.authorization_url.split("state=", maxsplit=1)[1]
+
+        def persist_invalid_health(
+            connection: IntegrationConnectionModel,
+            _adapter: object,
+            access_token: str,
+        ) -> None:
+            assert access_token == "ephemeral-access"
+            session.add(
+                IntegrationHealthCheckModel(
+                    organization_id=connection.organization_id,
+                    integration_connection_id=connection.id,
+                    status="invalid",
+                    safe_error_code=None,
+                    checked_at=datetime.now(UTC),
+                    latency_ms=0,
+                )
+            )
+
+        monkeypatch.setattr(service, "_record_oauth_health", persist_invalid_health)
+        with pytest.raises(IntegrationProviderOperationError) as error:
+            service.complete_google_oauth(
+                rollback_state,
+                "postgres-rollback-code",
+            )
+        assert error.value.safe_code == "INTEGRATION_PROVIDER_ERROR"
+
+        rolled_back_credential = service.repository.credential(
+            organization_id,
+            created.id,
+        )
+        assert rolled_back_credential is not None
+        assert (
+            rolled_back_credential.encrypted_payload == encrypted_before_failed_callback
+        )
+        assert (
+            len(
+                session.scalars(
+                    select(IntegrationHealthCheckModel).where(
+                        IntegrationHealthCheckModel.integration_connection_id
+                        == created.id
+                    )
+                ).all()
+            )
+            == health_count_before_failed_callback
+        )
+        rollback_claims = service.oauth_state_signer.decode(rollback_state)
+        consumed_state = session.scalars(
+            select(IntegrationOAuthStateModel).where(
+                IntegrationOAuthStateModel.nonce_hash == rollback_claims.nonce_hash
+            )
+        ).one()
+        assert consumed_state.consumed_at is not None
+        with pytest.raises(IntegrationOAuthStateReplayed):
+            service.complete_google_oauth(rollback_state, "postgres-replay-code")
         integration_id = created.id
 
     with sessions() as restarted:
@@ -177,6 +262,6 @@ def test_prd013_postgresql_persistence_security_and_tenant_isolation() -> None:
                 IntegrationHealthCheckModel.integration_connection_id == integration_id
             )
         ).all()
-        assert len(health) == 1
-        assert health[0].safe_error_code is None
+        assert len(health) == 2
+        assert all(item.safe_error_code is None for item in health)
     engine.dispose()

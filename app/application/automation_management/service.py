@@ -6,6 +6,8 @@ from app.application.human_handoff.service import HumanHandoffService
 from app.domain.automation_management.contracts import AutomationDefinitionInput
 from app.domain.user.contracts import User
 from app.infrastructure.models.business_configuration import BusinessConfigurationModel
+from app.infrastructure.models.conversation import ConversationModel
+from app.infrastructure.models.human_handoff import HandoffSessionModel
 from app.infrastructure.models.managed_automation import (
     ManagedAutomationDefinitionModel,
     ManagedAutomationEventReceiptModel,
@@ -260,6 +262,23 @@ class ManagedAutomationService:
     ) -> None:
         if source_automation_id is not None:
             return
+        conversation = self.session.get(ConversationModel, conversation_id)
+        if (
+            conversation is None
+            or conversation.organization_id != organization_id
+            or conversation.bot_id != bot_id
+        ):
+            raise AutomationValidationError("conversation context is invalid")
+        handoff_active = (
+            self.session.query(HandoffSessionModel)
+            .filter(
+                HandoffSessionModel.organization_id == organization_id,
+                HandoffSessionModel.conversation_id == conversation_id,
+                HandoffSessionModel.status.in_(("waiting_human", "human_active")),
+            )
+            .first()
+            is not None
+        )
         safe = {
             "organization_id": str(organization_id),
             "bot_id": str(bot_id),
@@ -268,6 +287,9 @@ class ManagedAutomationService:
             "channel_type": channel_type,
             "received_at": received_at.isoformat(),
             "business_hours_state": business_hours_state,
+            "conversation_status": conversation.management_status
+            or conversation.status,
+            "handoff_active": handoff_active,
             "source_receipt_id": str(source_receipt_id),
         }
         receipt = ManagedAutomationEventReceiptModel(

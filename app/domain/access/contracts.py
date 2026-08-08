@@ -83,6 +83,8 @@ Permission = Literal[
     "business_calendar.override.manage",
     "business_calendar.resolve",
     "dashboard.read",
+    "analytics.read",
+    "analytics.export",
     "platform.organizations.read",
     "platform.organizations.manage",
 ]
@@ -167,6 +169,8 @@ ALL_PERMISSIONS: tuple[Permission, ...] = (
     "business_calendar.override.manage",
     "business_calendar.resolve",
     "dashboard.read",
+    "analytics.read",
+    "analytics.export",
     "platform.organizations.read",
     "platform.organizations.manage",
 )
@@ -246,6 +250,8 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "business_calendar.override.manage",
             "business_calendar.resolve",
             "dashboard.read",
+            "analytics.read",
+            "analytics.export",
         )
     ),
     "organization_admin": frozenset(
@@ -320,6 +326,8 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "business_calendar.override.manage",
             "business_calendar.resolve",
             "dashboard.read",
+            "analytics.read",
+            "analytics.export",
         )
     ),
     "operator": frozenset(
@@ -352,6 +360,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "business_calendar.read",
             "business_calendar.resolve",
             "dashboard.read",
+            "analytics.read",
         )
     ),
     "viewer": frozenset(
@@ -365,6 +374,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "contacts.read",
             "handoff.read",
             "dashboard.read",
+            "analytics.read",
         )
     ),
 }

@@ -1,15 +1,15 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-013 Integration Management implemented
+## Estado actual - Phase 3 / PRD-015 Business Hours & Holidays implemented
 
-Quality Gates (PRD-013, validación técnica completada):
+Quality Gates (PRD-015, validación técnica completada):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **678 passed, 1 skipped, 1 warning** |
+| `pytest` | **698 passed, 12 skipped, 3 warnings** |
 | `ruff check app tests` | **All checks passed** |
-| `black --check app tests` | **354 files would be left unchanged** |
-| `mypy app tests` | **Success: no issues found in 354 source files** |
+| `black --check app tests` | **371 files would be left unchanged** |
+| `mypy app tests` | **Success: no issues found in 371 source files** |
 
 La base actual incluye 5 Engines:
 
@@ -23,7 +23,13 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial: **PRD-001 a PRD-012 CLOSED; PRD-013 Integration Management está implemented, pending CTO review; PRD-014 a PRD-022 permanecen NOT STARTED.**
+Estado oficial: **PRD-001 a PRD-012 CLOSED; PRD-013 y PRD-015 están implemented,
+pending CTO review; PRD-014 Dashboard y PRD-016 a PRD-022 permanecen NOT STARTED.**
+
+PRD-015 añade calendarios operativos tenant-scoped, horarios semanales,
+excepciones, feriados, cierres parciales, overrides, precedencia determinista,
+zonas IANA/DST, RBAC, auditoría e idempotencia transaccional. Google Calendar no
+forma parte del dominio y permanece como adaptador futuro.
 
 PRD-013 añade conexiones externas tenant-scoped, credenciales cifradas, OAuth
 Google real con state firmado/single-use, Google Calendar metadata/free-busy,
@@ -640,7 +646,7 @@ PRD-001 through PRD-012 are closed. PRD-010 adds a tenant-scoped handoff
 lifecycle, bot suppression, encrypted and attributed human replies through the
 generic channel sender, idempotency, archive protection, and safe transport
 errors. PRD-011 adds the Contact increment; Customer is deferred and CRM is not
-implemented. PRD-012 is closed; PRD-013 is implemented pending CTO review, and
-PRD-014 through PRD-022 are not started. Real Meta and Google validation need
-explicit external credentials.
+implemented. PRD-012 is closed; PRD-013 and PRD-015 are implemented pending CTO
+review. PRD-014 Dashboard and PRD-016 through PRD-022 are not started. Real Meta
+and Google validation need explicit external credentials.
 

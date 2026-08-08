@@ -1,7 +1,7 @@
 # BotWA Starter - Context For AI Assistants
 
-**Last updated:** 2026-08-07
-**Project phase:** Phase 3 - PRD-013 Integration Management implemented, pending CTO review
+**Last updated:** 2026-08-08
+**Project phase:** Phase 3 - PRD-015 Business Hours & Holidays implemented, pending CTO review
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
@@ -17,8 +17,9 @@ Configuration and PRD-008 WhatsApp Live Messaging are implemented and closed.
 PRD-009, PRD-010, PRD-011, and PRD-012 are closed. PRD-011 implements the
 Contact increment only; Customer is deferred and CRM is not implemented.
 PRD-012 adds tenant-scoped Automation Management without changing Core Automation.
-PRD-013 Integration Management is implemented, pending CTO review. PRD-014
-through PRD-022 remain NOT STARTED.
+PRD-013 Integration Management and PRD-015 Business Hours & Holidays are
+implemented, pending CTO review. PRD-014 Dashboard and PRD-016 through PRD-022
+remain NOT STARTED.
 
 All five core engines are implemented and closed:
 
@@ -36,17 +37,17 @@ Current validated gates:
 
 | Gate | Result |
 |---|---|
-| `pytest` | 678 passed, 1 skipped, 1 warning |
+| `pytest` | 698 passed, 12 skipped, 3 warnings |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 354 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 354 source files |
+| `black --check app tests` | 371 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 371 source files |
 
 ## Infrastructure Validation
 
 | Area | Result |
 |---|---|
 | Docker/PostgreSQL | PASS |
-| Alembic migrations | PASS - `20260807_0015 (head)`, one head, PRD-013 cycle/smoke validated |
+| Alembic migrations | PASS - `20260808_0016 (head)`, one head, PRD-015 cycle/smoke validated |
 | DB-backed product persistence | PASS - receipts, managed encrypted messages, and delivery attempts survive API restart |
 | Docker smoke tests | PASS - signed inbound, Core/Knowledge, fake outbound, lifecycle/RBAC, statuses, restart |
 | Integration controlled errors | PASS |
@@ -73,8 +74,8 @@ Current validated gates:
 
 ## Current Official Objective
 
-PRD-013 is implemented and pending CTO review. PRD-001 through PRD-012 are
-closed; do not start PRD-014 without explicit CTO approval.
+PRD-013 and PRD-015 are implemented and pending CTO review. PRD-001 through
+PRD-012 are closed; PRD-014 Dashboard remains NOT STARTED.
 
 **Phase 3**
 
@@ -93,7 +94,9 @@ closed; do not start PRD-014 without explicit CTO approval.
 | 11 | PRD-011 Contacts and Customers | CLOSED (Contact only; Customer deferred; CRM not implemented) |
 | 12 | PRD-012 Automation Management | CLOSED |
 | 13 | PRD-013 Integration Management | implemented, pending CTO review |
-| 14-22 | Future approved product increments | NOT STARTED |
+| 14 | PRD-014 Dashboard | NOT STARTED |
+| 15 | PRD-015 Business Hours & Holidays | implemented, pending CTO review |
+| 16-22 | Future approved product increments | NOT STARTED |
 
 The MVP milestone comprises PRD-001 through PRD-010.
 
@@ -108,7 +111,7 @@ The MVP milestone comprises PRD-001 through PRD-010.
 - `BotKnowledgeProvider` requires explicit organization and bot identifiers and
   returns only published entries.
 - PRD-006 migration revision is `20260729_0007`; the current project head is
-  `20260807_0015`.
+  `20260808_0016`.
 
 ### Runtime Integration Status
 
@@ -191,10 +194,11 @@ Active post-closure debt:
 
 ## CTO Review Status
 
-## PRD-010 through PRD-013 Status
+## PRD-010 through PRD-015 Status
 
 PRD-001 through PRD-012 are closed. PRD-010 preserves its boundaries: human
 replies use the generic sender, remain encrypted and idempotent, and active
 handoffs suppress automation. PRD-011 delivers Contact only; Customer is deferred
 and CRM is not implemented. PRD-012 Automation Management is CLOSED; PRD-013
-is implemented pending CTO review, and PRD-014 through PRD-022 are NOT STARTED.
+and PRD-015 are implemented pending CTO review. PRD-014 Dashboard and PRD-016
+through PRD-022 are NOT STARTED.

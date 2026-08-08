@@ -1,5 +1,24 @@
 # Changelog
 
+## PRD-015 Business Hours & Holidays - 2026-08-08
+
+### Implemented, pending CTO review
+
+- Added a provider-agnostic, tenant-scoped operational calendar with regular
+  weekly schedules, date exceptions, holidays, partial closures, and manual
+  overrides.
+- Added deterministic `open`/`closed` resolution with explicit provenance,
+  precedence, half-open boundaries, IANA timezone conversion, DST fold handling,
+  and next known state change.
+- Added lifecycle/RBAC administration, safe API errors, optimistic concurrency,
+  durable idempotency receipts, transactional allowlisted audit, metrics, and
+  structured logs.
+- Added Alembic revision `20260808_0016`, local/API/regression tests, and real
+  PostgreSQL constraint, tenant-isolation, lock, rollback, and migration-cycle
+  tests.
+- Added the explicit PRD-005 migration runbook. PRD-014 Dashboard remains NOT
+  STARTED, and no Google Calendar/OAuth adapter was added.
+
 ## PRD-013 Integration Management - 2026-08-07
 
 ### Implemented, pending CTO review

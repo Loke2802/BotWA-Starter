@@ -1,6 +1,6 @@
 # PRD-015 Business Hours & Holidays
 
-**Estado:** NOT STARTED
+**Estado:** IMPLEMENTED — PENDING CTO REVIEW
 
 **Tipo:** Product / Scheduling Domain
 
@@ -347,7 +347,7 @@ frontera de conexiones y credenciales externas.
 ## 16. Exclusiones
 
 - Implementación de PRD-014 Dashboard.
-- Implementación funcional de PRD-015 en este cambio documental.
+- Eliminación física de calendarios o historial desde la API v1.
 - Google Calendar u otro adaptador real.
 - OAuth, almacenamiento de credenciales o cambios en PRD-013.
 - Sincronización bidireccional, webhooks, polling o workers externos.
@@ -358,7 +358,7 @@ frontera de conexiones y credenciales externas.
 - Eliminar físicamente historial o reglas auditadas.
 - Cambios al Core Automation Engine.
 
-## 17. Entregables futuros de implementación
+## 17. Entregables de implementación
 
 - contratos y resolver de dominio;
 - modelos, repositorios y migración Alembic;
@@ -368,5 +368,12 @@ frontera de conexiones y credenciales externas.
 - pruebas focalizadas, PostgreSQL y gates completos;
 - documentación de migración desde el horario básico de PRD-005.
 
-Hasta que exista autorización CTO explícita, todos estos entregables permanecen
-NOT STARTED.
+La implementación autorizada está disponible en la rama
+`feat/prd-015-business-hours-holidays`, con migración `20260808_0016`. Incluye
+dominio y resolver agnósticos de proveedor, gestión administrativa tenant-scoped,
+RBAC, auditoría e idempotencia transaccionales, API, observabilidad y pruebas
+unitarias, API y PostgreSQL. Google Calendar permanece exclusivamente como
+adaptador futuro y PRD-014 Dashboard permanece `NOT STARTED`.
+
+Los gates técnicos y la revisión CTO son obligatorios antes de mergear o declarar
+PRD-015 `CLOSED`.

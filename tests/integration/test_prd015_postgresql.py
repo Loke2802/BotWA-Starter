@@ -113,6 +113,11 @@ def test_prd015_postgresql_constraints_tenant_scope_and_atomicity() -> None:
         "business_calendar_audit_event",
     }
     assert expected_tables.issubset(set(inspect(engine).get_table_names()))
+    calendar_indexes = {
+        item["name"]: item for item in inspect(engine).get_indexes("business_calendar")
+    }
+    assert calendar_indexes["uq_business_calendar_active_org_default"]["unique"]
+    assert calendar_indexes["uq_business_calendar_active_org_bot"]["unique"]
     sessions = sessionmaker(bind=engine)
 
     with sessions() as session:
@@ -133,6 +138,20 @@ def test_prd015_postgresql_constraints_tenant_scope_and_atomicity() -> None:
         assert foreign.id != created.id
         with pytest.raises(BusinessCalendarNotFound):
             service.get_calendar(foreign_organization_id, created.id, foreign_actor)
+
+        service.transition_calendar(organization_id, created.id, "activate", actor)
+        conflicting = service.create_calendar(
+            organization_id,
+            BusinessCalendarCreate(name="Conflicting default", timezone="UTC"),
+            actor,
+        )
+        with pytest.raises(BusinessCalendarConflict):
+            service.transition_calendar(
+                organization_id,
+                conflicting.id,
+                "activate",
+                actor,
+            )
 
         first = service.create_date_exception(
             organization_id,

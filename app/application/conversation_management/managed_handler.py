@@ -55,7 +55,9 @@ class ManagedChannelConversationHandler(ChannelMessageHandler):
                 channel_type=message.channel_type,
                 received_at=message.timestamp,
                 business_hours_state=self._automations.business_hours_state(
-                    message.resolved_context.bot_id, message.timestamp
+                    message.resolved_context.organization_id,
+                    message.resolved_context.bot_id,
+                    message.timestamp,
                 ),
                 source_receipt_id=UUID(receipt_id),
             )

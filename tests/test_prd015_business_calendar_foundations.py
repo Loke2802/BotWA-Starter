@@ -290,3 +290,8 @@ def test_migration_declares_single_prd015_revision_and_all_tables() -> None:
     ):
         assert f'"{table}"' in migration
         assert f'op.drop_table("{table}")' in migration
+    for index in (
+        "uq_business_calendar_active_org_default",
+        "uq_business_calendar_active_org_bot",
+    ):
+        assert migration.count(f'"{index}"') >= 2

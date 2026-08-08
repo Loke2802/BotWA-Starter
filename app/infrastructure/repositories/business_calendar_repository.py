@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from sqlalchemy import delete, func, or_, select
+from sqlalchemy import case, delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.domain.business_calendar.contracts import CalendarStatus
@@ -69,6 +69,29 @@ class BusinessCalendarRepository:
         )
         total = select(func.count()).select_from(BusinessCalendarModel).where(*filters)
         return list(self.session.scalars(query)), int(self.session.scalar(total) or 0)
+
+    def active_applicable_calendar(
+        self,
+        organization_id: UUID,
+        bot_id: UUID,
+    ) -> BusinessCalendarModel | None:
+        stmt = (
+            select(BusinessCalendarModel)
+            .where(
+                BusinessCalendarModel.organization_id == organization_id,
+                BusinessCalendarModel.status == "active",
+                or_(
+                    BusinessCalendarModel.bot_id == bot_id,
+                    BusinessCalendarModel.bot_id.is_(None),
+                ),
+            )
+            .order_by(
+                case((BusinessCalendarModel.bot_id == bot_id, 0), else_=1),
+                BusinessCalendarModel.id,
+            )
+            .limit(1)
+        )
+        return self.session.scalars(stmt).one_or_none()
 
     def weekly_intervals(
         self, organization_id: UUID, calendar_id: UUID

@@ -65,6 +65,22 @@ def upgrade() -> None:
         "business_calendar",
         ["organization_id", "bot_id"],
     )
+    op.create_index(
+        "uq_business_calendar_active_org_default",
+        "business_calendar",
+        ["organization_id"],
+        unique=True,
+        postgresql_where=sa.text("status = 'active' AND bot_id IS NULL"),
+        sqlite_where=sa.text("status = 'active' AND bot_id IS NULL"),
+    )
+    op.create_index(
+        "uq_business_calendar_active_org_bot",
+        "business_calendar",
+        ["organization_id", "bot_id"],
+        unique=True,
+        postgresql_where=sa.text("status = 'active' AND bot_id IS NOT NULL"),
+        sqlite_where=sa.text("status = 'active' AND bot_id IS NOT NULL"),
+    )
 
     op.create_table(
         "business_calendar_weekly_interval",
@@ -320,6 +336,16 @@ def downgrade() -> None:
         table_name="business_calendar_weekly_interval",
     )
     op.drop_table("business_calendar_weekly_interval")
+    op.drop_index(
+        "uq_business_calendar_active_org_bot",
+        table_name="business_calendar",
+        if_exists=True,
+    )
+    op.drop_index(
+        "uq_business_calendar_active_org_default",
+        table_name="business_calendar",
+        if_exists=True,
+    )
     op.drop_index("ix_business_calendar_org_bot", table_name="business_calendar")
     op.drop_index("ix_business_calendar_org_status", table_name="business_calendar")
     op.drop_table("business_calendar")

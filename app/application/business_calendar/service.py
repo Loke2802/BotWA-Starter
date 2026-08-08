@@ -1173,12 +1173,51 @@ class BusinessCalendarService:
         correlation_id: UUID | None = None,
     ) -> BusinessHoursResolutionResponse:
         self._authorize(actor, "business_calendar.resolve", organization_id)
+        calendar = self._calendar(organization_id, calendar_id)
+        return self._resolve_calendar_row(
+            organization_id,
+            calendar,
+            evaluated_at,
+            correlation_id=correlation_id,
+        )
+
+    def resolve_applicable(
+        self,
+        organization_id: UUID,
+        bot_id: UUID,
+        evaluated_at: datetime,
+        *,
+        correlation_id: UUID | None = None,
+    ) -> BusinessHoursResolutionResponse | None:
+        """Resolve the active bot-specific calendar, then the organization default."""
+        self._validate_bot(organization_id, bot_id)
+        calendar = self.repository.active_applicable_calendar(
+            organization_id,
+            bot_id,
+        )
+        if calendar is None:
+            return None
+        return self._resolve_calendar_row(
+            organization_id,
+            calendar,
+            evaluated_at,
+            correlation_id=correlation_id,
+        )
+
+    def _resolve_calendar_row(
+        self,
+        organization_id: UUID,
+        calendar: BusinessCalendarModel,
+        evaluated_at: datetime,
+        *,
+        correlation_id: UUID | None = None,
+    ) -> BusinessHoursResolutionResponse:
         if evaluated_at.tzinfo is None:
             self.metrics.record_validation_error()
             raise ScheduleValidationError("resolution instant must be timezone-aware")
-        calendar = self._calendar(organization_id, calendar_id)
         if calendar.status != "active":
             raise BusinessCalendarInactive("business calendar is not active")
+        calendar_id = calendar.id
         started = perf_counter()
         instant = evaluated_at.astimezone(UTC)
         zone = zone_info(calendar.timezone)

@@ -2,16 +2,26 @@ from builtins import list as builtin_list
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
+from app.application.business_calendar.compatibility import (
+    BusinessHoursStateCompatibilityService,
+)
+from app.application.business_calendar.service import BusinessCalendarService
 from app.application.human_handoff.service import HumanHandoffService
-from app.domain.automation_management.contracts import AutomationDefinitionInput
+from app.domain.automation_management.contracts import (
+    AutomationDefinitionInput,
+    BusinessHoursState,
+)
+from app.domain.automation_management.ports import BusinessHoursStateProvider
 from app.domain.user.contracts import User
-from app.infrastructure.models.business_configuration import BusinessConfigurationModel
 from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.human_handoff import HandoffSessionModel
 from app.infrastructure.models.managed_automation import (
     ManagedAutomationDefinitionModel,
     ManagedAutomationEventReceiptModel,
     ManagedAutomationExecutionModel,
+)
+from app.infrastructure.repositories.business_calendar_repository import (
+    BusinessCalendarRepository,
 )
 from app.infrastructure.repositories.managed_automation_repository import (
     ManagedAutomationRepository,
@@ -51,8 +61,13 @@ class ManagedAutomationService:
         repository: ManagedAutomationRepository,
         session: Session,
         handoff: HumanHandoffService | None = None,
+        business_hours: BusinessHoursStateProvider | None = None,
     ) -> None:
         self.repo, self.session, self.handoff = repository, session, handoff
+        self.business_hours = business_hours or BusinessHoursStateCompatibilityService(
+            BusinessCalendarService(BusinessCalendarRepository(session), session),
+            session,
+        )
 
     def _auth(self, actor: User, permission: str, organization_id: UUID) -> None:
         try:
@@ -255,7 +270,7 @@ class ManagedAutomationService:
         contact_id: UUID | None,
         channel_type: str,
         received_at: datetime,
-        business_hours_state: str,
+        business_hours_state: BusinessHoursState,
         source_receipt_id: UUID,
         source_type: str = "inbound",
         source_automation_id: UUID | None = None,
@@ -337,46 +352,13 @@ class ManagedAutomationService:
         except IntegrityError:
             self.session.rollback()
 
-    def business_hours_state(self, bot_id: UUID, occurred_at: datetime) -> str:
-        """Use the existing PRD-005 business-hours configuration only."""
-        config = (
-            self.session.query(BusinessConfigurationModel)
-            .filter_by(bot_id=bot_id)
-            .one_or_none()
-        )
-        if config is None:
-            return "unknown"
-        try:
-            from zoneinfo import ZoneInfo
-
-            local = occurred_at.astimezone(ZoneInfo(config.timezone))
-            day = (
-                "monday",
-                "tuesday",
-                "wednesday",
-                "thursday",
-                "friday",
-                "saturday",
-                "sunday",
-            )[local.weekday()]
-            schedule = config.business_hours[day]
-            if not isinstance(schedule, dict):
-                return "unknown"
-            enabled = schedule.get("enabled")
-            open_time = schedule.get("open_time")
-            close_time = schedule.get("close_time")
-            if (
-                not isinstance(enabled, bool)
-                or not isinstance(open_time, str)
-                or not isinstance(close_time, str)
-            ):
-                return "unknown"
-            if not enabled:
-                return "outside"
-            current = local.strftime("%H:%M")
-            return "inside" if open_time <= current < close_time else "outside"
-        except (KeyError, TypeError, ValueError):
-            return "unknown"
+    def business_hours_state(
+        self,
+        organization_id: UUID,
+        bot_id: UUID,
+        occurred_at: datetime,
+    ) -> BusinessHoursState:
+        return self.business_hours.state(organization_id, bot_id, occurred_at)
 
     def run(self, row: ManagedAutomationExecutionModel) -> None:
         definition = row.definition_snapshot

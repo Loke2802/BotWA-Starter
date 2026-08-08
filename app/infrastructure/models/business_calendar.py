@@ -13,6 +13,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import Uuid
@@ -39,6 +40,21 @@ class BusinessCalendarModel(Base):
             "created_at",
         ),
         Index("ix_business_calendar_org_bot", "organization_id", "bot_id"),
+        Index(
+            "uq_business_calendar_active_org_default",
+            "organization_id",
+            unique=True,
+            postgresql_where=text("status = 'active' AND bot_id IS NULL"),
+            sqlite_where=text("status = 'active' AND bot_id IS NULL"),
+        ),
+        Index(
+            "uq_business_calendar_active_org_bot",
+            "organization_id",
+            "bot_id",
+            unique=True,
+            postgresql_where=text("status = 'active' AND bot_id IS NOT NULL"),
+            sqlite_where=text("status = 'active' AND bot_id IS NOT NULL"),
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)

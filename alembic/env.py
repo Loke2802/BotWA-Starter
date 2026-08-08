@@ -3,6 +3,7 @@ from logging.config import fileConfig
 from alembic import context
 from app.infrastructure.database import Base
 from app.infrastructure.models import (  # noqa: F401
+    analytics,
     automation_execution,
     automation_task_execution,
     bot,

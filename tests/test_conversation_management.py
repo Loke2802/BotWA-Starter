@@ -16,6 +16,7 @@ from app.domain.channel.contracts import (
 )
 from app.domain.user.contracts import User
 from app.infrastructure.database import Base
+from app.infrastructure.models.analytics import ConversationManagementEventModel
 from app.infrastructure.models.bot import BotModel
 from app.infrastructure.models.human_handoff import HandoffSessionModel
 from app.infrastructure.models.message import MessageModel
@@ -174,6 +175,16 @@ def test_records_encrypted_messages_with_scoped_deduplication_and_lifecycle(
     managed.transition(
         organization_id, conversation.id, "archived", actor(organization_id)
     )
+    events = session.scalars(
+        select(ConversationManagementEventModel)
+        .where(ConversationManagementEventModel.conversation_id == conversation.id)
+        .order_by(ConversationManagementEventModel.occurred_at)
+    ).all()
+    assert [(event.from_status, event.to_status) for event in events] == [
+        ("open", "closed"),
+        ("closed", "open"),
+        ("open", "archived"),
+    ]
     with pytest.raises(ConversationManagementConflictError):
         managed.record_inbound(
             inbound(organization_id, bot_id, message_id="wamid.3"),

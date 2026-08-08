@@ -17,6 +17,7 @@ from app.domain.channel.contracts import (
 )
 from app.domain.user.contracts import User
 from app.infrastructure.database import Base
+from app.infrastructure.models.analytics import HandoffCycleModel
 from app.infrastructure.models.bot import BotModel
 from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.organization import OrganizationModel
@@ -24,7 +25,7 @@ from app.infrastructure.models.user import UserModel
 from app.infrastructure.repositories.human_handoff_repository import (
     HumanHandoffRepository,
 )
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -109,6 +110,26 @@ def test_request_creates_waiting_human(session: Session) -> None:
     service, actor, organization_id, conversation_id = setup(session)
     result = service.request(organization_id, conversation_id, actor, "support")
     assert result.status == "waiting_human"
+    assert session.scalar(select(HandoffCycleModel)) is not None
+
+
+def test_each_handoff_lifecycle_uses_a_distinct_historical_cycle(
+    session: Session,
+) -> None:
+    service, actor, organization_id, conversation_id = setup(session)
+    service.request(organization_id, conversation_id, actor, "support")
+    service.claim(organization_id, conversation_id, actor)
+    service.resolve(organization_id, conversation_id, actor, return_to_bot=True)
+    service.request(organization_id, conversation_id, actor, "follow_up")
+    cycles = session.scalars(
+        select(HandoffCycleModel).order_by(HandoffCycleModel.requested_at)
+    ).all()
+    assert len(cycles) == 2
+    assert cycles[0].resolution_type == "returned_to_bot"
+    assert cycles[0].resolved_at is not None
+    assert cycles[0].activated_at is not None
+    assert cycles[1].resolved_at is None
+    assert cycles[0].id != cycles[1].id
 
 
 def test_assigned_active_agent_can_claim(session: Session) -> None:

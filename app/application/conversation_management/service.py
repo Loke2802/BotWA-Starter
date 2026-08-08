@@ -18,6 +18,7 @@ from app.domain.conversation_management.contracts import (
     ConversationSummary,
 )
 from app.domain.user.contracts import User
+from app.infrastructure.models.analytics import ConversationManagementEventModel
 from app.infrastructure.models.contact import ContactModel
 from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.human_handoff import HandoffSessionModel
@@ -292,7 +293,22 @@ class ConversationManagementService:
             raise ConversationManagementConflictError(
                 "conversation transition is not allowed"
             )
-        self._conversations.transition(model, target)
+        from_status = model.management_status
+        assert from_status is not None and model.bot_id is not None
+        occurred_at = datetime.now(UTC)
+        self._conversations.transition(model, target, occurred_at)
+        self._session.add(
+            ConversationManagementEventModel(
+                organization_id=organization_id,
+                conversation_id=model.id,
+                bot_id=model.bot_id,
+                from_status=from_status,
+                to_status=target,
+                occurred_at=occurred_at,
+                actor_type="user",
+                actor_id=actor.id,
+            )
+        )
         self._commit()
         return _detail(model)
 

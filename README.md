@@ -1,15 +1,16 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-014 Dashboard implementado, pendiente CTO
+## Estado actual - Phase 3 / PRD-001 a PRD-015 CLOSED
 
 Quality Gates (validación técnica PRD-014):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **710 passed, 13 skipped, 2 warnings** |
-| PRD-014 focalizadas | **5 passed** |
+| `pytest` | **714 passed, 13 skipped, 2 warnings** |
+| PRD-014 focalizadas | **9 passed** |
 | PostgreSQL PRD-014 | **1 passed** |
 | Rendimiento PRD-014 | **PASS con 10.000 conversaciones** |
+| Presupuesto SQL PRD-014 | **organization 7 SELECTs O(1); bot 8 SELECTs O(1)** |
 | `ruff check app tests` | **All checks passed** |
 | `black --check app tests` | **387 files would be left unchanged** |
 | `mypy app tests` | **Success: no issues found in 387 source files** |
@@ -28,14 +29,18 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial: **PRD-001 a PRD-013 y PRD-015 CLOSED; PRD-014 Dashboard está
-implementado, pendiente de revisión CTO; PRD-016 a PRD-023 permanecen NOT STARTED.**
+Estado oficial: **PRD-001 a PRD-015 CLOSED; PRD-016 a PRD-023 permanecen NOT
+STARTED.**
 
 PRD-014 añade `GET /organizations/{organization_id}/dashboard`, un read model
 operacional tenant-scoped y opcionalmente filtrable por bot. Compone agregados SQL
 read-only de Bots, Conversations, Human Handoff, Automation, Integrations,
 Contacts y Business Hours sin tablas Dashboard, PII, side effects, frontend ni
 alcance de PRD-016.
+
+PRD-014 cerró después del merge aprobado vía PR #22, merge commit
+`04256eb0cb17e3d1fdb548edeae143578606d508`, con head final aprobado
+`8b836d7bb7b12fcf82ffb5bb8bbada4f3db758c6`.
 
 PRD-015 añade calendarios operativos tenant-scoped, horarios semanales,
 excepciones, feriados, cierres parciales, overrides, precedencia determinista,
@@ -664,7 +669,7 @@ PRD-001 through PRD-012 are closed. PRD-010 adds a tenant-scoped handoff
 lifecycle, bot suppression, encrypted and attributed human replies through the
 generic channel sender, idempotency, archive protection, and safe transport
 errors. PRD-011 adds the Contact increment; Customer is deferred and CRM is not
-implemented. PRD-012, PRD-013 and PRD-015 are closed. PRD-014 Dashboard is
-implemented pending CTO review. PRD-016 through PRD-023 are not started. Real
+implemented. PRD-012 through PRD-015 are closed. PRD-016 through PRD-023 are not
+started. Real
 Meta and Google validation need explicit external credentials.
 

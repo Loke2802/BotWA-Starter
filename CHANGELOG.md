@@ -2,7 +2,11 @@
 
 ## PRD-014 Dashboard v1 - 2026-08-08
 
-### Implemented, pending CTO review
+### CLOSED after PR #22
+
+- Merged into `master` via PR #22 at
+  `04256eb0cb17e3d1fdb548edeae143578606d508`; final approved head:
+  `8b836d7bb7b12fcf82ffb5bb8bbada4f3db758c6`.
 
 - Added a tenant-scoped, read-only operational Dashboard at
   `GET /organizations/{organization_id}/dashboard` with optional bot and bounded
@@ -17,12 +21,19 @@
 - Responses contain safe counts/states only and exclude PII, secrets, domain
   payloads, write operations, health checks, automation execution and handoff
   claims.
+- Closure preserves Dashboard as a read-only, non-Source-of-Truth projection
+  without tables, migration, frontend or activity endpoint. Contacts remain
+  organization-scoped; Integration health includes only active connections; the
+  canonical PRD-015/PRD-005 boundary owns Business Hours resolution and no OAuth
+  refresh or Business Hours write occurs.
 - No migration was required; Alembic remains at `20260808_0016` and PRD-016
   Analytics & Reports remains NOT STARTED.
-- Final validation: pytest 710 passed, 13 skipped, 2 warnings; focused PRD-014
-  5 passed; PostgreSQL PRD-014 1 passed; performance sanity PASS with 10,000
-  conversations; mypy PASS across 387 source files; Ruff PASS; Black PASS across
-  387 files; `git diff --check` PASS; Alembic head `20260808_0016`.
+- Final validation: pytest 714 passed, 13 skipped, 2 warnings; focused PRD-014
+  9 passed; PostgreSQL PRD-014 1 passed; performance sanity PASS with 10,000
+  conversations; repository query budget 7 SELECTs O(1) for organization scope
+  and 8 SELECTs O(1) for bot scope; mypy PASS across 387 source files; Ruff PASS;
+  Black PASS across 387 files; `git diff --check` PASS; Alembic head
+  `20260808_0016`.
 
 ## PRD-015 Business Hours & Holidays - 2026-08-08
 

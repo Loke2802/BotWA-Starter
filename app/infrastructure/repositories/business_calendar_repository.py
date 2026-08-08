@@ -4,6 +4,7 @@ from uuid import UUID
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
+from app.domain.business_calendar.contracts import CalendarStatus
 from app.infrastructure.models.bot import BotModel
 from app.infrastructure.models.business_calendar import (
     BusinessCalendarAuditEventModel,
@@ -22,9 +23,6 @@ class BusinessCalendarRepository:
 
     def add(self, row: object) -> None:
         self.session.add(row)
-
-    def flush(self) -> None:
-        self.session.flush()
 
     def bot_belongs_to(self, organization_id: UUID, bot_id: UUID) -> bool:
         return (
@@ -52,7 +50,7 @@ class BusinessCalendarRepository:
         self,
         organization_id: UUID,
         *,
-        status: str | None,
+        status: CalendarStatus | None,
         bot_id: UUID | None,
         offset: int,
         limit: int,

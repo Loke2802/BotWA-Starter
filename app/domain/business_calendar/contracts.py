@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 CalendarStatus = Literal["draft", "active", "inactive", "archived"]
+CalendarTransition = Literal["activate", "deactivate", "archive"]
 ResolutionState = Literal["open", "closed"]
 WinningRuleType = Literal[
     "manual_override",
@@ -358,7 +359,7 @@ class BusinessHoursResolutionResponse(BaseModel):
 
 
 class AuditEventResponse(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(from_attributes=True, frozen=True)
 
     id: UUID
     calendar_id: UUID

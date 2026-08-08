@@ -161,6 +161,57 @@ def test_dst_localization_rejects_nonexistent_and_requires_fold_for_ambiguous() 
     assert first.astimezone(UTC) != second.astimezone(UTC)
 
 
+def test_resolver_preserves_dst_fold_and_is_deterministic() -> None:
+    interval_id = uuid4()
+    calendar = ResolutionCalendar(uuid4(), "America/New_York", 7)
+    rules = ResolutionRules(
+        weekly={7: (CanonicalInterval(interval_id, 60, 120),)},
+        exceptions=(),
+        holidays=(),
+        overrides=(),
+    )
+    resolver = BusinessHoursResolver()
+
+    first = resolver.resolve(calendar, rules, datetime(2026, 11, 1, 5, 30, tzinfo=UTC))
+    repeated = resolver.resolve(
+        calendar, rules, datetime(2026, 11, 1, 5, 30, tzinfo=UTC)
+    )
+    second = resolver.resolve(calendar, rules, datetime(2026, 11, 1, 6, 30, tzinfo=UTC))
+
+    assert first == repeated
+    assert (first.state, first.local_fold) == ("open", 0)
+    assert (second.state, second.local_fold) == ("open", 1)
+    assert first.winning_rule_id == second.winning_rule_id == interval_id
+
+
+def test_midnight_normalization_and_half_open_boundaries() -> None:
+    monday_id, tuesday_id = uuid4(), uuid4()
+    calendar = ResolutionCalendar(uuid4(), "UTC", 3)
+    rules = ResolutionRules(
+        weekly={
+            1: (CanonicalInterval(monday_id, 22 * 60, 24 * 60),),
+            2: (CanonicalInterval(tuesday_id, 0, 2 * 60),),
+        },
+        exceptions=(),
+        holidays=(),
+        overrides=(),
+    )
+    resolver = BusinessHoursResolver()
+
+    monday = resolver.resolve(
+        calendar, rules, datetime(2026, 8, 10, 23, 59, tzinfo=UTC)
+    )
+    midnight = resolver.resolve(
+        calendar, rules, datetime(2026, 8, 11, 0, 0, tzinfo=UTC)
+    )
+    end = resolver.resolve(calendar, rules, datetime(2026, 8, 11, 2, 0, tzinfo=UTC))
+
+    assert (monday.state, monday.winning_rule_id) == ("open", monday_id)
+    assert monday.next_change_at == datetime(2026, 8, 11, 2, tzinfo=UTC)
+    assert (midnight.state, midnight.winning_rule_id) == ("open", tuesday_id)
+    assert (end.state, end.winning_rule_type) == ("closed", "default_closed")
+
+
 def test_prd015_permissions_apply_minimum_operator_access() -> None:
     administrative = {
         "business_calendar.create",

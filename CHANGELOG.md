@@ -33,7 +33,19 @@
 
 ## PRD-013 Integration Management - 2026-08-07
 
-### Implemented, pending CTO review
+### CLOSED after final security merge via PR #20
+
+- Merged into `master` via PR #20 at
+  `be52bbc49c6b34fc6b515e915564810068a74da3`; final review head:
+  `beb3a6a01c5a983ab5d83a485f268dfc3202fa3b`.
+- Final validation: pytest 705 passed, 12 skipped, 2 warnings; focused PRD-013
+  39 passed; PostgreSQL PRD-013 1 passed; PRD-012/015 compatibility 18 passed;
+  mypy PASS across 374 source files; Ruff PASS; Black PASS across 374 files;
+  `git diff --check` PASS; Alembic head `20260808_0016`.
+- Google real smoke remains `SKIPPED` because approved external credentials are
+  unavailable. OAuth consent, callback, refresh, Calendar List and FreeBusy must
+  pass before Google Calendar is enabled in staging or production. This is an
+  operational external-enablement gate, not a blocker for PRD-013 closure.
 
 - Added tenant-scoped Integration Management with lifecycle, RBAC, optional bot
   scope, safe health history and migration `20260807_0015`.

@@ -2,8 +2,8 @@
 
 Estado: implemented, pending CTO review.
 
-PRD-001 a PRD-012 permanecen CLOSED. PRD-014 a PRD-022 permanecen NOT
-STARTED.
+PRD-001 a PRD-012 y PRD-015 permanecen CLOSED. PRD-014 Dashboard y PRD-016 a
+PRD-023 permanecen NOT STARTED.
 
 ## Alcance
 
@@ -128,6 +128,24 @@ para impedir replay aun si falla la red. Luego intercambia el code, cifra el
 refresh token si Google lo entrega, valida health con el access token efimero y
 retorna solo `{ "status": "connected" }`.
 
+El lifecycle del refresh token es explicito:
+
+- si Google retorna uno nuevo, se cifra y reemplaza de forma atomica la credential de
+  la misma integration y organizacion;
+- si Google lo omite y ya existe una credential valida, se conserva sin
+  reescribirla ni borrarla;
+- si Google lo omite y no existe credential previa, el callback falla con
+  `INTEGRATION_AUTH_REQUIRED`, no crea una credential vacia y no deja la
+  integration falsamente conectada.
+
+El consumo del nonce se confirma en una transaccion local antes de invocar al
+provider. Por ello, un timeout, 5xx o fallo de persistencia posterior no permite
+reutilizar el state. Credential, rotacion y health se confirman atomicamente y
+cualquier fallo SQL ejecuta rollback y se reduce a un error seguro. El riesgo
+residual aceptado es: el token externo puede haber sido emitido aunque falle la
+persistencia local; el usuario debe reiniciar OAuth. No se implementa revocacion
+compensatoria sin un contrato futuro explicito.
+
 ## Provider architecture
 
 `IntegrationProviderRegistry` resuelve adapters. La aplicacion consume el
@@ -160,14 +178,17 @@ Los resultados externos se reducen a codigos allowlisted:
 
 ## Validacion
 
-- suite completa con PostgreSQL PRD-012/013 habilitado: 678 passed, 1 skipped,
-  1 warning;
+- suite completa: 705 passed, 12 skipped, 2 warnings;
+- pruebas focalizadas PRD-013: 39 passed;
 - Google real smoke: SKIPPED sin credenciales explicitas;
-- mypy: PASS, 354 source files;
+- mypy: PASS, 374 source files;
 - Ruff: PASS;
-- PostgreSQL PRD-013 smoke: PASS;
-- Alembic `0014 -> 0015 -> 0014 -> 0015`: PASS;
-- Alembic head: `20260807_0015`.
+- Black: PASS, 374 files;
+- `git diff --check`: PASS;
+- PostgreSQL PRD-013 smoke: PASS; valida persistencia cifrada, nonce single-use,
+  rollback real y aislamiento tenant;
+- cadena Alembic: `20260807_0014 -> 20260807_0015 -> 20260808_0016`;
+- Alembic head unico: `20260808_0016`.
 
 El smoke PostgreSQL valida tablas migradas, conexion/credential/health
 persistentes, cifrado real, lifecycle, aislamiento tenant, provider fake a traves
@@ -181,6 +202,11 @@ redirect URI y refresh token. Deben inyectarse en el entorno seguro del proceso;
 no se guardan en archivos, comandos compartidos ni logs. El flujo manual obtiene
 el refresh token mediante OAuth start/callback y despues valida health y metadata
 read-only. Este smoke no bloquea PRD-013 cuando no existen credenciales externas.
+
+Antes de habilitar Google Calendar en staging o produccion es obligatorio ejecutar
+el smoke real con credenciales de desarrollo aprobadas y validar consent,
+callback, refresh, Calendar List y FreeBusy. La ausencia actual de credenciales
+mantiene ese smoke en `SKIPPED`; no autoriza habilitar la integracion externamente.
 
 ## Exclusiones
 

@@ -27,9 +27,7 @@ class DashboardBusinessStatusReader:
         scope = "bot" if bot_id is not None else "organization"
         try:
             resolution = (
-                self.calendars.resolve_applicable(
-                    organization_id, bot_id, evaluated_at
-                )
+                self.calendars.resolve_applicable(organization_id, bot_id, evaluated_at)
                 if bot_id is not None
                 else self.calendars.resolve_default(organization_id, evaluated_at)
             )

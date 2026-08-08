@@ -83,9 +83,7 @@ class SqlAlchemyDashboardRepository:
         try:
             return DashboardAggregate(
                 bots=self._bots(scope),
-                conversations=self._conversations(
-                    scope, period_start, period_end
-                ),
+                conversations=self._conversations(scope, period_start, period_end),
                 handoffs=self._handoffs(scope, period_start, period_end),
                 automations=self._automations(scope, period_start, period_end),
                 integrations=self._integrations(scope),
@@ -214,9 +212,7 @@ class SqlAlchemyDashboardRepository:
             ManagedAutomationExecutionModel.created_at < period_end,
         ]
         if scope.bot_id is not None:
-            filters.append(
-                ManagedAutomationEventReceiptModel.bot_id == scope.bot_id
-            )
+            filters.append(ManagedAutomationEventReceiptModel.bot_id == scope.bot_id)
         row = self.session.execute(
             select(
                 func.count().label("total"),
@@ -254,9 +250,7 @@ class SqlAlchemyDashboardRepository:
         )
 
     def _integrations(self, scope: DashboardScope) -> DashboardIntegrationSummary:
-        filters = [
-            IntegrationConnectionModel.organization_id == scope.organization_id
-        ]
+        filters = [IntegrationConnectionModel.organization_id == scope.organization_id]
         if scope.bot_id is not None:
             filters.append(IntegrationConnectionModel.bot_id == scope.bot_id)
         row = self.session.execute(

@@ -7,7 +7,6 @@ import structlog
 
 from app.application.dashboard.metrics import DashboardMetrics
 from app.domain.dashboard.contracts import (
-    DashboardHandoffSummary,
     DashboardPeriodPreset,
     DashboardPeriodResponse,
     DashboardSummaryResponse,

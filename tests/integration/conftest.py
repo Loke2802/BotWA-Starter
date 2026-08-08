@@ -6,9 +6,11 @@ from sqlalchemy import create_engine, text
 
 
 @pytest.fixture(autouse=True)
-def isolate_prd012_postgresql_data() -> Generator[None]:
-    """Keep every PostgreSQL smoke independent while preserving Alembic state."""
-    database_url = os.getenv("BOTWA_PRD012_POSTGRES_URL")
+def isolate_postgresql_smoke_data() -> Generator[None]:
+    """Keep every explicit PostgreSQL smoke independent while preserving Alembic."""
+    database_url = os.getenv("BOTWA_PRD013_POSTGRES_URL") or os.getenv(
+        "BOTWA_PRD012_POSTGRES_URL"
+    )
     if database_url:
         engine = create_engine(database_url)
         try:

@@ -98,6 +98,7 @@ def _base(session: Session) -> tuple[UUID, UUID, UUID, UUID, User]:
                 slug="a1",
                 status="active",
                 timezone="Pacific/Auckland",
+                created_at=NOON,
             ),
             BotModel(
                 id=bot_a2,
@@ -106,6 +107,7 @@ def _base(session: Session) -> tuple[UUID, UUID, UUID, UUID, User]:
                 slug="a2",
                 status="active",
                 timezone="America/New_York",
+                created_at=NOON,
             ),
             BotModel(
                 id=bot_b,
@@ -113,6 +115,7 @@ def _base(session: Session) -> tuple[UUID, UUID, UUID, UUID, User]:
                 name="B",
                 slug="b",
                 status="active",
+                created_at=NOON,
             ),
             UserModel(
                 id=user_id,
@@ -252,6 +255,12 @@ def _services(
     return AnalyticsProjectionService(repository), AnalyticsQueryService(repository)
 
 
+def _bot(session: Session, bot_id: UUID) -> BotModel:
+    model = session.get(BotModel, bot_id)
+    assert model is not None
+    return model
+
+
 def test_projection_is_idempotent_and_uses_current_automation_outcome(
     session: Session,
 ) -> None:
@@ -333,6 +342,172 @@ def test_organization_scope_requires_every_bot_and_never_attributes_contacts(
     assert complete.contacts_scope == "organization"
     assert complete.summary.contacts_created == 1
     assert complete.summary.conversations_started == 1
+
+
+def test_analytics_historical_completeness_ignores_bots_created_after_bucket(
+    session: Session,
+) -> None:
+    organization_id, _, bot_a, bot_a2, actor = _base(session)
+    historical_day = DAY - timedelta(days=10)
+    _bot(session, bot_a).created_at = datetime.combine(
+        historical_day - timedelta(days=1), datetime.min.time(), UTC
+    )
+    _bot(session, bot_a2).created_at = datetime.combine(
+        historical_day + timedelta(days=5), datetime.min.time(), UTC
+    )
+    session.commit()
+    projection, query = _services(session)
+    projection.rebuild_day(organization_id, bot_a, historical_day)
+    projection.rebuild_day(organization_id, None, historical_day)
+    before = query.query(
+        organization_id,
+        actor,
+        bot_id=None,
+        from_=historical_day,
+        to=historical_day + timedelta(days=1),
+        group_by="day",
+        compare=None,
+    )
+    assert before.complete is True
+    session.add(
+        BotModel(
+            organization_id=organization_id,
+            name="Late bot",
+            slug="late-bot",
+            status="inactive",
+            created_at=datetime.combine(
+                historical_day + timedelta(days=20), datetime.min.time(), UTC
+            ),
+        )
+    )
+    session.commit()
+    after = query.query(
+        organization_id,
+        actor,
+        bot_id=None,
+        from_=historical_day,
+        to=historical_day + timedelta(days=1),
+        group_by="day",
+        compare=None,
+    )
+    assert after.complete is True
+    assert after.summary == before.summary
+
+
+def test_analytics_bot_created_mid_range_only_affects_expected_later_buckets(
+    session: Session,
+) -> None:
+    organization_id, _, bot_a, bot_a2, actor = _base(session)
+    start = DAY - timedelta(days=2)
+    _bot(session, bot_a).created_at = datetime.combine(
+        start + timedelta(days=1), datetime.min.time(), UTC
+    ) + timedelta(hours=12)
+    _bot(session, bot_a2).created_at = datetime.combine(
+        start + timedelta(days=5), datetime.min.time(), UTC
+    )
+    session.commit()
+    projection, query = _services(session)
+    for offset in range(3):
+        projection.rebuild_day(organization_id, None, start + timedelta(days=offset))
+    first = projection.rebuild_day(organization_id, bot_a, start)
+    projection.rebuild_day(organization_id, bot_a, start + timedelta(days=2))
+    incomplete = query.query(
+        organization_id,
+        actor,
+        bot_id=None,
+        from_=start,
+        to=start + timedelta(days=3),
+        group_by="day",
+        compare=None,
+    )
+    assert first.written is False
+    assert incomplete.complete is False
+    projection.rebuild_day(organization_id, bot_a, start + timedelta(days=1))
+    complete = query.query(
+        organization_id,
+        actor,
+        bot_id=None,
+        from_=start,
+        to=start + timedelta(days=3),
+        group_by="day",
+        compare=None,
+    )
+    assert complete.complete is True
+    stored_days = session.scalars(
+        select(AnalyticsDailySummaryModel.local_date).where(
+            AnalyticsDailySummaryModel.organization_id == organization_id,
+            AnalyticsDailySummaryModel.bot_id == bot_a,
+        )
+    ).all()
+    assert start not in stored_days
+
+
+def test_bot_scoped_history_before_creation_does_not_require_fake_rows(
+    session: Session,
+) -> None:
+    organization_id, _, bot_id, _, actor = _base(session)
+    start = DAY - timedelta(days=3)
+    _bot(session, bot_id).created_at = datetime.combine(
+        DAY + timedelta(days=10), datetime.min.time(), UTC
+    )
+    session.commit()
+    projection, query = _services(session)
+    for offset in range(2):
+        projection.rebuild_day(organization_id, None, start + timedelta(days=offset))
+    results = projection.rebuild_range(
+        organization_id, bot_id, start, start + timedelta(days=2)
+    )
+    response = query.query(
+        organization_id,
+        actor,
+        bot_id=bot_id,
+        from_=start,
+        to=start + timedelta(days=2),
+        group_by="day",
+        compare=None,
+    )
+    assert all(result.written is False for result in results)
+    assert response.complete is True
+    assert response.summary.conversations_started == 0
+    assert (
+        session.scalar(
+            select(func.count(AnalyticsDailySummaryModel.id)).where(
+                AnalyticsDailySummaryModel.organization_id == organization_id,
+                AnalyticsDailySummaryModel.bot_id == bot_id,
+            )
+        )
+        == 0
+    )
+
+
+def test_bot_analytics_requires_organization_contact_rows_for_complete_response(
+    session: Session,
+) -> None:
+    organization_id, _, bot_id, _, actor = _base(session)
+    projection, query = _services(session)
+    projection.rebuild_day(organization_id, bot_id, DAY)
+    missing_contact = query.query(
+        organization_id,
+        actor,
+        bot_id=bot_id,
+        from_=DAY,
+        to=DAY + timedelta(days=1),
+        group_by="day",
+        compare=None,
+    )
+    assert missing_contact.complete is False
+    projection.rebuild_day(organization_id, None, DAY)
+    with_contact_zero = query.query(
+        organization_id,
+        actor,
+        bot_id=bot_id,
+        from_=DAY,
+        to=DAY + timedelta(days=1),
+        group_by="day",
+        compare=None,
+    )
+    assert with_contact_zero.complete is True
+    assert with_contact_zero.summary.contacts_created == 0
 
 
 def test_previous_period_grouping_csv_rbac_and_no_pii(session: Session) -> None:
@@ -454,3 +629,13 @@ def test_migration_declares_only_prd016_tables_and_partial_uniqueness() -> None:
     assert 'postgresql_where=sa.text("bot_id IS NULL")' in source
     assert 'postgresql_where=sa.text("bot_id IS NOT NULL")' in source
     assert "report_job" not in source
+
+
+def test_source_watermark_is_documented_as_cutoff_not_snapshot() -> None:
+    documentation = (
+        __import__("pathlib")
+        .Path("docs/PRD-016-analytics-reports.md")
+        .read_text(encoding="utf-8")
+    )
+    assert "upper source-time cutoff" in documentation
+    assert "not a transactional snapshot" in documentation

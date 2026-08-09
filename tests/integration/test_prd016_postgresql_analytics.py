@@ -1,6 +1,6 @@
 import os
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from threading import Barrier
 from uuid import UUID, uuid4
 
@@ -81,6 +81,7 @@ def _seed(session: Session) -> tuple[UUID, UUID, UUID, UUID, User, User]:
                 name="A",
                 slug="a",
                 status="active",
+                created_at=datetime(2026, 8, 8, 12, tzinfo=UTC),
             ),
             BotModel(
                 id=bot_b,
@@ -88,6 +89,7 @@ def _seed(session: Session) -> tuple[UUID, UUID, UUID, UUID, User, User]:
                 name="B",
                 slug="b",
                 status="active",
+                created_at=datetime(2026, 8, 8, 12, tzinfo=UTC),
             ),
             UserModel(
                 id=user_a,
@@ -189,6 +191,28 @@ def test_prd016_postgresql_projection_concurrency_tenant_scope_and_csv(
         )
         assert result.complete is True
         assert result.reporting_timezone == "America/New_York"
+        original_summary = result.summary
+        session.add(
+            BotModel(
+                organization_id=organization_a,
+                name="Late historical bot",
+                slug="late-historical-bot",
+                status="inactive",
+                created_at=datetime(2026, 9, 1, tzinfo=UTC),
+            )
+        )
+        session.commit()
+        unchanged = query.query(
+            organization_a,
+            actor_a,
+            bot_id=None,
+            from_=LOCAL_DAY,
+            to=LOCAL_DAY + timedelta(days=1),
+            group_by="day",
+            compare=None,
+        )
+        assert unchanged.complete is True
+        assert unchanged.summary == original_summary
         csv = query.export_csv(
             organization_a,
             actor_a,

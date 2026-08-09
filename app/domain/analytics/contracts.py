@@ -91,3 +91,4 @@ class AnalyticsRebuildResult(BaseModel):
     reporting_timezone: str
     source_watermark_at: datetime
     computed_at: datetime
+    written: bool

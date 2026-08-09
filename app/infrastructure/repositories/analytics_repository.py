@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.domain.analytics.contracts import AnalyticsCounts
 from app.domain.analytics.errors import AnalyticsPersistenceError
 from app.domain.analytics.ports import (
+    AnalyticsBotLifecycle,
     AnalyticsDailyValue,
     AnalyticsScope,
 )
@@ -59,16 +60,18 @@ class SqlAlchemyAnalyticsRepository:
             configured = settings.get("timezone")
             if isinstance(configured, str):
                 timezone = configured
-            bot_ids = tuple(
-                self.session.scalars(
-                    select(BotModel.id)
-                    .where(BotModel.organization_id == organization_id)
-                    .order_by(BotModel.id)
-                ).all()
+            bot_rows = self.session.execute(
+                select(BotModel.id, BotModel.created_at)
+                .where(BotModel.organization_id == organization_id)
+                .order_by(BotModel.id)
+            ).all()
+            bots = tuple(
+                AnalyticsBotLifecycle(bot_id=row.id, created_at=row.created_at)
+                for row in bot_rows
             )
-            if bot_id is not None and bot_id not in bot_ids:
+            if bot_id is not None and all(bot.bot_id != bot_id for bot in bots):
                 return None
-            return AnalyticsScope(organization_id, bot_id, timezone, bot_ids)
+            return AnalyticsScope(organization_id, bot_id, timezone, bots)
         except SQLAlchemyError as exc:
             raise AnalyticsPersistenceError("analytics scope query failed") from exc
 

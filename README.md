@@ -6,8 +6,8 @@ Quality Gates (validación técnica PRD-014):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **721 passed, 15 skipped, 2 warnings** |
-| PRD-016 focalizadas + regresión Conversation/Handoff | **29 passed** |
+| `pytest` | **726 passed, 15 skipped, 2 warnings** |
+| PRD-016 focalizadas + regresión Conversation/Handoff | **34 passed** |
 | PostgreSQL PRD-016 | **2 passed** |
 | Ciclo PostgreSQL | **0016 → 0017 → 0016 → 0017 PASS** |
 | `ruff check app tests` | **All checks passed** |
@@ -634,7 +634,7 @@ Esto ejecuta el flujo estÃ¡ndar:
 
 ## Tests
 
-**721 passed, 15 skipped, 2 warnings**. Ruff, Black y mypy están limpios sobre
+**726 passed, 15 skipped, 2 warnings**. Ruff, Black y mypy están limpios sobre
 400 archivos. Los tests locales usan modo in-memory sin Docker/PostgreSQL. PRD-009
 fue validado con Docker/PostgreSQL real, migración `20260730_0010`, HMAC previo
 al parseo, idempotencia secuencial/concurrente, persistencia cifrada, lifecycle

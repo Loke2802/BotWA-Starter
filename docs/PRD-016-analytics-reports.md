@@ -136,16 +136,22 @@ Concurrent rebuilds of the same grain converge to one row. A zero-event day is
 still written, distinguishing calculated zero from missing coverage.
 
 `rebuild_range` processes every day in `[from_local_date,to_local_date)`, permits
-exactly 366 days, and rejects larger ranges. It is an internal application/admin
-boundary: there is no public rebuild permission, startup rebuild, scheduler, or
-background queue.
+exactly 366 days, and rejects larger ranges. Bot days structurally before
+`Bot.created_at` are reported as skipped and do not create fake history rows. It
+is an internal application/admin boundary: there is no public rebuild permission,
+startup rebuild, scheduler, or background queue.
 
 ## Source watermark
 
-Every rebuild captures one UTC watermark at its start. Source queries constrain
-the relevant business timestamp to `< source_watermark_at`, avoiding a mix of
-facts that arrive after the operation begins. `computed_at` records completion;
-v1 does not attempt a global serializable snapshot.
+Every rebuild captures one UTC watermark at its start. `source_watermark_at` is
+the upper source-time cutoff used by the rebuild: source queries constrain the
+relevant business timestamp to `< source_watermark_at`.
+It is not a transactional snapshot. It does not promise exact database state as
+of that instant and does not
+prevent concurrent mutation of mutable rows such as Automation executions.
+`computed_at` records completion. A concurrent retry or terminal-state change may
+require a later rebuild, which intentionally converges to the current outcome;
+v1 does not attempt SERIALIZABLE isolation or an Automation attempt ledger.
 
 ## Read API
 
@@ -161,8 +167,20 @@ by total resolved count, never an average of averages. Automation success rate
 is `succeeded / (succeeded + failed)` and is null for a zero denominator.
 
 Completeness requires every expected bot row plus the organization Contacts row
-for every requested date and current reporting timezone. Missing rows remain
-visible as `complete=false`; GET never fills gaps.
+for every requested date and current reporting timezone. A bot is expected for a
+bucket exactly when `Bot.created_at < bucket_end_utc`, where `bucket_end_utc` is
+derived with that same organization reporting timezone. A bot created during a
+day is expected for that day; a bot created after the bucket is not. Current
+`active`/`inactive` status does not remove historical coverage, and Bot has no
+delete/archive lifecycle timestamp to apply. Missing expected rows remain visible
+as `complete=false`; GET never fills gaps.
+
+For explicit bot scope, dates structurally before `Bot.created_at` produce zero
+series buckets and require no artificial bot projection rows. The organization
+Contacts row is still required because Contacts remains part of the response and
+is explicitly organization-scoped. Organization aggregation ignores any
+pre-creation bot rows and continues to include currently inactive bots for days
+in which they already existed.
 
 ## Previous-period comparison
 
@@ -224,9 +242,9 @@ report jobs, scheduler, delivery mechanism, or unrelated future infrastructure.
 
 ## Final validation
 
-- Focused PRD-016 plus Conversation/Handoff regression: 29 passed.
+- Focused PRD-016 plus Conversation/Handoff regression: 34 passed.
 - PostgreSQL PRD-016: 2 passed.
-- Full pytest: 721 passed, 15 skipped, 2 warnings.
+- Full pytest: 726 passed, 15 skipped, 2 warnings.
 - mypy: PASS — 400 source files.
 - Ruff: PASS.
 - Black: PASS — 400 files.

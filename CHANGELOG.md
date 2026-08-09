@@ -20,10 +20,15 @@
 - Historical closure and handoff coverage starts with PRD-016; no prior history
   is fabricated. Automation failure is the current terminal outcome, not an
   attempt ledger. PRD-017 remains NOT STARTED.
-- Final validation: pytest 721 passed, 15 skipped, 2 warnings; focused PRD-016
-  plus Conversation/Handoff regression 29 passed; PostgreSQL PRD-016 2 passed;
+- Final validation: pytest 726 passed, 15 skipped, 2 warnings; focused PRD-016
+  plus Conversation/Handoff regression 34 passed; PostgreSQL PRD-016 2 passed;
   mypy PASS across 400 source files; Ruff PASS; Black PASS across 400 files;
   `git diff --check` PASS; migration cycle PASS; Alembic head `20260808_0017`.
+- Final CTO completeness hardening makes expected bot coverage temporal using
+  `Bot.created_at < bucket_end_utc`, skips fake pre-creation bot rows, preserves
+  inactive-bot history, requires the organization Contacts row in bot responses,
+  and defines `source_watermark_at` as a recomputable cutoff rather than a strong
+  transactional snapshot.
 
 ## PRD-014 Dashboard v1 - 2026-08-08
 

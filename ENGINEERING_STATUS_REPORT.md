@@ -50,8 +50,8 @@ Truth or advancing PRD-017.
 
 | Gate | Current result |
 |---|---|
-| `pytest` | 721 passed, 15 skipped, 2 warnings |
-| Focused PRD-016 plus Conversation/Handoff regression | 29 passed |
+| `pytest` | 726 passed, 15 skipped, 2 warnings |
+| Focused PRD-016 plus Conversation/Handoff regression | 34 passed |
 | PostgreSQL PRD-016 | 2 passed |
 | PostgreSQL migration cycle | `0016 → 0017 → 0016 → 0017` PASS |
 | `ruff check app tests` | All checks passed |

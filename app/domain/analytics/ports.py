@@ -7,11 +7,17 @@ from app.domain.analytics.contracts import AnalyticsCounts
 
 
 @dataclass(frozen=True)
+class AnalyticsBotLifecycle:
+    bot_id: UUID
+    created_at: datetime
+
+
+@dataclass(frozen=True)
 class AnalyticsScope:
     organization_id: UUID
     bot_id: UUID | None
     timezone: str
-    organization_bot_ids: tuple[UUID, ...]
+    bots: tuple[AnalyticsBotLifecycle, ...]
 
 
 @dataclass(frozen=True)

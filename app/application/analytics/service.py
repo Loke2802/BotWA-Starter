@@ -54,6 +54,12 @@ def _empty_counts() -> dict[str, int]:
     return {field: 0 for field in _COUNT_FIELDS}
 
 
+def _aware_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
 def _add(target: dict[str, int], source: AnalyticsCounts, *, contacts: bool) -> None:
     values = source.model_dump()
     for field in _COUNT_FIELDS:
@@ -111,6 +117,24 @@ class AnalyticsProjectionService:
                 raise AnalyticsNotFound("analytics scope not found")
             day_start, day_end = self._bucket(scope.timezone, local_date)
             watermark = datetime.now(UTC)
+            if bot_id is not None and not self._bot_expected(scope, bot_id, day_end):
+                computed_at = datetime.now(UTC)
+                self.repository.commit()
+                self._record(
+                    "analytics_projection_rebuild_total",
+                    "rebuild_day",
+                    "structural_skip",
+                    started,
+                )
+                return AnalyticsRebuildResult(
+                    organization_id=organization_id,
+                    bot_id=bot_id,
+                    local_date=local_date,
+                    reporting_timezone=scope.timezone,
+                    source_watermark_at=watermark,
+                    computed_at=computed_at,
+                    written=False,
+                )
             counts = self.repository.aggregate_sources(
                 scope, local_date, day_start, day_end, watermark
             )
@@ -141,6 +165,7 @@ class AnalyticsProjectionService:
             reporting_timezone=scope.timezone,
             source_watermark_at=watermark,
             computed_at=computed_at,
+            written=True,
         )
 
     def rebuild_range(
@@ -178,6 +203,15 @@ class AnalyticsProjectionService:
         if days > 366:
             raise AnalyticsRangeTooLarge("analytics range exceeds 366 days")
         return days
+
+    @staticmethod
+    def _bot_expected(
+        scope: AnalyticsScope, bot_id: UUID, bucket_end_utc: datetime
+    ) -> bool:
+        return any(
+            bot.bot_id == bot_id and _aware_utc(bot.created_at) < bucket_end_utc
+            for bot in scope.bots
+        )
 
     def _record(self, metric: str, operation: str, result: str, started: float) -> None:
         self.metrics.record(
@@ -331,14 +365,21 @@ class AnalyticsQueryService:
             for row in rows
             if row.timezone == scope.timezone
         }
-        expected_bot_ids = (
-            (scope.bot_id,) if scope.bot_id is not None else scope.organization_bot_ids
-        )
         current = from_
         while current < to:
             if (current, None) not in available:
                 return False
-            if any((current, bot_id) not in available for bot_id in expected_bot_ids):
+            _, bucket_end = AnalyticsProjectionService._bucket(scope.timezone, current)
+            expected_bot_ids = (
+                (scope.bot_id,)
+                if scope.bot_id is not None
+                else tuple(bot.bot_id for bot in scope.bots)
+            )
+            if any(
+                AnalyticsProjectionService._bot_expected(scope, bot_id, bucket_end)
+                and (current, bot_id) not in available
+                for bot_id in expected_bot_ids
+            ):
                 return False
             current += timedelta(days=1)
         return True
@@ -348,13 +389,23 @@ class AnalyticsQueryService:
         scope: AnalyticsScope, rows: list[AnalyticsDailyValue]
     ) -> dict[date, dict[str, int]]:
         result: dict[date, dict[str, int]] = defaultdict(_empty_counts)
+        bucket_ends: dict[date, datetime] = {}
         for row in rows:
             if row.timezone != scope.timezone:
                 continue
             if row.bot_id is None:
                 _add(result[row.local_date], row.counts, contacts=True)
             elif scope.bot_id is None or row.bot_id == scope.bot_id:
-                _add(result[row.local_date], row.counts, contacts=False)
+                bucket_end = bucket_ends.get(row.local_date)
+                if bucket_end is None:
+                    _, bucket_end = AnalyticsProjectionService._bucket(
+                        scope.timezone, row.local_date
+                    )
+                    bucket_ends[row.local_date] = bucket_end
+                if AnalyticsProjectionService._bot_expected(
+                    scope, row.bot_id, bucket_end
+                ):
+                    _add(result[row.local_date], row.counts, contacts=False)
         return dict(result)
 
     @staticmethod

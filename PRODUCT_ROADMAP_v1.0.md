@@ -1,6 +1,6 @@
 # BotWA Product Roadmap v1.0
 
-**Status:** PRD-001 through PRD-015 CLOSED; PRD-016 IMPLEMENTED — PENDING CTO REVIEW
+**Status:** PRD-001 through PRD-016 CLOSED; PRD-017+ NOT STARTED
 **Date:** 2026-08-08
 
 ## Current State
@@ -11,7 +11,10 @@ closed after the final security merge via PR #20, PRD-015 Business Hours &
 Holidays is closed after merge via PR #18, and PRD-014 Dashboard is closed after
 merge via PR #22 at `04256eb0cb17e3d1fdb548edeae143578606d508` (final approved
 head `8b836d7bb7b12fcf82ffb5bb8bbada4f3db758c6`). PRD-016 Analytics & Reports is
-implemented pending CTO review; PRD-017 through PRD-023 are not started.
+closed after PR #24 at merge commit
+`601499071f39aad85dc4d9595fc04425f40a3962`, with final approved head
+`6cafee11a0f807e07a9277eae98e128ab68aa711`. PRD-017 through PRD-023 are not
+started.
 
 **MVP milestone:** PRD-001 through PRD-010.
 
@@ -34,7 +37,7 @@ implemented pending CTO review; PRD-017 through PRD-023 are not started.
 | 13 | PRD-013 Integration Management | CLOSED |
 | 14 | PRD-014 Dashboard | CLOSED |
 | 15 | PRD-015 Business Hours & Holidays | CLOSED |
-| 16 | PRD-016 Analytics and Reports | IMPLEMENTED — PENDING CTO REVIEW |
+| 16 | PRD-016 Analytics and Reports | CLOSED |
 | 17 | PRD-017 Audit Log | NOT STARTED |
 | 18 | PRD-018 Plans and Limits | NOT STARTED |
 | 19 | PRD-019 Billing and Subscriptions | NOT STARTED |
@@ -91,8 +94,7 @@ post-merge validation.
 - Core architecture remains stable.
 - New functionality must be tied to PRDs.
 - Quality gates remain mandatory.
-- PRD-001 through PRD-015 are closed. PRD-016 is implemented pending CTO review;
-  PRD-017 through PRD-023 are not started.
+- PRD-001 through PRD-016 are closed. PRD-017 through PRD-023 are not started.
 - PRD-010 documents lifecycle/RBAC, tenant isolation, suppression/resume,
   encrypted idempotent replies, archive protection, and migration chain
   `0010` → `0011` → `0012`.

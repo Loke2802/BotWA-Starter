@@ -1,8 +1,11 @@
 # PRD-016 — Analytics & Reports v1
 
-**Status:** IMPLEMENTED — PENDING CTO REVIEW
+**Status:** CLOSED
 **Date:** 2026-08-08
 **Alembic revision:** `20260808_0017`
+**Closure:** merged via PR #24 at
+`601499071f39aad85dc4d9595fc04425f40a3962`; final approved head
+`6cafee11a0f807e07a9277eae98e128ab68aa711`
 
 ## Purpose
 
@@ -251,3 +254,17 @@ report jobs, scheduler, delivery mechanism, or unrelated future infrastructure.
 - `git diff --check`: PASS.
 - Alembic head: `20260808_0017`.
 - PostgreSQL migration cycle `0016 → 0017 → 0016 → 0017`: PASS.
+
+## Closed boundaries
+
+PRD-016 is CLOSED after its approved merge via PR #24. Conversation transition
+history and Handoff cycle history begin with PRD-016; no earlier history is
+fabricated. Automation analytics represents the current terminal outcome, not an
+attempt ledger. The organization reporting timezone defines buckets, a bot is
+expected exactly when `Bot.created_at < bucket_end_utc`, and
+`source_watermark_at` is a source-time cutoff rather than a transactional
+snapshot. Contacts remains organization-scoped and Analytics remains a
+rebuildable read model, never a Source of Truth.
+
+PRD-016 includes no PRD-017 scope, frontend, scheduler, PDF or XLSX support.
+PRD-017 through PRD-023 remain NOT STARTED.

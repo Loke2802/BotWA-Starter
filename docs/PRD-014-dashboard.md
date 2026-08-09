@@ -198,5 +198,5 @@ Final validation:
 - `git diff --check`: PASS;
 - Alembic head: `20260808_0016`.
 
-PRD-001 through PRD-015 are CLOSED. PRD-016 and later increments remain NOT
+PRD-001 through PRD-016 are CLOSED. PRD-017 and later increments remain NOT
 STARTED.

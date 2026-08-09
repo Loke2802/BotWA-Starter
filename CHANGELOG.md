@@ -2,7 +2,11 @@
 
 ## PRD-016 Analytics & Reports v1 - 2026-08-08
 
-### IMPLEMENTED — PENDING CTO REVIEW
+### CLOSED after PR #24
+
+- Merged into `master` via PR #24 at
+  `601499071f39aad85dc4d9595fc04425f40a3962`; final approved head:
+  `6cafee11a0f807e07a9277eae98e128ab68aa711`.
 
 - Added append-only Conversation Management transition history and non-reusable
   Human Handoff cycles, transactionally coupled to their operational changes.
@@ -29,6 +33,11 @@
   inactive-bot history, requires the organization Contacts row in bot responses,
   and defines `source_watermark_at` as a recomputable cutoff rather than a strong
   transactional snapshot.
+- Closure freezes Analytics as a reporting-timezone-aware, rebuildable read model
+  rather than a Source of Truth. Conversation and Handoff history start at
+  PRD-016, Automation exposes the current terminal outcome rather than an attempt
+  ledger, Contacts remains organization-scoped, and no PRD-017, frontend,
+  scheduler, PDF or XLSX scope is included.
 
 ## PRD-014 Dashboard v1 - 2026-08-08
 

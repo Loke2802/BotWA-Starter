@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api.analytics_routes import router as analytics_router
+from app.api.audit_routes import router as audit_router
 from app.api.automation_management_routes import router as automation_management_router
 from app.api.business_calendar_routes import router as business_calendar_router
 from app.api.contacts_routes import router as contacts_router
@@ -54,6 +55,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(router)
     app.include_router(analytics_router)
+    app.include_router(audit_router)
     app.include_router(conversation_management_router)
     app.include_router(contacts_router)
     app.include_router(dashboard_router)

@@ -4,6 +4,7 @@ from alembic import context
 from app.infrastructure.database import Base
 from app.infrastructure.models import (  # noqa: F401
     analytics,
+    audit,
     automation_execution,
     automation_task_execution,
     bot,

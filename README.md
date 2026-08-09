@@ -1,21 +1,20 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-001 a PRD-015 CLOSED
+## Estado actual - Phase 3 / PRD-016 IMPLEMENTED — PENDING CTO REVIEW
 
 Quality Gates (validación técnica PRD-014):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **714 passed, 13 skipped, 2 warnings** |
-| PRD-014 focalizadas | **9 passed** |
-| PostgreSQL PRD-014 | **1 passed** |
-| Rendimiento PRD-014 | **PASS con 10.000 conversaciones** |
-| Presupuesto SQL PRD-014 | **organization 7 SELECTs O(1); bot 8 SELECTs O(1)** |
+| `pytest` | **726 passed, 15 skipped, 2 warnings** |
+| PRD-016 focalizadas + regresión Conversation/Handoff | **34 passed** |
+| PostgreSQL PRD-016 | **2 passed** |
+| Ciclo PostgreSQL | **0016 → 0017 → 0016 → 0017 PASS** |
 | `ruff check app tests` | **All checks passed** |
-| `black --check app tests` | **387 files would be left unchanged** |
-| `mypy app tests` | **Success: no issues found in 387 source files** |
+| `black --check app tests` | **400 files would be left unchanged** |
+| `mypy app tests` | **Success: no issues found in 400 source files** |
 | `git diff --check` | **PASS** |
-| Alembic | **20260808_0016 (head)** |
+| Alembic | **20260808_0017 (head)** |
 
 La base actual incluye 5 Engines:
 
@@ -29,8 +28,8 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial: **PRD-001 a PRD-015 CLOSED; PRD-016 a PRD-023 permanecen NOT
-STARTED.**
+Estado oficial: **PRD-001 a PRD-015 CLOSED; PRD-016 IMPLEMENTED — PENDING CTO
+REVIEW; PRD-017 a PRD-023 permanecen NOT STARTED.**
 
 PRD-014 añade `GET /organizations/{organization_id}/dashboard`, un read model
 operacional tenant-scoped y opcionalmente filtrable por bot. Compone agregados SQL
@@ -46,6 +45,12 @@ PRD-015 añade calendarios operativos tenant-scoped, horarios semanales,
 excepciones, feriados, cierres parciales, overrides, precedencia determinista,
 zonas IANA/DST, RBAC, auditoría e idempotencia transaccional. Google Calendar no
 forma parte del dominio y permanece como adaptador futuro.
+
+PRD-016 añade ledgers históricos para cierres de Conversation Management y ciclos
+de Human Handoff, una proyección diaria PostgreSQL reconstruible/idempotente,
+consultas day/week/month, comparación contra periodo anterior y CSV agregado sin
+PII. Usa un único reporting timezone organizacional, respeta DST y no reemplaza
+los Sources of Truth operacionales.
 
 PRD-013 añade conexiones externas tenant-scoped, credenciales cifradas, OAuth
 Google real con state firmado/single-use, Google Calendar metadata/free-busy,
@@ -629,8 +634,8 @@ Esto ejecuta el flujo estÃ¡ndar:
 
 ## Tests
 
-**606 tests passing, 1 warning**. Ruff, Black y mypy están limpios sobre 297
-archivos. Los tests locales usan modo in-memory sin Docker/PostgreSQL. PRD-009
+**726 passed, 15 skipped, 2 warnings**. Ruff, Black y mypy están limpios sobre
+400 archivos. Los tests locales usan modo in-memory sin Docker/PostgreSQL. PRD-009
 fue validado con Docker/PostgreSQL real, migración `20260730_0010`, HMAC previo
 al parseo, idempotencia secuencial/concurrente, persistencia cifrada, lifecycle
 administrativo, RBAC de contenido y supervivencia tras reiniciar la API.
@@ -669,7 +674,7 @@ PRD-001 through PRD-012 are closed. PRD-010 adds a tenant-scoped handoff
 lifecycle, bot suppression, encrypted and attributed human replies through the
 generic channel sender, idempotency, archive protection, and safe transport
 errors. PRD-011 adds the Contact increment; Customer is deferred and CRM is not
-implemented. PRD-012 through PRD-015 are closed. PRD-016 through PRD-023 are not
-started. Real
+implemented. PRD-012 through PRD-015 are closed. PRD-016 is implemented pending
+CTO review; PRD-017 through PRD-023 are not started. Real
 Meta and Google validation need explicit external credentials.
 

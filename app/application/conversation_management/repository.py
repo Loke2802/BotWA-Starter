@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 from uuid import UUID
 
 from app.infrastructure.models.conversation import ConversationModel
@@ -32,7 +33,9 @@ class ConversationManagementRepository(ABC):
     ) -> tuple[list[ConversationModel], int]: ...
 
     @abstractmethod
-    def transition(self, conversation: ConversationModel, target: str) -> None: ...
+    def transition(
+        self, conversation: ConversationModel, target: str, occurred_at: datetime
+    ) -> None: ...
 
     @abstractmethod
     def list_by_contact(

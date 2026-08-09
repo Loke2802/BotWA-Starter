@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.domain.access.contracts import Permission
 from app.domain.human_handoff.contracts import HandoffSessionResponse
 from app.domain.user.contracts import User
+from app.infrastructure.models.analytics import HandoffCycleModel
 from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.human_handoff import (
     HandoffEventModel,
@@ -85,6 +86,15 @@ class HumanHandoffService:
                 existing.reason_code,
             ) = ("waiting_human", None, now, reason_code)
             self._repository.event(existing, "requested", actor.id, reason_code)
+        self._repository.add_cycle(
+            HandoffCycleModel(
+                organization_id=organization_id,
+                conversation_id=conversation.id,
+                bot_id=conversation.bot_id,
+                handoff_session_id=existing.id,
+                requested_at=now,
+            )
+        )
         self._commit()
         return _response(existing)
 
@@ -130,6 +140,15 @@ class HumanHandoffService:
             existing.status, existing.assigned_user_id = "waiting_human", None
             existing.requested_at, existing.reason_code = now, reason_code
             self._repository.event(existing, "requested", None, reason_code)
+        self._repository.add_cycle(
+            HandoffCycleModel(
+                organization_id=organization_id,
+                conversation_id=conversation.id,
+                bot_id=conversation.bot_id,
+                handoff_session_id=existing.id,
+                requested_at=now,
+            )
+        )
         self._commit()
         return _response(existing)
 
@@ -148,6 +167,7 @@ class HumanHandoffService:
             row.version + 1,
         )
         self._repository.event(row, "claimed", actor.id)
+        self._activate_cycle(row, row.assigned_at)
         self._commit()
         return _response(row)
 
@@ -181,6 +201,7 @@ class HumanHandoffService:
             row.version + 1,
         )
         self._repository.event(row, "transferred", actor.id)
+        self._activate_cycle(row, row.assigned_at)
         self._commit()
         return _response(row)
 
@@ -212,6 +233,11 @@ class HumanHandoffService:
         self._repository.event(
             row, "returned_to_bot" if return_to_bot else "resolved", actor.id
         )
+        cycle = self._repository.active_cycle(row.id, organization_id, lock=True)
+        if cycle is None:
+            raise HandoffConflictError("active handoff cycle not found")
+        cycle.resolved_at = now
+        cycle.resolution_type = "returned_to_bot" if return_to_bot else "resolved"
         self._commit()
         return _response(row)
 
@@ -305,6 +331,17 @@ class HumanHandoffService:
             require_scoped_permission(actor, permission, organization_id)
         except AuthorizationError as exc:
             raise HandoffForbiddenError("permission denied") from exc
+
+    def _activate_cycle(
+        self, row: HandoffSessionModel, activated_at: datetime | None
+    ) -> None:
+        if activated_at is None:
+            return
+        cycle = self._repository.active_cycle(row.id, row.organization_id, lock=True)
+        if cycle is None:
+            raise HandoffConflictError("active handoff cycle not found")
+        if cycle.activated_at is None:
+            cycle.activated_at = activated_at
 
     def _commit(self) -> None:
         try:

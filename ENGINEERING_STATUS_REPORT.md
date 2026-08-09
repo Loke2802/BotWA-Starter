@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-08
 **Role:** Lead Engineer  
-**Project phase:** Phase 3 - PRD-001 through PRD-015 CLOSED
+**Project phase:** Phase 3 - PRD-016 IMPLEMENTED — PENDING CTO REVIEW
 **Status source:** `master` after PR #22 merge commit
 `04256eb0cb17e3d1fdb548edeae143578606d508`; final approved head
 `8b836d7bb7b12fcf82ffb5bb8bbada4f3db758c6`
@@ -41,21 +41,24 @@ activity endpoint or PRD-016 scope; no health checks, OAuth refresh, automation
 execution, handoff claims or Business Hours writes; organization-scoped Contacts,
 active-only Integration health breakdown, canonical PRD-015/PRD-005 resolution
 and no PII in responses.
+PRD-016 is IMPLEMENTED — PENDING CTO REVIEW. It adds tenant-scoped historical
+Conversation/Handoff sources, a rebuildable daily PostgreSQL projection,
+bounded comparisons and aggregate CSV without replacing operational Sources of
+Truth or advancing PRD-017.
 
 ## Quality Gates
 
 | Gate | Current result |
 |---|---|
-| `pytest` | 714 passed, 13 skipped, 2 warnings |
-| Focused PRD-014 | 9 passed |
-| PostgreSQL PRD-014 | 1 passed |
-| PRD-014 performance sanity | PASS with 10,000 conversations |
-| PRD-014 repository query budget | organization 7 SELECTs O(1); bot 8 SELECTs O(1) |
+| `pytest` | 726 passed, 15 skipped, 2 warnings |
+| Focused PRD-016 plus Conversation/Handoff regression | 34 passed |
+| PostgreSQL PRD-016 | 2 passed |
+| PostgreSQL migration cycle | `0016 → 0017 → 0016 → 0017` PASS |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 387 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 387 source files |
+| `black --check app tests` | 400 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 400 source files |
 | `git diff --check` | PASS |
-| Alembic | `20260808_0016 (head)` |
+| Alembic | `20260808_0017 (head)` |
 
 ## Phase 3 Product Status
 
@@ -76,7 +79,8 @@ and no PII in responses.
 | PRD-013 Integration Management | CLOSED |
 | PRD-014 Dashboard | CLOSED |
 | PRD-015 Business Hours & Holidays | CLOSED |
-| PRD-016 through PRD-023 | NOT STARTED |
+| PRD-016 Analytics & Reports | IMPLEMENTED — PENDING CTO REVIEW |
+| PRD-017 through PRD-023 | NOT STARTED |
 
 ## PRD-004 Bot Management
 
@@ -235,8 +239,8 @@ Only the following items remain pending:
 
 ## Next Official Objective
 
-**PRD-001 through PRD-015 are closed. PRD-016 through PRD-023 remain NOT
-STARTED.**
+**PRD-001 through PRD-015 are closed. PRD-016 is IMPLEMENTED — PENDING CTO
+REVIEW. PRD-017 through PRD-023 remain NOT STARTED.**
 
 ## PRD-010 through PRD-015 Status
 
@@ -251,8 +255,8 @@ CLOSED after PR #20 at merge commit
 merge commit `025c3058388d51219e05fff1ae253a296238be89`. PRD-014 Dashboard is
 CLOSED after PR #22 at merge commit
 `04256eb0cb17e3d1fdb548edeae143578606d508`, final approved head
-`8b836d7bb7b12fcf82ffb5bb8bbada4f3db758c6`; PRD-016 through PRD-023 remain
-NOT STARTED.
+`8b836d7bb7b12fcf82ffb5bb8bbada4f3db758c6`; PRD-016 is IMPLEMENTED — PENDING
+CTO REVIEW and PRD-017 through PRD-023 remain NOT STARTED.
 
 ## CTO Review Status
 

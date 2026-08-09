@@ -3,6 +3,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.infrastructure.models.analytics import HandoffCycleModel
 from app.infrastructure.models.human_handoff import (
     HandoffEventModel,
     HandoffSessionModel,
@@ -46,6 +47,22 @@ class HumanHandoffRepository:
                 reason_code=reason_code,
             )
         )
+
+    def add_cycle(self, cycle: HandoffCycleModel) -> None:
+        self._session.add(cycle)
+        self._session.flush()
+
+    def active_cycle(
+        self, handoff_session_id: UUID, organization_id: UUID, *, lock: bool = False
+    ) -> HandoffCycleModel | None:
+        stmt = select(HandoffCycleModel).where(
+            HandoffCycleModel.handoff_session_id == handoff_session_id,
+            HandoffCycleModel.organization_id == organization_id,
+            HandoffCycleModel.resolved_at.is_(None),
+        )
+        if lock:
+            stmt = stmt.with_for_update()
+        return self._session.scalars(stmt).one_or_none()
 
     def list(
         self,

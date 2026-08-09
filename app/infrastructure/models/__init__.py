@@ -1,3 +1,8 @@
+from app.infrastructure.models.analytics import (
+    AnalyticsDailySummaryModel,
+    ConversationManagementEventModel,
+    HandoffCycleModel,
+)
 from app.infrastructure.models.automation_execution import (
     AutomationExecutionModel,
 )
@@ -59,6 +64,7 @@ from app.infrastructure.models.whatsapp_message_transport import (
 __all__ = [
     "AutomationExecutionModel",
     "AutomationTaskExecutionModel",
+    "AnalyticsDailySummaryModel",
     "BotModel",
     "BusinessCalendarAuditEventModel",
     "BusinessCalendarDateExceptionModel",
@@ -70,6 +76,7 @@ __all__ = [
     "BusinessConfigurationModel",
     "BusinessEventModel",
     "ConversationModel",
+    "ConversationManagementEventModel",
     "ContactModel",
     "ConversationStateHistoryModel",
     "IntegrationEventModel",
@@ -78,6 +85,7 @@ __all__ = [
     "IntegrationHealthCheckModel",
     "IntegrationOAuthStateModel",
     "HandoffEventModel",
+    "HandoffCycleModel",
     "HandoffSessionModel",
     "InboundMessageReceiptModel",
     "KnowledgeCatalogEntryModel",

@@ -9,6 +9,7 @@ from app.application.conversation_management.repository import (
     ConversationManagementRepository,
     ConversationMessageManagementRepository,
 )
+from app.infrastructure.models.analytics import ConversationManagementEventModel
 from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.message import MessageModel
 
@@ -91,9 +92,11 @@ class SqlAlchemyConversationManagementRepository(ConversationManagementRepositor
             self._session.execute(total_stmt).scalar_one()
         )
 
-    def transition(self, conversation: ConversationModel, target: str) -> None:
+    def transition(
+        self, conversation: ConversationModel, target: str, occurred_at: datetime
+    ) -> None:
         conversation.management_status = target
-        conversation.closed_at = datetime.now(UTC) if target == "closed" else None
+        conversation.closed_at = occurred_at if target == "closed" else None
 
     def list_by_contact(
         self,
@@ -162,6 +165,23 @@ class SqlAlchemyConversationMessageManagementRepository(
             conversation.inbound_message_count += 1
             conversation.last_inbound_at = message.occurred_at
             if conversation.management_status == "closed":
+                # This is the management transition time, not the provider message time;
+                # delayed inbound delivery must not backdate lifecycle history.
+                occurred_at = datetime.now(UTC)
+                if conversation.organization_id is None or conversation.bot_id is None:
+                    raise ValueError("managed conversation tenant identity is required")
+                self._session.add(
+                    ConversationManagementEventModel(
+                        organization_id=conversation.organization_id,
+                        conversation_id=conversation.id,
+                        bot_id=conversation.bot_id,
+                        from_status="closed",
+                        to_status="open",
+                        occurred_at=occurred_at,
+                        actor_type="system",
+                        correlation_id=message.inbound_receipt_id,
+                    )
+                )
                 conversation.management_status = "open"
                 conversation.closed_at = None
         else:

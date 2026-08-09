@@ -1,5 +1,35 @@
 # Changelog
 
+## PRD-016 Analytics & Reports v1 - 2026-08-08
+
+### IMPLEMENTED — PENDING CTO REVIEW
+
+- Added append-only Conversation Management transition history and non-reusable
+  Human Handoff cycles, transactionally coupled to their operational changes.
+- Added `analytics_daily_summary` with bot and organization grains, partial
+  uniqueness, nonnegative BIGINT metrics, reporting timezone, source watermark,
+  deterministic recalculation and concurrent PostgreSQL UPSERT.
+- Added bounded day/week/month reads, completeness reporting, weighted Handoff
+  averages, current Automation outcomes with retry correction, equal previous
+  period comparison and aggregate CSV without PII.
+- Added `analytics.read` and `analytics.export`, explicit tenant/bot isolation,
+  safe errors, low-cardinality observability, and read-only GET/export behavior.
+- Added Alembic revision `20260808_0017` and real PostgreSQL validation for
+  partial indexes, concurrency, rollback, handoff persistence, isolation, CSV,
+  and upgrade/downgrade/re-upgrade.
+- Historical closure and handoff coverage starts with PRD-016; no prior history
+  is fabricated. Automation failure is the current terminal outcome, not an
+  attempt ledger. PRD-017 remains NOT STARTED.
+- Final validation: pytest 726 passed, 15 skipped, 2 warnings; focused PRD-016
+  plus Conversation/Handoff regression 34 passed; PostgreSQL PRD-016 2 passed;
+  mypy PASS across 400 source files; Ruff PASS; Black PASS across 400 files;
+  `git diff --check` PASS; migration cycle PASS; Alembic head `20260808_0017`.
+- Final CTO completeness hardening makes expected bot coverage temporal using
+  `Bot.created_at < bucket_end_utc`, skips fake pre-creation bot rows, preserves
+  inactive-bot history, requires the organization Contacts row in bot responses,
+  and defines `source_watermark_at` as a recomputable cutoff rather than a strong
+  transactional snapshot.
+
 ## PRD-014 Dashboard v1 - 2026-08-08
 
 ### CLOSED after PR #22

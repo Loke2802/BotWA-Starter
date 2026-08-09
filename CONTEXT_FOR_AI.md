@@ -1,7 +1,7 @@
 # BotWA Starter - Context For AI Assistants
 
 **Last updated:** 2026-08-08
-**Project phase:** Phase 3 - PRD-016 CLOSED
+**Project phase:** Phase 3 - PRD-017 IMPLEMENTED — PENDING CTO REVIEW
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
@@ -24,8 +24,8 @@ Dashboard is CLOSED after merge via PR #22 at
 `8b836d7bb7b12fcf82ffb5bb8bbada4f3db758c6`. PRD-016 Analytics & Reports is
 CLOSED after PR #24 at merge commit
 `601499071f39aad85dc4d9595fc04425f40a3962`, with final approved head
-`6cafee11a0f807e07a9277eae98e128ab68aa711`. PRD-017 through PRD-023 remain NOT
-STARTED.
+`6cafee11a0f807e07a9277eae98e128ab68aa711`. PRD-017 Audit Log is IMPLEMENTED —
+PENDING CTO REVIEW. PRD-018 through PRD-023 remain NOT STARTED.
 
 All five core engines are implemented and closed:
 
@@ -43,13 +43,13 @@ Current validated gates:
 
 | Gate | Result |
 |---|---|
-| `pytest` | 726 passed, 15 skipped, 2 warnings |
-| Focused PRD-016 plus Conversation/Handoff regression | 34 passed |
-| PostgreSQL PRD-016 | 2 passed |
-| PostgreSQL migration cycle | `0016 → 0017 → 0016 → 0017` PASS |
+| `pytest` | 738 passed, 18 skipped, 2 warnings |
+| Focused PRD-017 | 12 passed |
+| PostgreSQL PRD-017 | 3 passed |
+| PostgreSQL migration cycle | `0017 → 0018 → 0017 → 0018` PASS |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 400 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 400 source files |
+| `black --check app tests` | 415 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 415 source files |
 | `git diff --check` | PASS |
 
 ## Infrastructure Validation
@@ -57,7 +57,7 @@ Current validated gates:
 | Area | Result |
 |---|---|
 | Docker/PostgreSQL | PASS |
-| Alembic migrations | PASS - `20260808_0017 (head)`, one head, PRD-016 PostgreSQL cycle validated |
+| Alembic migrations | PASS - `20260808_0018 (head)`, one head, PRD-017 PostgreSQL cycle validated |
 | DB-backed product persistence | PASS - receipts, managed encrypted messages, and delivery attempts survive API restart |
 | Docker smoke tests | PASS - signed inbound, Core/Knowledge, fake outbound, lifecycle/RBAC, statuses, restart |
 | Integration controlled errors | PASS |
@@ -84,7 +84,8 @@ Current validated gates:
 
 ## Current Official Objective
 
-PRD-001 through PRD-016 are CLOSED. PRD-017 through PRD-023 remain NOT STARTED.
+PRD-001 through PRD-016 are CLOSED. PRD-017 is IMPLEMENTED — PENDING CTO REVIEW.
+PRD-018 through PRD-023 remain NOT STARTED.
 
 **Phase 3**
 
@@ -106,7 +107,8 @@ PRD-001 through PRD-016 are CLOSED. PRD-017 through PRD-023 remain NOT STARTED.
 | 14 | PRD-014 Dashboard | CLOSED |
 | 15 | PRD-015 Business Hours & Holidays | CLOSED |
 | 16 | PRD-016 Analytics & Reports | CLOSED |
-| 17-23 | Future approved product increments | NOT STARTED |
+| 17 | PRD-017 Audit Log | IMPLEMENTED — PENDING CTO REVIEW |
+| 18-23 | Future approved product increments | NOT STARTED |
 
 The MVP milestone comprises PRD-001 through PRD-010.
 
@@ -218,5 +220,5 @@ PRD-014 Dashboard is CLOSED after PR #22, merge commit
 `04256eb0cb17e3d1fdb548edeae143578606d508`, final approved head
 `8b836d7bb7b12fcf82ffb5bb8bbada4f3db758c6`. PRD-016 is CLOSED after PR #24,
 merge commit `601499071f39aad85dc4d9595fc04425f40a3962`, final approved head
-`6cafee11a0f807e07a9277eae98e128ab68aa711`; PRD-017 through PRD-023 are NOT
-STARTED.
+`6cafee11a0f807e07a9277eae98e128ab68aa711`; PRD-017 is IMPLEMENTED — PENDING
+CTO REVIEW and PRD-018 through PRD-023 are NOT STARTED.

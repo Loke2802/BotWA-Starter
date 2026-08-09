@@ -1,5 +1,25 @@
 # Changelog
 
+## PRD-017 Audit Log v1 - 2026-08-08
+
+### IMPLEMENTED — PENDING CTO REVIEW
+
+- Added tenant-scoped append-only `audit_event` with success-only semantics,
+  typed actor/role/action/resource contracts and safe metadata without PII or
+  secrets.
+- Added same-transaction Audit integration across Organization, User/RBAC, Bot,
+  Conversation, Handoff, Automation, Integration and Business Calendar while
+  preserving domain histories and Business Calendar dual-write.
+- Added read-only query API, HMAC-signed keyset cursor, bounded UTC range,
+  `audit.read`, tenant isolation, safe errors and low-cardinality metrics.
+- Added Alembic `20260808_0018`, PostgreSQL FKs/JSONB/indexes, rollback and
+  migration cycle, plus a 10.000-event O(1) query fixture.
+- History begins at PRD-017 without backfill. Denials, OAuth callback, Analytics
+  export, automated retention, export/UI/SIEM and PRD-018 remain excluded.
+- Validation: focused 12 passed; PostgreSQL 3 passed; full pytest 738 passed,
+  18 skipped, 2 warnings; mypy/Ruff/Black/diff check PASS across 415 files;
+  Alembic head `20260808_0018`; cycle `0017 → 0018 → 0017 → 0018` PASS.
+
 ## PRD-016 Analytics & Reports v1 - 2026-08-08
 
 ### CLOSED after PR #24

@@ -1,20 +1,20 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-016 CLOSED
+## Estado actual - Phase 3 / PRD-017 IMPLEMENTED — PENDING CTO REVIEW
 
-Quality Gates (validación técnica PRD-016):
+Quality Gates (validación técnica PRD-017):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **726 passed, 15 skipped, 2 warnings** |
-| PRD-016 focalizadas + regresión Conversation/Handoff | **34 passed** |
-| PostgreSQL PRD-016 | **2 passed** |
-| Ciclo PostgreSQL | **0016 → 0017 → 0016 → 0017 PASS** |
+| `pytest` | **738 passed, 18 skipped, 2 warnings** |
+| PRD-017 focalizadas | **12 passed** |
+| PostgreSQL PRD-017 | **3 passed** |
+| Ciclo PostgreSQL | **0017 → 0018 → 0017 → 0018 PASS** |
 | `ruff check app tests` | **All checks passed** |
-| `black --check app tests` | **400 files would be left unchanged** |
-| `mypy app tests` | **Success: no issues found in 400 source files** |
+| `black --check app tests` | **415 files would be left unchanged** |
+| `mypy app tests` | **Success: no issues found in 415 source files** |
 | `git diff --check` | **PASS** |
-| Alembic | **20260808_0017 (head)** |
+| Alembic | **20260808_0018 (head)** |
 
 La base actual incluye 5 Engines:
 
@@ -28,8 +28,16 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial: **PRD-001 a PRD-016 CLOSED; PRD-017 a PRD-023 permanecen NOT
-STARTED.**
+Estado oficial: **PRD-001 a PRD-016 CLOSED; PRD-017 IMPLEMENTED — PENDING CTO
+REVIEW; PRD-018 a PRD-023 permanecen NOT STARTED.**
+
+PRD-017 añade un Audit Log administrativo tenant-scoped y append-only. Registra
+solo acciones exitosas con actor, rol efectivo, acción/recurso allowlisted,
+timestamp, correlación UUID opcional y metadata tipada sin PII ni secretos en la
+misma transacción que la mutación. Expone consulta read-only con `audit.read`,
+rango UTC acotado y cursor keyset firmado. No sustituye domain histories, logs ni
+Analytics; no incluye backfill, denials, OAuth callback, Analytics export,
+retención automática, UI ni PRD-018.
 
 PRD-014 añade `GET /organizations/{organization_id}/dashboard`, un read model
 operacional tenant-scoped y opcionalmente filtrable por bot. Compone agregados SQL
@@ -682,7 +690,7 @@ PRD-001 through PRD-012 are closed. PRD-010 adds a tenant-scoped handoff
 lifecycle, bot suppression, encrypted and attributed human replies through the
 generic channel sender, idempotency, archive protection, and safe transport
 errors. PRD-011 adds the Contact increment; Customer is deferred and CRM is not
-implemented. PRD-012 through PRD-016 are closed. PRD-017 through PRD-023 are not
-started. Real
+implemented. PRD-012 through PRD-016 are closed. PRD-017 is implemented and
+pending CTO review; PRD-018 through PRD-023 are not started. Real
 Meta and Google validation need explicit external credentials.
 

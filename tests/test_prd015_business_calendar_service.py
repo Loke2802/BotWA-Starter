@@ -33,6 +33,7 @@ from app.infrastructure.models.business_calendar import (
 )
 from app.infrastructure.models.organization import OrganizationModel
 from app.infrastructure.models.user import UserModel
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.business_calendar_repository import (
     BusinessCalendarRepository,
 )
@@ -99,7 +100,11 @@ def _setup(
     )
     session.commit()
     return (
-        BusinessCalendarService(BusinessCalendarRepository(session), session),
+        BusinessCalendarService(
+            BusinessCalendarRepository(session),
+            session,
+            SqlAlchemyAuditRepository(session),
+        ),
         actor,
         organization_id,
         bot_id,

@@ -45,6 +45,7 @@ from app.infrastructure.models.integration_management import (
 )
 from app.infrastructure.models.organization import OrganizationModel
 from app.infrastructure.models.user import UserModel
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.integration_management_repository import (
     IntegrationManagementRepository,
 )
@@ -187,6 +188,7 @@ def _setup(
         EnvironmentSecretCipher(_key()),
         OAuthStateSigner(secret_key="s" * 32),
         IntegrationProviderRegistry((adapter,)),
+        SqlAlchemyAuditRepository(session),
     )
     return service, adapter, actor, organization_id, bot_id
 

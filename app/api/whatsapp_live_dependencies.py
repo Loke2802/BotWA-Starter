@@ -31,6 +31,7 @@ from app.channels.whatsapp.live_mapper import WhatsAppInboundMessageMapper
 from app.core.conversation.service import ConversationService
 from app.domain.contacts.contracts import ContactIdentityNormalizer
 from app.infrastructure.database import get_session
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.bot_repository import BotRepository
 from app.infrastructure.repositories.contact_repository import (
     SqlAlchemyContactRepository,
@@ -94,14 +95,20 @@ def get_whatsapp_live_message_processor(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> WhatsAppLiveMessageProcessor:
     configuration_repository = SqlAlchemyWhatsAppConfigurationRepository(session)
+    audit_writer = SqlAlchemyAuditRepository(session)
     management = ConversationManagementService(
         conversations=SqlAlchemyConversationManagementRepository(session),
-        messages=SqlAlchemyConversationMessageManagementRepository(session),
+        messages=SqlAlchemyConversationMessageManagementRepository(
+            session, audit_writer
+        ),
         bot_repository=BotRepository(session),
         cipher=secret_cipher,
         session=session,
+        audit_writer=audit_writer,
     )
-    handoff = HumanHandoffService(HumanHandoffRepository(session), session)
+    handoff = HumanHandoffService(
+        HumanHandoffRepository(session), session, audit_writer
+    )
     contacts = ContactResolutionService(
         SqlAlchemyContactRepository(session),
         ContactIdentityHasher(
@@ -121,7 +128,10 @@ def get_whatsapp_live_message_processor(
         handoff,
         contacts,
         ManagedAutomationService(
-            ManagedAutomationRepository(session), session, handoff
+            ManagedAutomationRepository(session),
+            session,
+            audit_writer,
+            handoff=handoff,
         ),
     )
     sender = WhatsAppChannelMessageSender(

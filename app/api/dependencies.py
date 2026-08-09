@@ -65,6 +65,7 @@ from app.core.knowledge.validator import QualityValidator
 from app.domain.access.contracts import Permission
 from app.domain.user.contracts import User
 from app.infrastructure.database import get_session
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.automation_execution_repository import (
     AutomationExecutionRepository,
 )
@@ -249,7 +250,11 @@ def get_organization_service() -> Generator[OrganizationService]:
     session = next(session_generator)
     try:
         repository = OrganizationRepository(session=session)
-        yield OrganizationService(repository=repository, session=session)
+        yield OrganizationService(
+            repository=repository,
+            session=session,
+            audit_writer=SqlAlchemyAuditRepository(session),
+        )
     finally:
         session_generator.close()
 
@@ -278,6 +283,7 @@ def get_user_service() -> Generator[UserService]:
             organization_repository=organization_repository,
             password_service=get_password_service(),
             session=session,
+            audit_writer=SqlAlchemyAuditRepository(session),
         )
     finally:
         session_generator.close()
@@ -293,6 +299,7 @@ def get_bot_service() -> Generator[BotService]:
             repository=repository,
             organization_repository=organization_repository,
             session=session,
+            audit_writer=SqlAlchemyAuditRepository(session),
         )
     finally:
         session_generator.close()

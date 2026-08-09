@@ -3,14 +3,17 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.application.audit.writer import append_user_audit
 from app.application.conversation_management.repository import (
     ConversationManagementRepository,
     ConversationMessageManagementRepository,
 )
 from app.domain.access.contracts import Permission
+from app.domain.audit.contracts import AuditAction, StatusTransitionMetadata
+from app.domain.audit.ports import AuditWriter
 from app.domain.channel.contracts import InboundChannelMessage, OutboundChannelMessage
 from app.domain.conversation_management.contracts import (
     ConversationDetail,
@@ -48,12 +51,14 @@ class ConversationManagementService:
         bot_repository: BotRepository,
         cipher: SecretCipher,
         session: Session,
+        audit_writer: AuditWriter,
     ) -> None:
         self._conversations = conversations
         self._messages = messages
         self._bots = bot_repository
         self._cipher = cipher
         self._session = session
+        self._audit_writer = audit_writer
 
     def record_inbound(
         self,
@@ -309,6 +314,23 @@ class ConversationManagementService:
                 actor_id=actor.id,
             )
         )
+        actions: dict[str, AuditAction] = {
+            "closed": "conversation.closed",
+            "open": "conversation.reopened",
+            "archived": "conversation.archived",
+        }
+        append_user_audit(
+            self._audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action=actions[target],
+            resource_type="conversation",
+            resource_id=model.id,
+            metadata=StatusTransitionMetadata(
+                from_status=from_status, to_status=target
+            ),
+            occurred_at=occurred_at,
+        )
         self._commit()
         return _detail(model)
 
@@ -339,7 +361,7 @@ class ConversationManagementService:
     def _commit(self) -> None:
         try:
             self._session.commit()
-        except IntegrityError as exc:
+        except SQLAlchemyError as exc:
             self._session.rollback()
             raise ConversationManagementConflictError("conversation conflict") from exc
 

@@ -12,6 +12,9 @@ from app.application.users.service import UserService
 from app.domain.organization.contracts import OrganizationCreate
 from app.domain.user.contracts import UserCreate
 from app.infrastructure.database import Base
+from app.infrastructure.repositories.audit_repository import (
+    SqlAlchemyAuditRepository,
+)
 from app.infrastructure.repositories.organization_repository import (
     OrganizationRepository,
 )
@@ -44,6 +47,7 @@ def user_service(session: Session) -> UserService:
         organization_repository=OrganizationRepository(session=session),
         password_service=password_service,
         session=session,
+        audit_writer=SqlAlchemyAuditRepository(session),
     )
 
 
@@ -62,6 +66,7 @@ def organization_service(session: Session) -> OrganizationService:
     return OrganizationService(
         repository=OrganizationRepository(session=session),
         session=session,
+        audit_writer=SqlAlchemyAuditRepository(session),
     )
 
 

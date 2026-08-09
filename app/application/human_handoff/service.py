@@ -1,10 +1,12 @@
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.application.audit.writer import append_non_user_audit, append_user_audit
 from app.domain.access.contracts import Permission
+from app.domain.audit.ports import AuditWriter
 from app.domain.human_handoff.contracts import HandoffSessionResponse
 from app.domain.user.contracts import User
 from app.infrastructure.models.analytics import HandoffCycleModel
@@ -41,8 +43,14 @@ class HandoffNotFoundError(HandoffError):
 
 
 class HumanHandoffService:
-    def __init__(self, repository: HumanHandoffRepository, session: Session) -> None:
+    def __init__(
+        self,
+        repository: HumanHandoffRepository,
+        session: Session,
+        audit_writer: AuditWriter,
+    ) -> None:
         self._repository, self._session = repository, session
+        self._audit_writer = audit_writer
 
     def request(
         self,
@@ -94,6 +102,15 @@ class HumanHandoffService:
                 handoff_session_id=existing.id,
                 requested_at=now,
             )
+        )
+        append_user_audit(
+            self._audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action="handoff.requested",
+            resource_type="handoff",
+            resource_id=existing.id,
+            occurred_at=now,
         )
         self._commit()
         return _response(existing)
@@ -149,6 +166,15 @@ class HumanHandoffService:
                 requested_at=now,
             )
         )
+        append_non_user_audit(
+            self._audit_writer,
+            organization_id=organization_id,
+            actor_type="automation",
+            action="handoff.requested",
+            resource_type="handoff",
+            resource_id=existing.id,
+            occurred_at=now,
+        )
         self._commit()
         return _response(existing)
 
@@ -168,6 +194,15 @@ class HumanHandoffService:
         )
         self._repository.event(row, "claimed", actor.id)
         self._activate_cycle(row, row.assigned_at)
+        append_user_audit(
+            self._audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action="handoff.claimed",
+            resource_type="handoff",
+            resource_id=row.id,
+            occurred_at=row.assigned_at,
+        )
         self._commit()
         return _response(row)
 
@@ -184,6 +219,14 @@ class HumanHandoffService:
             row.version + 1,
         )
         self._repository.event(row, "released", actor.id)
+        append_user_audit(
+            self._audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action="handoff.released",
+            resource_type="handoff",
+            resource_id=row.id,
+        )
         self._commit()
         return _response(row)
 
@@ -202,6 +245,15 @@ class HumanHandoffService:
         )
         self._repository.event(row, "transferred", actor.id)
         self._activate_cycle(row, row.assigned_at)
+        append_user_audit(
+            self._audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action="handoff.transferred",
+            resource_type="handoff",
+            resource_id=row.id,
+            occurred_at=row.assigned_at,
+        )
         self._commit()
         return _response(row)
 
@@ -238,6 +290,15 @@ class HumanHandoffService:
             raise HandoffConflictError("active handoff cycle not found")
         cycle.resolved_at = now
         cycle.resolution_type = "returned_to_bot" if return_to_bot else "resolved"
+        append_user_audit(
+            self._audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action=("handoff.returned_to_bot" if return_to_bot else "handoff.resolved"),
+            resource_type="handoff",
+            resource_id=row.id,
+            occurred_at=now,
+        )
         self._commit()
         return _response(row)
 
@@ -346,7 +407,7 @@ class HumanHandoffService:
     def _commit(self) -> None:
         try:
             self._session.commit()
-        except IntegrityError as exc:
+        except SQLAlchemyError as exc:
             self._session.rollback()
             raise HandoffConflictError("handoff conflict") from exc
 

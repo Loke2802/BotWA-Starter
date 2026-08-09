@@ -26,6 +26,7 @@ from app.infrastructure.models.business_calendar import (
 )
 from app.infrastructure.models.organization import OrganizationModel
 from app.infrastructure.models.user import UserModel
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.business_calendar_repository import (
     BusinessCalendarRepository,
 )
@@ -97,7 +98,11 @@ def _seed(session: Session) -> tuple[User, User, UUID, UUID]:
 
 
 def _service(session: Session) -> BusinessCalendarService:
-    return BusinessCalendarService(BusinessCalendarRepository(session), session)
+    return BusinessCalendarService(
+        BusinessCalendarRepository(session),
+        session,
+        SqlAlchemyAuditRepository(session),
+    )
 
 
 def test_prd015_postgresql_constraints_tenant_scope_and_atomicity() -> None:

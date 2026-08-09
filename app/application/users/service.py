@@ -1,9 +1,18 @@
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.application.audit.writer import append_non_user_audit, append_user_audit
 from app.domain.access.contracts import Role
+from app.domain.audit.contracts import (
+    ChangedFieldsMetadata,
+    CredentialRotationMetadata,
+    RoleAssignmentMetadata,
+    StatusTransitionMetadata,
+)
+from app.domain.audit.ports import AuditWriter
 from app.domain.organization.contracts import Organization
 from app.domain.user.contracts import User, UserCreate, UserUpdate
 from app.infrastructure.models.organization import OrganizationModel
@@ -53,11 +62,13 @@ class UserService:
         organization_repository: OrganizationRepository,
         password_service: PasswordService,
         session: Session,
+        audit_writer: AuditWriter,
     ) -> None:
         self._repository = repository
         self._organization_repository = organization_repository
         self._password_service = password_service
         self._session = session
+        self._audit_writer = audit_writer
 
     def create(self, request: UserCreate, actor: User | None = None) -> User:
         organization = self._organization_repository.get(request.organization_id)
@@ -102,7 +113,27 @@ class UserService:
             updated_at=now,
         )
         self._repository.add(model)
-        self._session.commit()
+        if actor is None:
+            append_non_user_audit(
+                self._audit_writer,
+                organization_id=model.organization_id,
+                actor_type="system",
+                action="user.created",
+                resource_type="user",
+                resource_id=model.id,
+                occurred_at=now,
+            )
+        else:
+            append_user_audit(
+                self._audit_writer,
+                organization_id=model.organization_id,
+                actor=actor,
+                action="user.created",
+                resource_type="user",
+                resource_id=model.id,
+                occurred_at=now,
+            )
+        self._commit()
         self._session.refresh(model)
         return self._to_domain(model)
 
@@ -136,13 +167,29 @@ class UserService:
             raise UserForbiddenError("organization_id cannot be changed")
 
         model = self._get_visible_model(user_id, actor)
+        changed_fields = tuple(
+            field
+            for field in ("first_name", "last_name")
+            if field in request.model_fields_set
+        )
         if "first_name" in request.model_fields_set:
             model.first_name = request.first_name
         if "last_name" in request.model_fields_set:
             model.last_name = request.last_name
         model.updated_at = datetime.now(UTC)
         self._repository.update(model)
-        self._session.commit()
+        if changed_fields:
+            append_user_audit(
+                self._audit_writer,
+                organization_id=model.organization_id,
+                actor=actor,
+                action="user.updated",
+                resource_type="user",
+                resource_id=model.id,
+                metadata=ChangedFieldsMetadata(changed_fields=changed_fields),
+                occurred_at=model.updated_at,
+            )
+        self._commit()
         self._session.refresh(model)
         return self._to_domain(model)
 
@@ -161,7 +208,19 @@ class UserService:
             model.updated_at = now
             model.auth_version += 1
             self._repository.update(model)
-            self._session.commit()
+            append_user_audit(
+                self._audit_writer,
+                organization_id=model.organization_id,
+                actor=actor,
+                action="user.deactivated",
+                resource_type="user",
+                resource_id=model.id,
+                metadata=StatusTransitionMetadata(
+                    from_status="active", to_status="inactive"
+                ),
+                occurred_at=now,
+            )
+            self._commit()
             self._session.refresh(model)
         return self._to_domain(model)
 
@@ -178,10 +237,22 @@ class UserService:
         if self._is_last_active_owner(model) and role != "organization_owner":
             raise LastOwnerProtectionError("last organization owner cannot be changed")
 
+        previous_role = model.role
         model.role = role
         model.updated_at = datetime.now(UTC)
         self._repository.update(model)
-        self._session.commit()
+        if previous_role != role:
+            append_user_audit(
+                self._audit_writer,
+                organization_id=model.organization_id,
+                actor=actor,
+                action="user.role_changed",
+                resource_type="user",
+                resource_id=model.id,
+                metadata=RoleAssignmentMetadata(from_role=previous_role, to_role=role),
+                occurred_at=model.updated_at,
+            )
+        self._commit()
         self._session.refresh(model)
         return self._to_domain(model)
 
@@ -207,6 +278,7 @@ class UserService:
         user_id: UUID,
         current_password: str,
         new_password: str,
+        actor: User | None = None,
     ) -> User:
         model = self._repository.get(user_id)
         if model is None:
@@ -218,9 +290,29 @@ class UserService:
         model.auth_version += 1
         model.updated_at = datetime.now(UTC)
         self._repository.update(model)
-        self._session.commit()
+        effective_actor = actor
+        if effective_actor is None:
+            effective_actor = self._to_domain(model)
+        append_user_audit(
+            self._audit_writer,
+            organization_id=model.organization_id,
+            actor=effective_actor,
+            action="user.password_changed",
+            resource_type="user",
+            resource_id=model.id,
+            metadata=CredentialRotationMetadata(),
+            occurred_at=model.updated_at,
+        )
+        self._commit()
         self._session.refresh(model)
         return self._to_domain(model)
+
+    def _commit(self) -> None:
+        try:
+            self._session.commit()
+        except SQLAlchemyError as exc:
+            self._session.rollback()
+            raise UserConflictError("user persistence failed") from exc
 
     def _get_visible_model(self, user_id: UUID, actor: User) -> UserModel:
         model = self._repository.get(user_id)

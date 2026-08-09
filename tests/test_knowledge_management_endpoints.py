@@ -13,6 +13,7 @@ from app.application.knowledge_management.service import KnowledgeManagementServ
 from app.application.organizations.service import OrganizationService
 from app.application.users.service import UserService
 from app.infrastructure.database import Base
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.bot_repository import BotRepository
 from app.infrastructure.repositories.knowledge_entry_repository import (
     SqlAlchemyKnowledgeEntryRepository,
@@ -50,7 +51,11 @@ def runtime() -> Generator[Runtime]:
     )
 
     def organization_service() -> OrganizationService:
-        return OrganizationService(OrganizationRepository(session), session)
+        return OrganizationService(
+            OrganizationRepository(session),
+            session,
+            SqlAlchemyAuditRepository(session),
+        )
 
     def user_service() -> UserService:
         return UserService(
@@ -58,6 +63,7 @@ def runtime() -> Generator[Runtime]:
             OrganizationRepository(session),
             password_service,
             session,
+            SqlAlchemyAuditRepository(session),
         )
 
     def bot_service() -> BotService:
@@ -65,6 +71,7 @@ def runtime() -> Generator[Runtime]:
             BotRepository(session),
             OrganizationRepository(session),
             session,
+            SqlAlchemyAuditRepository(session),
         )
 
     def knowledge_service() -> KnowledgeManagementService:

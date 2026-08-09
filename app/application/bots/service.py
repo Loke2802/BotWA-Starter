@@ -1,9 +1,13 @@
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.application.audit.writer import append_user_audit
 from app.domain.access.contracts import Permission
+from app.domain.audit.contracts import ChangedFieldsMetadata, StatusTransitionMetadata
+from app.domain.audit.ports import AuditWriter
 from app.domain.bot.contracts import Bot, BotCreate, BotUpdate
 from app.domain.user.contracts import User
 from app.infrastructure.models.bot import BotModel
@@ -45,10 +49,12 @@ class BotService:
         repository: BotRepository,
         organization_repository: OrganizationRepository,
         session: Session,
+        audit_writer: AuditWriter,
     ) -> None:
         self._repository = repository
         self._organization_repository = organization_repository
         self._session = session
+        self._audit_writer = audit_writer
 
     def create(self, request: BotCreate, actor: User) -> Bot:
         organization_id = self._resolve_target_organization(request, actor)
@@ -73,7 +79,16 @@ class BotService:
             updated_at=now,
         )
         self._repository.add(model)
-        self._session.commit()
+        append_user_audit(
+            self._audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action="bot.created",
+            resource_type="bot",
+            resource_id=model.id,
+            occurred_at=now,
+        )
+        self._commit()
         self._session.refresh(model)
         return self._to_domain(model)
 
@@ -98,6 +113,20 @@ class BotService:
 
         model = self._get_visible_model(bot_id, actor, "bots.update")
         self._require_active_organization(model.organization_id)
+        changed_fields = tuple(
+            field
+            for field in (
+                "name",
+                "slug",
+                "description",
+                "default_language",
+                "timezone",
+                "welcome_message",
+                "away_message",
+                "settings",
+            )
+            if field in request.model_fields_set
+        )
 
         if request.slug is not None and request.slug != model.slug:
             self._ensure_slug_available(model.organization_id, request.slug, model.id)
@@ -119,7 +148,18 @@ class BotService:
 
         model.updated_at = datetime.now(UTC)
         self._repository.update(model)
-        self._session.commit()
+        if changed_fields:
+            append_user_audit(
+                self._audit_writer,
+                organization_id=model.organization_id,
+                actor=actor,
+                action="bot.updated",
+                resource_type="bot",
+                resource_id=model.id,
+                metadata=ChangedFieldsMetadata(changed_fields=changed_fields),
+                occurred_at=model.updated_at,
+            )
+        self._commit()
         self._session.refresh(model)
         return self._to_domain(model)
 
@@ -132,7 +172,19 @@ class BotService:
             model.activated_at = now
             model.updated_at = now
             self._repository.update(model)
-            self._session.commit()
+            append_user_audit(
+                self._audit_writer,
+                organization_id=model.organization_id,
+                actor=actor,
+                action="bot.activated",
+                resource_type="bot",
+                resource_id=model.id,
+                metadata=StatusTransitionMetadata(
+                    from_status="inactive", to_status="active"
+                ),
+                occurred_at=now,
+            )
+            self._commit()
             self._session.refresh(model)
         return self._to_domain(model)
 
@@ -145,9 +197,28 @@ class BotService:
             model.deactivated_at = now
             model.updated_at = now
             self._repository.update(model)
-            self._session.commit()
+            append_user_audit(
+                self._audit_writer,
+                organization_id=model.organization_id,
+                actor=actor,
+                action="bot.deactivated",
+                resource_type="bot",
+                resource_id=model.id,
+                metadata=StatusTransitionMetadata(
+                    from_status="active", to_status="inactive"
+                ),
+                occurred_at=now,
+            )
+            self._commit()
             self._session.refresh(model)
         return self._to_domain(model)
+
+    def _commit(self) -> None:
+        try:
+            self._session.commit()
+        except SQLAlchemyError as exc:
+            self._session.rollback()
+            raise BotConflictError("bot persistence failed") from exc
 
     def _resolve_target_organization(self, request: BotCreate, actor: User) -> UUID:
         if is_platform_admin(actor):

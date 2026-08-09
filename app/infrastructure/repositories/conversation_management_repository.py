@@ -5,10 +5,13 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.application.audit.writer import append_non_user_audit
 from app.application.conversation_management.repository import (
     ConversationManagementRepository,
     ConversationMessageManagementRepository,
 )
+from app.domain.audit.contracts import StatusTransitionMetadata
+from app.domain.audit.ports import AuditWriter
 from app.infrastructure.models.analytics import ConversationManagementEventModel
 from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.message import MessageModel
@@ -138,8 +141,9 @@ class SqlAlchemyConversationManagementRepository(ConversationManagementRepositor
 class SqlAlchemyConversationMessageManagementRepository(
     ConversationMessageManagementRepository
 ):
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, audit_writer: AuditWriter) -> None:
         self._session = session
+        self._audit_writer = audit_writer
 
     def create_once(self, message: MessageModel) -> tuple[MessageModel, bool]:
         existing = self._existing(message)
@@ -181,6 +185,19 @@ class SqlAlchemyConversationMessageManagementRepository(
                         actor_type="system",
                         correlation_id=message.inbound_receipt_id,
                     )
+                )
+                append_non_user_audit(
+                    self._audit_writer,
+                    organization_id=conversation.organization_id,
+                    actor_type="system",
+                    action="conversation.reopened",
+                    resource_type="conversation",
+                    resource_id=conversation.id,
+                    metadata=StatusTransitionMetadata(
+                        from_status="closed", to_status="open"
+                    ),
+                    correlation_id=message.inbound_receipt_id,
+                    occurred_at=occurred_at,
                 )
                 conversation.management_status = "open"
                 conversation.closed_at = None

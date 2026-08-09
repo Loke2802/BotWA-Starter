@@ -8,6 +8,9 @@ from app.application.dashboard.business import DashboardBusinessStatusReader
 from app.application.dashboard.metrics import DashboardMetrics
 from app.application.dashboard.service import DashboardQueryService
 from app.infrastructure.database import get_session
+from app.infrastructure.repositories.audit_repository import (
+    SqlAlchemyAuditRepository,
+)
 from app.infrastructure.repositories.business_calendar_repository import (
     BusinessCalendarRepository,
 )
@@ -27,7 +30,9 @@ def get_dashboard_query_service() -> Generator[DashboardQueryService]:
     session = next(session_generator)
     try:
         calendars = BusinessCalendarService(
-            BusinessCalendarRepository(session), session
+            BusinessCalendarRepository(session),
+            session,
+            SqlAlchemyAuditRepository(session),
         )
         yield DashboardQueryService(
             SqlAlchemyDashboardRepository(session),

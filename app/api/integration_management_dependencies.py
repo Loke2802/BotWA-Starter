@@ -5,6 +5,7 @@ from app.application.integration_management.service import IntegrationManagement
 from app.infrastructure.database import get_session
 from app.infrastructure.integrations.google_calendar import GoogleCalendarAdapter
 from app.infrastructure.integrations.registry import IntegrationProviderRegistry
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.integration_management_repository import (
     IntegrationManagementRepository,
 )
@@ -52,6 +53,7 @@ def get_integration_management_service() -> Generator[IntegrationManagementServi
                 ttl_seconds=settings.integration_oauth_state_ttl_seconds,
             ),
             IntegrationProviderRegistry((adapter,)),
+            SqlAlchemyAuditRepository(session),
         )
     finally:
         session_generator.close()

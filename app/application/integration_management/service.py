@@ -7,6 +7,7 @@ from uuid import UUID
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.application.audit.writer import append_user_audit
 from app.application.integration_management.oauth_state import (
     OAuthStateExpiredError,
     OAuthStateInvalidError,
@@ -18,6 +19,13 @@ from app.application.integration_management.providers import (
     IntegrationProviderUnreachableError,
 )
 from app.domain.access.contracts import Permission
+from app.domain.audit.contracts import (
+    AuditAction,
+    ChangedFieldsMetadata,
+    CredentialRotationMetadata,
+    StatusTransitionMetadata,
+)
+from app.domain.audit.ports import AuditWriter
 from app.domain.integration_management.contracts import (
     AvailabilityRequest,
     CalendarAvailability,
@@ -111,12 +119,14 @@ class IntegrationManagementService:
         cipher: SecretCipher,
         oauth_state_signer: OAuthStateSigner,
         providers: IntegrationProviderRegistry,
+        audit_writer: AuditWriter,
     ) -> None:
         self.repository = repository
         self.session = session
         self.cipher = cipher
         self.oauth_state_signer = oauth_state_signer
         self.providers = providers
+        self.audit_writer = audit_writer
 
     def _persistence_error(
         self,
@@ -203,10 +213,21 @@ class IntegrationManagementService:
         )
         try:
             self.repository.add_connection(row)
+            append_user_audit(
+                self.audit_writer,
+                organization_id=organization_id,
+                actor=actor,
+                action="integration.created",
+                resource_type="integration",
+                resource_id=row.id,
+                occurred_at=datetime.now(UTC),
+            )
             self.session.commit()
         except IntegrityError as exc:
             self.session.rollback()
             raise IntegrationConflictError("integration name already exists") from exc
+        except SQLAlchemyError as exc:
+            raise self._persistence_error(exc) from exc
         return self._response(row)
 
     def list_connections(
@@ -249,6 +270,17 @@ class IntegrationManagementService:
         if row.status == "archived":
             raise IntegrationConflictError("archived integration is terminal")
         data = payload.model_dump(exclude_unset=True)
+        changed_fields = tuple(
+            field
+            for field in (
+                "name",
+                "description",
+                "bot_id",
+                "capabilities",
+                "configuration",
+            )
+            if field in data
+        )
         functional_keys = {"bot_id", "capabilities", "configuration"}
         if row.status == "active" and functional_keys.intersection(data):
             raise IntegrationConflictError(
@@ -275,11 +307,24 @@ class IntegrationManagementService:
             row.version += 1
         row.updated_by_user_id = actor.id
         row.updated_at = datetime.now(UTC)
+        if changed_fields:
+            append_user_audit(
+                self.audit_writer,
+                organization_id=organization_id,
+                actor=actor,
+                action="integration.updated",
+                resource_type="integration",
+                resource_id=row.id,
+                metadata=ChangedFieldsMetadata(changed_fields=changed_fields),
+                occurred_at=row.updated_at,
+            )
         try:
             self.session.commit()
         except IntegrityError as exc:
             self.session.rollback()
             raise IntegrationConflictError("integration update conflicts") from exc
+        except SQLAlchemyError as exc:
+            raise self._persistence_error(exc) from exc
         return self._response(row)
 
     def activate(
@@ -350,10 +395,28 @@ class IntegrationManagementService:
             row.deactivated_at = now
         else:
             row.archived_at = now
+        previous_status = row.status
         row.status = target
         row.updated_by_user_id = actor.id
         row.updated_at = now
-        self.session.commit()
+        actions: dict[Transition, AuditAction] = {
+            "activate": "integration.activated",
+            "deactivate": "integration.deactivated",
+            "archive": "integration.archived",
+        }
+        append_user_audit(
+            self.audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action=actions[transition],
+            resource_type="integration",
+            resource_id=row.id,
+            metadata=StatusTransitionMetadata(
+                from_status=previous_status, to_status=target
+            ),
+            occurred_at=now,
+        )
+        self._commit_transaction()
         return self._response(row)
 
     def update_credentials(
@@ -377,6 +440,16 @@ class IntegrationManagementService:
             credential_type=credential.credential_type,
             configured=True,
             rotated_at=credential.rotated_at,
+        )
+        append_user_audit(
+            self.audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action="integration.credentials_rotated",
+            resource_type="integration",
+            resource_id=row.id,
+            metadata=CredentialRotationMetadata(),
+            occurred_at=credential.rotated_at,
         )
         self._commit_transaction()
         return response

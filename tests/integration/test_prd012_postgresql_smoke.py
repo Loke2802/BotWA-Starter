@@ -16,6 +16,7 @@ from app.infrastructure.models.managed_automation import (
 )
 from app.infrastructure.models.organization import OrganizationModel
 from app.infrastructure.models.user import UserModel
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.human_handoff_repository import (
     HumanHandoffRepository,
 )
@@ -89,9 +90,15 @@ def test_prd012_postgresql_critical_smoke() -> None:
             email=f"smoke-{user_id}@example.invalid",
             role="organization_owner",
         )
-        handoff = HumanHandoffService(HumanHandoffRepository(session), session)
+        audit_writer = SqlAlchemyAuditRepository(session)
+        handoff = HumanHandoffService(
+            HumanHandoffRepository(session), session, audit_writer
+        )
         service = ManagedAutomationService(
-            ManagedAutomationRepository(session), session, handoff
+            ManagedAutomationRepository(session),
+            session,
+            audit_writer,
+            handoff=handoff,
         )
         definition = service.create(
             org_id,

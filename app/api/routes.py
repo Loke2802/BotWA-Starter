@@ -281,7 +281,7 @@ def update_organization(
             detail="permission denied",
         ) from exc
     try:
-        organization = service.update(organization_id, request)
+        organization = service.update(organization_id, request, actor=actor)
     except OrganizationConflictError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -315,7 +315,7 @@ def deactivate_organization(
             detail="permission denied",
         ) from exc
     try:
-        organization = service.deactivate(organization_id)
+        organization = service.deactivate(organization_id, actor=actor)
     except OrganizationNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -3,6 +3,7 @@ from app.infrastructure.models.analytics import (
     ConversationManagementEventModel,
     HandoffCycleModel,
 )
+from app.infrastructure.models.audit import AuditEventModel
 from app.infrastructure.models.automation_execution import (
     AutomationExecutionModel,
 )
@@ -65,6 +66,7 @@ __all__ = [
     "AutomationExecutionModel",
     "AutomationTaskExecutionModel",
     "AnalyticsDailySummaryModel",
+    "AuditEventModel",
     "BotModel",
     "BusinessCalendarAuditEventModel",
     "BusinessCalendarDateExceptionModel",

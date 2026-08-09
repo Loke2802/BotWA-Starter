@@ -2,11 +2,18 @@ from builtins import list as builtin_list
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
+from app.application.audit.writer import append_user_audit
 from app.application.business_calendar.compatibility import (
     BusinessHoursStateCompatibilityService,
 )
 from app.application.business_calendar.service import BusinessCalendarService
 from app.application.human_handoff.service import HumanHandoffService
+from app.domain.audit.contracts import (
+    AuditAction,
+    ChangedFieldsMetadata,
+    StatusTransitionMetadata,
+)
+from app.domain.audit.ports import AuditWriter
 from app.domain.automation_management.contracts import (
     AutomationDefinitionInput,
     BusinessHoursState,
@@ -27,7 +34,7 @@ from app.infrastructure.repositories.managed_automation_repository import (
     ManagedAutomationRepository,
 )
 from app.security.authorization import AuthorizationError, require_scoped_permission
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 
@@ -60,14 +67,18 @@ class ManagedAutomationService:
         self,
         repository: ManagedAutomationRepository,
         session: Session,
+        audit_writer: AuditWriter,
         handoff: HumanHandoffService | None = None,
         business_hours: BusinessHoursStateProvider | None = None,
     ) -> None:
         self.repo, self.session, self.handoff = repository, session, handoff
         self.business_hours = business_hours or BusinessHoursStateCompatibilityService(
-            BusinessCalendarService(BusinessCalendarRepository(session), session),
+            BusinessCalendarService(
+                BusinessCalendarRepository(session), session, audit_writer
+            ),
             session,
         )
+        self.audit_writer = audit_writer
 
     def _auth(self, actor: User, permission: str, organization_id: UUID) -> None:
         try:
@@ -102,7 +113,16 @@ class ManagedAutomationService:
             updated_at=now,
         )
         self.session.add(row)
-        self.session.commit()
+        append_user_audit(
+            self.audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action="automation.created",
+            resource_type="automation",
+            resource_id=row.id,
+            occurred_at=now,
+        )
+        self._commit_admin()
         return row
 
     def get(
@@ -169,12 +189,22 @@ class ManagedAutomationService:
             raise AutomationNotFoundError("automation execution not found")
         if row.status != "failed" or row.attempt_count >= 3:
             raise AutomationRetryNotAllowedError("execution cannot be retried")
+        now = datetime.now(UTC)
         row.status, row.available_at, row.safe_error_code = (
             "pending",
-            datetime.now(UTC),
+            now,
             None,
         )
-        self.session.commit()
+        append_user_audit(
+            self.audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action="automation.retry_requested",
+            resource_type="automation",
+            resource_id=row.automation_definition_id,
+            occurred_at=now,
+        )
+        self._commit_admin()
         return row
 
     def update(
@@ -203,6 +233,17 @@ class ManagedAutomationService:
             )
         if row.status == "archived":
             raise AutomationConflictError("archived automation is terminal")
+        changed_fields = tuple(
+            key
+            for key in (
+                "name",
+                "description",
+                "bot_id",
+                "conditions_data",
+                "action_data",
+            )
+            if key in data and data[key] is not None
+        )
         functional = False
         for key, value in data.items():
             if value is not None and hasattr(row, key):
@@ -225,7 +266,18 @@ class ManagedAutomationService:
         if functional:
             row.version += 1
         row.updated_by_user_id, row.updated_at = actor.id, datetime.now(UTC)
-        self.session.commit()
+        if changed_fields:
+            append_user_audit(
+                self.audit_writer,
+                organization_id=organization_id,
+                actor=actor,
+                action="automation.updated",
+                resource_type="automation",
+                resource_id=row.id,
+                metadata=ChangedFieldsMetadata(changed_fields=changed_fields),
+                occurred_at=row.updated_at,
+            )
+        self._commit_admin()
         return row
 
     def transition(
@@ -245,10 +297,12 @@ class ManagedAutomationService:
         }
         if row.status not in allowed[state]:
             raise AutomationConflictError("invalid automation lifecycle transition")
+        previous_status = row.status
+        now = datetime.now(UTC)
         row.status, row.updated_by_user_id, row.updated_at = (
             state,
             actor.id,
-            datetime.now(UTC),
+            now,
         )
         if state in {"inactive", "archived"}:
             self.session.query(ManagedAutomationExecutionModel).filter(
@@ -258,8 +312,32 @@ class ManagedAutomationService:
                 {"status": "cancelled", "completed_at": datetime.now(UTC)},
                 synchronize_session=False,
             )
-        self.session.commit()
+        actions: dict[str, AuditAction] = {
+            "activate": "automation.activated",
+            "deactivate": "automation.deactivated",
+            "archive": "automation.archived",
+        }
+        append_user_audit(
+            self.audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action=actions[target],
+            resource_type="automation",
+            resource_id=row.id,
+            metadata=StatusTransitionMetadata(
+                from_status=previous_status, to_status=state
+            ),
+            occurred_at=now,
+        )
+        self._commit_admin()
         return row
+
+    def _commit_admin(self) -> None:
+        try:
+            self.session.commit()
+        except SQLAlchemyError as exc:
+            self.session.rollback()
+            raise AutomationConflictError("automation persistence failed") from exc
 
     def record_inbound(
         self,

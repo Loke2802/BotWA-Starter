@@ -37,6 +37,7 @@ from app.infrastructure.models.organization import OrganizationModel
 from app.infrastructure.models.whatsapp_channel_configuration import (
     WhatsAppChannelConfigurationModel,
 )
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.bot_repository import BotRepository
 from app.infrastructure.repositories.contact_repository import (
     SqlAlchemyContactRepository,
@@ -146,12 +147,14 @@ def _processor(
     configurations: InMemoryWhatsAppConfigurationRepository,
 ) -> tuple[WhatsAppLiveMessageProcessor, RecordingCore, FakeWhatsAppCloudApiClient]:
     cipher = _cipher()
+    audit_writer = SqlAlchemyAuditRepository(session)
     management = ConversationManagementService(
         SqlAlchemyConversationManagementRepository(session),
-        SqlAlchemyConversationMessageManagementRepository(session),
+        SqlAlchemyConversationMessageManagementRepository(session, audit_writer),
         BotRepository(session),
         cipher,
         session,
+        audit_writer,
     )
     core = RecordingCore()
     contacts = ContactResolutionService(
@@ -332,12 +335,14 @@ def test_cross_tenant_contact_link_is_rejected(session: Session) -> None:
     )
     session.add(foreign_contact)
     session.commit()
+    audit_writer = SqlAlchemyAuditRepository(session)
     management = ConversationManagementService(
         SqlAlchemyConversationManagementRepository(session),
-        SqlAlchemyConversationMessageManagementRepository(session),
+        SqlAlchemyConversationMessageManagementRepository(session, audit_writer),
         BotRepository(session),
         _cipher(),
         session,
+        audit_writer,
     )
     message = InboundChannelMessage(
         external_message_id="wamid.cross-tenant",

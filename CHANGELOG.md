@@ -1,8 +1,12 @@
 # Changelog
 
-## PRD-017 Audit Log v1 - 2026-08-08
+## PRD-017 Audit Log v1 - 2026-08-09
 
-### IMPLEMENTED — PENDING CTO REVIEW
+### CLOSED after PR #26
+
+- Merged into `master` via PR #26 at
+  `01c809c909360f4a31a6b26b1d4126a1c98e9c8b`, with final approved head
+  `3f7808da24d0dc1e3b5d6f3d337ee4562f5398b6`.
 
 - Added tenant-scoped append-only `audit_event` with success-only semantics,
   typed actor/role/action/resource contracts and safe metadata without PII or
@@ -21,8 +25,9 @@
   repository can no longer silently bypass Audit.
 - Renamed append observability to `audit_append_attempts_total`: it reports unit
   of work acceptance/rejection and never claims flush, commit, or durability.
-- Validation: focused 25 passed; PostgreSQL 3 passed; full pytest 751 passed,
-  18 skipped, 2 warnings; mypy/Ruff/Black/diff check PASS across 415 files;
+- Validation: focused 25 passed; expanded fail-closed/domain regression 82
+  passed; PostgreSQL 3 passed; full pytest 751 passed, 18 skipped, 2 warnings;
+  mypy/Ruff/Black/diff check PASS across 415 files;
   Alembic head `20260808_0018`; cycle `0017 → 0018 → 0017 → 0018` PASS.
 
 ## PRD-016 Analytics & Reports v1 - 2026-08-08

@@ -1,8 +1,14 @@
 # PRD-017 Audit Log v1
 
-**Estado:** IMPLEMENTED — PENDING CTO REVIEW
+**Estado:** CLOSED
 
 **Alembic revision:** `20260808_0018`
+
+**Merged via:** PR #26
+
+**Merge commit:** `01c809c909360f4a31a6b26b1d4126a1c98e9c8b`
+
+**Final approved head:** `3f7808da24d0dc1e3b5d6f3d337ee4562f5398b6`
 
 ## Objetivo y alcance
 
@@ -169,6 +175,7 @@ de conservación indefinida.
 ## Validación
 
 - focused PRD-017: 25 passed;
+- expanded fail-closed/domain regression: 82 passed;
 - PostgreSQL PRD-017: 3 passed;
 - full pytest: 751 passed, 18 skipped, 2 warnings;
 - fixture PostgreSQL 10.000 events: PASS, cuatro queries O(1);
@@ -178,6 +185,26 @@ de conservación indefinida.
 - `git diff --check`: PASS;
 - Alembic: `20260808_0018 (head)`, single head;
 - migration cycle `0017 → 0018 → 0017 → 0018`: PASS.
+
+## Límites arquitectónicos cerrados
+
+- Audit history begins at PRD-017; no existe backfill.
+- El ledger registra únicamente resultados exitosos.
+- `AuditWriter` es obligatorio y fail-closed, sin `NullAuditWriter` de
+  producción ni helpers que acepten `None`.
+- Audit usa la misma `Session` y transacción que la mutación; WhatsApp
+  auto-reopen y el worker de Automation reciben writer explícito.
+- Los actores admitidos son `user`, `system` y `automation`; `user` conserva un
+  snapshot allowlisted de `actor_role`.
+- La metadata es tipada y allowlisted, sin PII ni secretos.
+- El contrato de aplicación es append-only, tenant-scoped y read-only mediante
+  `audit.read`; la consulta usa cursor keyset HMAC.
+- Business Calendar conserva su audit específico y realiza dual-write genérico
+  en la misma transacción.
+- `audit_append_attempts_total` significa aceptación o rechazo por el unit of
+  work; no afirma persistencia durable.
+- Quedan fuera denials, failed-operation ledger, OAuth callback audit, Analytics
+  GET/export audit, automatic retention, export, frontend, SIEM y PRD-018.
 
 ## PRD-018 boundary
 

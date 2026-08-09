@@ -1,6 +1,6 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-017 IMPLEMENTED — PENDING CTO REVIEW
+## Estado actual - Phase 3 / PRD-017 CLOSED
 
 Quality Gates (validación técnica PRD-017):
 
@@ -8,6 +8,7 @@ Quality Gates (validación técnica PRD-017):
 |------|-----------|
 | `pytest` | **751 passed, 18 skipped, 2 warnings** |
 | PRD-017 focalizadas | **25 passed** |
+| Regresión fail-closed/dominio ampliada | **82 passed** |
 | PostgreSQL PRD-017 | **3 passed** |
 | Ciclo PostgreSQL | **0017 → 0018 → 0017 → 0018 PASS** |
 | `ruff check app tests` | **All checks passed** |
@@ -28,8 +29,8 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial: **PRD-001 a PRD-016 CLOSED; PRD-017 IMPLEMENTED — PENDING CTO
-REVIEW; PRD-018 a PRD-023 permanecen NOT STARTED.**
+Estado oficial: **PRD-001 a PRD-017 CLOSED; PRD-018 a PRD-023 permanecen NOT
+STARTED.**
 
 PRD-017 añade un Audit Log administrativo tenant-scoped y append-only. Registra
 solo acciones exitosas con actor, rol efectivo, acción/recurso allowlisted,
@@ -38,6 +39,14 @@ misma transacción que la mutación. Expone consulta read-only con `audit.read`,
 rango UTC acotado y cursor keyset firmado. No sustituye domain histories, logs ni
 Analytics; no incluye backfill, denials, OAuth callback, Analytics export,
 retención automática, UI ni PRD-018.
+
+PRD-017 cerró después del merge aprobado vía PR #26, merge commit
+`01c809c909360f4a31a6b26b1d4126a1c98e9c8b`, con head final aprobado
+`3f7808da24d0dc1e3b5d6f3d337ee4562f5398b6`. El hardening final exige
+`AuditWriter` fail-closed en toda ruta de producción, incluida auto-reapertura
+WhatsApp y el worker de Automation, usando la misma sesión/transacción. La
+métrica `audit_append_attempts_total` describe aceptación/rechazo por el unit of
+work, no persistencia durable.
 
 PRD-014 añade `GET /organizations/{organization_id}/dashboard`, un read model
 operacional tenant-scoped y opcionalmente filtrable por bot. Compone agregados SQL
@@ -690,7 +699,7 @@ PRD-001 through PRD-012 are closed. PRD-010 adds a tenant-scoped handoff
 lifecycle, bot suppression, encrypted and attributed human replies through the
 generic channel sender, idempotency, archive protection, and safe transport
 errors. PRD-011 adds the Contact increment; Customer is deferred and CRM is not
-implemented. PRD-012 through PRD-016 are closed. PRD-017 is implemented and
-pending CTO review; PRD-018 through PRD-023 are not started. Real
+implemented. PRD-012 through PRD-017 are closed; PRD-018 through PRD-023 are
+not started. Real
 Meta and Google validation need explicit external credentials.
 

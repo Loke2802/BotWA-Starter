@@ -70,6 +70,7 @@ class AuthService:
                 user_id=user.id,
                 current_password=current_password,
                 new_password=new_password,
+                actor=user,
             )
         except (UserAuthenticationRequiredError, UserNotFoundError) as exc:
             raise AuthInvalidCredentialsError("invalid credentials") from exc

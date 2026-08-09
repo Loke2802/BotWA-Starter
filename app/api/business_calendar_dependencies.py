@@ -3,6 +3,7 @@ from collections.abc import Generator
 from app.application.business_calendar.metrics import BusinessCalendarMetrics
 from app.application.business_calendar.service import BusinessCalendarService
 from app.infrastructure.database import get_session
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.business_calendar_repository import (
     BusinessCalendarRepository,
 )
@@ -22,6 +23,7 @@ def get_business_calendar_service() -> Generator[BusinessCalendarService]:
             BusinessCalendarRepository(session),
             session,
             metrics=_metrics,
+            audit_writer=SqlAlchemyAuditRepository(session),
         )
     finally:
         session_generator.close()

@@ -6,13 +6,23 @@ from typing import TypeVar, cast
 from uuid import UUID, uuid4
 
 import structlog
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.application.audit.writer import append_user_audit
 from app.application.business_calendar.clock import SystemClock
 from app.application.business_calendar.metrics import BusinessCalendarMetrics
 from app.domain.access.contracts import Permission
+from app.domain.audit.contracts import (
+    AuditAction,
+    AuditChangedField,
+    AuditMetadata,
+    ChangedFieldsMetadata,
+    EmptyMetadata,
+    StatusTransitionMetadata,
+)
+from app.domain.audit.ports import AuditWriter
 from app.domain.business_calendar.contracts import (
     AuditEventResponse,
     BusinessCalendarCreate,
@@ -75,6 +85,9 @@ from app.infrastructure.repositories.business_calendar_repository import (
 from app.security.authorization import AuthorizationError, require_scoped_permission
 
 ResponseT = TypeVar("ResponseT", bound=BaseModel)
+AUDIT_CHANGED_FIELD_ADAPTER: TypeAdapter[AuditChangedField] = TypeAdapter(
+    AuditChangedField
+)
 
 
 def _aware(value: datetime) -> datetime:
@@ -123,6 +136,7 @@ class BusinessCalendarService:
         resolver: BusinessHoursResolver | None = None,
         clock: Clock | None = None,
         metrics: BusinessCalendarMetrics | None = None,
+        audit_writer: AuditWriter | None = None,
     ) -> None:
         self.repository = repository
         self.session = session
@@ -130,6 +144,7 @@ class BusinessCalendarService:
         self.clock = clock or SystemClock()
         self.metrics = metrics or BusinessCalendarMetrics()
         self.logger = structlog.get_logger(__name__)
+        self.audit_writer = audit_writer
 
     @staticmethod
     def _authorize(actor: User, permission: Permission, organization_id: UUID) -> None:
@@ -249,6 +264,7 @@ class BusinessCalendarService:
         changes: dict[str, object],
         correlation_id: UUID,
     ) -> None:
+        audit_at = self.clock.now()
         self.repository.add(
             BusinessCalendarAuditEventModel(
                 organization_id=row.organization_id,
@@ -261,9 +277,70 @@ class BusinessCalendarService:
                 new_version=new_version,
                 changes=changes,
                 correlation_id=correlation_id,
-                created_at=self.clock.now(),
+                created_at=audit_at,
             )
         )
+        generic_action, metadata = self._generic_audit_metadata(
+            resource_type=resource_type,
+            action=action,
+            changes=changes,
+        )
+        append_user_audit(
+            self.audit_writer,
+            organization_id=row.organization_id,
+            actor=actor,
+            action=generic_action,
+            resource_type="business_calendar",
+            resource_id=row.id,
+            metadata=metadata,
+            correlation_id=correlation_id,
+            occurred_at=row.updated_at if row.updated_at is not None else audit_at,
+        )
+
+    @staticmethod
+    def _generic_audit_metadata(
+        *, resource_type: str, action: str, changes: dict[str, object]
+    ) -> tuple[AuditAction, AuditMetadata]:
+        if action == "calendar.created":
+            return "business_calendar.created", EmptyMetadata()
+        if action in {
+            "calendar.activated",
+            "calendar.deactivated",
+            "calendar.archived",
+        }:
+            from_status = changes.get("from_status")
+            to_status = changes.get("to_status")
+            if not isinstance(from_status, str) or not isinstance(to_status, str):
+                raise ScheduleValidationError("calendar audit transition is invalid")
+            transition = StatusTransitionMetadata(
+                from_status=from_status, to_status=to_status
+            )
+            action_map: dict[str, AuditAction] = {
+                "calendar.activated": "business_calendar.activated",
+                "calendar.deactivated": "business_calendar.deactivated",
+                "calendar.archived": "business_calendar.archived",
+            }
+            return action_map[action], transition
+        if resource_type == "calendar":
+            raw_fields = changes.get("changed_fields", [])
+            if not isinstance(raw_fields, list):
+                raise ScheduleValidationError("calendar audit fields are invalid")
+            fields = tuple(
+                AUDIT_CHANGED_FIELD_ADAPTER.validate_python(field)
+                for field in raw_fields
+            )
+        else:
+            field_map: dict[str, AuditChangedField] = {
+                "weekly_schedule": "weekly_schedule",
+                "date_exception": "date_exception",
+                "holiday": "holiday",
+                "override": "manual_override",
+            }
+            field = field_map.get(resource_type)
+            if field is None:
+                raise ScheduleValidationError("calendar audit resource is invalid")
+            fields = (field,)
+        return "business_calendar.updated", ChangedFieldsMetadata(changed_fields=fields)
 
     def _commit_result(
         self,
@@ -562,6 +639,7 @@ class BusinessCalendarService:
         if row.status not in allowed[state]:
             raise BusinessCalendarConflict("invalid calendar lifecycle transition")
         previous = row.version
+        previous_status = row.status
         now = self.clock.now()
         row.status = state
         row.version += 1
@@ -581,7 +659,7 @@ class BusinessCalendarService:
             actor=actor,
             previous_version=previous,
             new_version=row.version,
-            changes={"status": state},
+            changes={"from_status": previous_status, "to_status": state},
             correlation_id=correlation_id or uuid4(),
         )
         response = self._calendar_response(row)

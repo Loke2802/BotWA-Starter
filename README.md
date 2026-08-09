@@ -1,8 +1,8 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-016 IMPLEMENTED — PENDING CTO REVIEW
+## Estado actual - Phase 3 / PRD-016 CLOSED
 
-Quality Gates (validación técnica PRD-014):
+Quality Gates (validación técnica PRD-016):
 
 | Gate | Resultado |
 |------|-----------|
@@ -28,8 +28,8 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial: **PRD-001 a PRD-015 CLOSED; PRD-016 IMPLEMENTED — PENDING CTO
-REVIEW; PRD-017 a PRD-023 permanecen NOT STARTED.**
+Estado oficial: **PRD-001 a PRD-016 CLOSED; PRD-017 a PRD-023 permanecen NOT
+STARTED.**
 
 PRD-014 añade `GET /organizations/{organization_id}/dashboard`, un read model
 operacional tenant-scoped y opcionalmente filtrable por bot. Compone agregados SQL
@@ -51,6 +51,14 @@ de Human Handoff, una proyección diaria PostgreSQL reconstruible/idempotente,
 consultas day/week/month, comparación contra periodo anterior y CSV agregado sin
 PII. Usa un único reporting timezone organizacional, respeta DST y no reemplaza
 los Sources of Truth operacionales.
+
+PRD-016 cerró después del merge aprobado vía PR #24, merge commit
+`601499071f39aad85dc4d9595fc04425f40a3962`, con head final aprobado
+`6cafee11a0f807e07a9277eae98e128ab68aa711`. Conversation/Handoff history empieza
+en PRD-016; Automation representa el outcome terminal vigente, no un attempt
+ledger; `Bot.created_at < bucket_end_utc` define cobertura; el watermark es un
+cutoff, no un snapshot; Contacts sigue organization-scoped. No incluye PRD-017,
+frontend, scheduler, PDF ni XLSX.
 
 PRD-013 añade conexiones externas tenant-scoped, credenciales cifradas, OAuth
 Google real con state firmado/single-use, Google Calendar metadata/free-busy,
@@ -674,7 +682,7 @@ PRD-001 through PRD-012 are closed. PRD-010 adds a tenant-scoped handoff
 lifecycle, bot suppression, encrypted and attributed human replies through the
 generic channel sender, idempotency, archive protection, and safe transport
 errors. PRD-011 adds the Contact increment; Customer is deferred and CRM is not
-implemented. PRD-012 through PRD-015 are closed. PRD-016 is implemented pending
-CTO review; PRD-017 through PRD-023 are not started. Real
+implemented. PRD-012 through PRD-016 are closed. PRD-017 through PRD-023 are not
+started. Real
 Meta and Google validation need explicit external credentials.
 

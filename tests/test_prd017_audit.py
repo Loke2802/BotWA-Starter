@@ -1,12 +1,25 @@
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from datetime import UTC, datetime, timedelta
+from inspect import Parameter, signature
 from uuid import UUID, uuid4
 
 import pytest
 from app.api.audit_dependencies import get_audit_query_service
 from app.api.audit_routes import router
 from app.api.dependencies import require_authenticated_user
+from app.application.audit.metrics import AuditMetricsRegistry
 from app.application.audit.service import AuditCursorCodec, AuditQueryService
+from app.application.audit.writer import append_non_user_audit, append_user_audit
+from app.application.automation_management.service import ManagedAutomationService
+from app.application.bots.service import BotService
+from app.application.business_calendar.service import BusinessCalendarService
+from app.application.conversation_management.service import (
+    ConversationManagementService,
+)
+from app.application.human_handoff.service import HumanHandoffService
+from app.application.integration_management.service import IntegrationManagementService
+from app.application.organizations.service import OrganizationService
+from app.application.users.service import UserService
 from app.domain.access.contracts import ALL_PERMISSIONS, ROLE_PERMISSIONS
 from app.domain.audit.contracts import (
     AuditEventDraft,
@@ -22,6 +35,7 @@ from app.domain.audit.errors import (
     AuditInvalidFilter,
     AuditInvalidRange,
     AuditRangeTooLarge,
+    AuditWriteError,
 )
 from app.domain.user.contracts import User
 from app.infrastructure.database import Base
@@ -31,10 +45,14 @@ from app.infrastructure.models.user import UserModel
 from app.infrastructure.repositories.audit_repository import (
     SqlAlchemyAuditRepository,
 )
+from app.infrastructure.repositories.conversation_management_repository import (
+    SqlAlchemyConversationMessageManagementRepository,
+)
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from sqlalchemy import create_engine, func, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -176,6 +194,76 @@ def test_contracts_are_closed_typed_and_reject_pii_secrets_and_free_text() -> No
                     "occurred_at": NOW,
                 }
             )
+
+
+@pytest.mark.parametrize(
+    "service_type",
+    (
+        OrganizationService,
+        UserService,
+        BotService,
+        ConversationManagementService,
+        HumanHandoffService,
+        ManagedAutomationService,
+        IntegrationManagementService,
+        BusinessCalendarService,
+        SqlAlchemyConversationMessageManagementRepository,
+    ),
+)
+def test_auditable_constructors_require_non_optional_writer(
+    service_type: type[object],
+) -> None:
+    parameter = signature(service_type).parameters["audit_writer"]
+    assert parameter.default is Parameter.empty
+    assert "None" not in str(parameter.annotation)
+
+
+@pytest.mark.parametrize("helper", (append_user_audit, append_non_user_audit))
+def test_audit_helpers_require_non_optional_writer(
+    helper: Callable[..., object],
+) -> None:
+    parameter = signature(helper).parameters["writer"]
+    assert parameter.default is Parameter.empty
+    assert "None" not in str(parameter.annotation)
+
+
+def test_append_metrics_report_unit_of_work_not_durable_commit(
+    session: Session,
+) -> None:
+    organization_id, _, actor, _ = _seed(session)
+    metrics = AuditMetricsRegistry()
+    writer = SqlAlchemyAuditRepository(session, metrics=metrics)
+    writer.append(_draft(organization_id, actor))
+
+    counters = metrics.snapshot()["counters"]
+    assert (
+        counters[("audit_append_attempts_total", "append", "accepted_by_unit_of_work")]
+        == 1
+    )
+    assert session.scalar(select(func.count(AuditEventModel.id))) == 1
+    session.rollback()
+    assert session.scalar(select(func.count(AuditEventModel.id))) == 0
+
+
+def test_append_staging_failure_is_observed(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    organization_id, _, actor, _ = _seed(session)
+    metrics = AuditMetricsRegistry()
+    writer = SqlAlchemyAuditRepository(session, metrics=metrics)
+
+    def fail_add(_object: object) -> None:
+        raise SQLAlchemyError("unit of work rejected audit row")
+
+    monkeypatch.setattr(session, "add", fail_add)
+    with pytest.raises(AuditWriteError):
+        writer.append(_draft(organization_id, actor))
+    assert (
+        metrics.snapshot()["counters"][
+            ("audit_append_attempts_total", "append", "rejected_by_unit_of_work")
+        ]
+        == 1
+    )
 
 
 def test_actor_shape_result_action_and_timestamp_are_strict() -> None:

@@ -9,7 +9,7 @@ from app.domain.audit.contracts import (
 
 
 class AuditWriter(Protocol):
-    """Append an event to the caller-owned transaction; never commit."""
+    """Stage an event in the caller-owned unit of work; never commit."""
 
     def append(self, draft: AuditEventDraft) -> None: ...
 

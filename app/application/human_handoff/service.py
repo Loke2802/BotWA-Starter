@@ -47,7 +47,7 @@ class HumanHandoffService:
         self,
         repository: HumanHandoffRepository,
         session: Session,
-        audit_writer: AuditWriter | None = None,
+        audit_writer: AuditWriter,
     ) -> None:
         self._repository, self._session = repository, session
         self._audit_writer = audit_writer

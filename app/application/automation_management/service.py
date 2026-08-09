@@ -67,13 +67,15 @@ class ManagedAutomationService:
         self,
         repository: ManagedAutomationRepository,
         session: Session,
+        audit_writer: AuditWriter,
         handoff: HumanHandoffService | None = None,
         business_hours: BusinessHoursStateProvider | None = None,
-        audit_writer: AuditWriter | None = None,
     ) -> None:
         self.repo, self.session, self.handoff = repository, session, handoff
         self.business_hours = business_hours or BusinessHoursStateCompatibilityService(
-            BusinessCalendarService(BusinessCalendarRepository(session), session),
+            BusinessCalendarService(
+                BusinessCalendarRepository(session), session, audit_writer
+            ),
             session,
         )
         self.audit_writer = audit_writer

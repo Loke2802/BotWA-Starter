@@ -43,8 +43,8 @@ Current validated gates:
 
 | Gate | Result |
 |---|---|
-| `pytest` | 738 passed, 18 skipped, 2 warnings |
-| Focused PRD-017 | 12 passed |
+| `pytest` | 751 passed, 18 skipped, 2 warnings |
+| Focused PRD-017 | 25 passed |
 | PostgreSQL PRD-017 | 3 passed |
 | PostgreSQL migration cycle | `0017 → 0018 → 0017 → 0018` PASS |
 | `ruff check app tests` | All checks passed |

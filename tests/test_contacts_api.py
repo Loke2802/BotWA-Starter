@@ -25,6 +25,7 @@ from app.infrastructure.models.bot import BotModel
 from app.infrastructure.models.contact import ContactModel
 from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.organization import OrganizationModel
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.bot_repository import BotRepository
 from app.infrastructure.repositories.contact_repository import (
     SqlAlchemyContactRepository,
@@ -178,12 +179,14 @@ def runtime() -> Generator[tuple[TestClient, Session, dict[str, object]]]:
     contact_service = ContactAdministrationService(
         SqlAlchemyContactRepository(session), hasher, cipher, session
     )
+    audit_writer = SqlAlchemyAuditRepository(session)
     conversation_service = ConversationManagementService(
         SqlAlchemyConversationManagementRepository(session),
-        SqlAlchemyConversationMessageManagementRepository(session),
+        SqlAlchemyConversationMessageManagementRepository(session, audit_writer),
         BotRepository(session),
         cipher,
         session,
+        audit_writer,
     )
     actors = {
         "viewer": _actor(organization_id, "viewer"),

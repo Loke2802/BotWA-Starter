@@ -36,6 +36,7 @@ from app.infrastructure.database import Base
 from app.infrastructure.models.whatsapp_channel_configuration import (
     WhatsAppChannelConfigurationModel,
 )
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.bot_repository import BotRepository
 from app.infrastructure.repositories.organization_repository import (
     OrganizationRepository,
@@ -78,7 +79,11 @@ def runtime() -> Generator[Runtime]:
     )
 
     def organization_service() -> OrganizationService:
-        return OrganizationService(OrganizationRepository(session), session)
+        return OrganizationService(
+            OrganizationRepository(session),
+            session,
+            SqlAlchemyAuditRepository(session),
+        )
 
     def user_service() -> UserService:
         return UserService(
@@ -86,6 +91,7 @@ def runtime() -> Generator[Runtime]:
             OrganizationRepository(session),
             password_service,
             session,
+            SqlAlchemyAuditRepository(session),
         )
 
     def bot_service() -> BotService:
@@ -93,6 +99,7 @@ def runtime() -> Generator[Runtime]:
             BotRepository(session),
             OrganizationRepository(session),
             session,
+            SqlAlchemyAuditRepository(session),
         )
 
     def whatsapp_service() -> WhatsAppConfigurationService:

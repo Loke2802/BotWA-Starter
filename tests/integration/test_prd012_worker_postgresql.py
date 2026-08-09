@@ -17,6 +17,7 @@ from app.infrastructure.models.human_handoff import HandoffSessionModel
 from app.infrastructure.models.managed_automation import ManagedAutomationExecutionModel
 from app.infrastructure.models.organization import OrganizationModel
 from app.infrastructure.models.user import UserModel
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.human_handoff_repository import (
     HumanHandoffRepository,
 )
@@ -33,13 +34,17 @@ pytestmark = pytest.mark.skipif(not DATABASE_URL, reason="requires real PostgreS
 def _service(
     session: Session, *, with_handoff: bool = True
 ) -> ManagedAutomationService:
+    audit_writer = SqlAlchemyAuditRepository(session)
     handoff = (
-        HumanHandoffService(HumanHandoffRepository(session), session)
+        HumanHandoffService(HumanHandoffRepository(session), session, audit_writer)
         if with_handoff
         else None
     )
     return ManagedAutomationService(
-        ManagedAutomationRepository(session), session, handoff
+        ManagedAutomationRepository(session),
+        session,
+        audit_writer,
+        handoff=handoff,
     )
 
 

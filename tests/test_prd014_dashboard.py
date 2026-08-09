@@ -46,6 +46,7 @@ from app.infrastructure.models.managed_automation import (
     ManagedAutomationExecutionModel,
 )
 from app.infrastructure.models.organization import OrganizationModel
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.business_calendar_repository import (
     BusinessCalendarRepository,
 )
@@ -139,7 +140,11 @@ def _base(session: Session) -> tuple[UUID, UUID, UUID, UUID, User]:
 
 
 def _service(session: Session) -> DashboardQueryService:
-    calendars = BusinessCalendarService(BusinessCalendarRepository(session), session)
+    calendars = BusinessCalendarService(
+        BusinessCalendarRepository(session),
+        session,
+        SqlAlchemyAuditRepository(session),
+    )
     return DashboardQueryService(
         SqlAlchemyDashboardRepository(session),
         DashboardBusinessStatusReader(
@@ -659,7 +664,9 @@ def test_dashboard_business_resolution_error_is_unknown_and_read_only(
 ) -> None:
     organization_id, _foreign_id, _bot_a1, _bot_a2, _actor = _base(session)
     repository = BusinessCalendarRepository(session)
-    calendars = BusinessCalendarService(repository, session)
+    calendars = BusinessCalendarService(
+        repository, session, SqlAlchemyAuditRepository(session)
+    )
 
     def fail(_organization_id: UUID) -> BusinessCalendarModel | None:
         raise BusinessCalendarPersistenceError("persistence failed")

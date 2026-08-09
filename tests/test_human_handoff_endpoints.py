@@ -29,6 +29,7 @@ from app.infrastructure.models.whatsapp_channel_configuration import (
 from app.infrastructure.models.whatsapp_message_transport import (
     OutboundMessageAttemptModel,
 )
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.conversation_management_repository import (
     SqlAlchemyConversationManagementRepository,
     SqlAlchemyConversationMessageManagementRepository,
@@ -157,17 +158,23 @@ def runtime() -> (
         email="operator@example.com",
         role="operator",
     )
-    service = HumanHandoffService(HumanHandoffRepository(session), session)
+    audit_writer = SqlAlchemyAuditRepository(session)
+    service = HumanHandoffService(
+        HumanHandoffRepository(session), session, audit_writer
+    )
     service.request(organization_id, conversation_id, actor, None)
     service.claim(organization_id, conversation_id, actor)
     configurations = SqlAlchemyWhatsAppConfigurationRepository(session)
     fake_client = FakeWhatsAppCloudApiClient()
     management = ConversationManagementService(
         conversations=SqlAlchemyConversationManagementRepository(session),
-        messages=SqlAlchemyConversationMessageManagementRepository(session),
+        messages=SqlAlchemyConversationMessageManagementRepository(
+            session, audit_writer
+        ),
         bot_repository=None,  # type: ignore[arg-type]
         cipher=cipher,
         session=session,
+        audit_writer=audit_writer,
     )
     processor = WhatsAppLiveMessageProcessor(
         configuration_repository=configurations,

@@ -16,7 +16,12 @@
   migration cycle, plus a 10.000-event O(1) query fixture.
 - History begins at PRD-017 without backfill. Denials, OAuth callback, Analytics
   export, automated retention, export/UI/SIEM and PRD-018 remain excluded.
-- Validation: focused 12 passed; PostgreSQL 3 passed; full pytest 738 passed,
+- Hardened all classified administrative write services so `AuditWriter` is a
+  required constructor dependency; helpers and the WhatsApp auto-reopen
+  repository can no longer silently bypass Audit.
+- Renamed append observability to `audit_append_attempts_total`: it reports unit
+  of work acceptance/rejection and never claims flush, commit, or durability.
+- Validation: focused 25 passed; PostgreSQL 3 passed; full pytest 751 passed,
   18 skipped, 2 warnings; mypy/Ruff/Black/diff check PASS across 415 files;
   Alembic head `20260808_0018`; cycle `0017 → 0018 → 0017 → 0018` PASS.
 

@@ -51,7 +51,7 @@ class ConversationManagementService:
         bot_repository: BotRepository,
         cipher: SecretCipher,
         session: Session,
-        audit_writer: AuditWriter | None = None,
+        audit_writer: AuditWriter,
     ) -> None:
         self._conversations = conversations
         self._messages = messages

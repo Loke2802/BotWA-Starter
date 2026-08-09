@@ -62,7 +62,7 @@ class UserService:
         organization_repository: OrganizationRepository,
         password_service: PasswordService,
         session: Session,
-        audit_writer: AuditWriter | None = None,
+        audit_writer: AuditWriter,
     ) -> None:
         self._repository = repository
         self._organization_repository = organization_repository
@@ -291,19 +291,18 @@ class UserService:
         model.updated_at = datetime.now(UTC)
         self._repository.update(model)
         effective_actor = actor
-        if effective_actor is None and self._audit_writer is not None:
+        if effective_actor is None:
             effective_actor = self._to_domain(model)
-        if effective_actor is not None:
-            append_user_audit(
-                self._audit_writer,
-                organization_id=model.organization_id,
-                actor=effective_actor,
-                action="user.password_changed",
-                resource_type="user",
-                resource_id=model.id,
-                metadata=CredentialRotationMetadata(),
-                occurred_at=model.updated_at,
-            )
+        append_user_audit(
+            self._audit_writer,
+            organization_id=model.organization_id,
+            actor=effective_actor,
+            action="user.password_changed",
+            resource_type="user",
+            resource_id=model.id,
+            metadata=CredentialRotationMetadata(),
+            occurred_at=model.updated_at,
+        )
         self._commit()
         self._session.refresh(model)
         return self._to_domain(model)

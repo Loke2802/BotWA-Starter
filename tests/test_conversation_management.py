@@ -21,6 +21,7 @@ from app.infrastructure.models.bot import BotModel
 from app.infrastructure.models.human_handoff import HandoffSessionModel
 from app.infrastructure.models.message import MessageModel
 from app.infrastructure.models.organization import OrganizationModel
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.bot_repository import BotRepository
 from app.infrastructure.repositories.conversation_management_repository import (
     SqlAlchemyConversationManagementRepository,
@@ -74,12 +75,14 @@ def service(
         )
     )
     session.commit()
+    audit_writer = SqlAlchemyAuditRepository(session)
     return ConversationManagementService(
         SqlAlchemyConversationManagementRepository(session),
-        SqlAlchemyConversationMessageManagementRepository(session),
+        SqlAlchemyConversationMessageManagementRepository(session, audit_writer),
         BotRepository(session),
         cipher(),
         session,
+        audit_writer,
     )
 
 

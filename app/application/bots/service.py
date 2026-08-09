@@ -49,7 +49,7 @@ class BotService:
         repository: BotRepository,
         organization_repository: OrganizationRepository,
         session: Session,
-        audit_writer: AuditWriter | None = None,
+        audit_writer: AuditWriter,
     ) -> None:
         self._repository = repository
         self._organization_repository = organization_repository

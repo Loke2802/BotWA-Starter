@@ -22,6 +22,7 @@ from app.infrastructure.models.bot import BotModel
 from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.organization import OrganizationModel
 from app.infrastructure.models.user import UserModel
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.human_handoff_repository import (
     HumanHandoffRepository,
 )
@@ -99,7 +100,11 @@ def setup(
         role="organization_owner",
     )
     return (
-        HumanHandoffService(HumanHandoffRepository(session), session),
+        HumanHandoffService(
+            HumanHandoffRepository(session),
+            session,
+            SqlAlchemyAuditRepository(session),
+        ),
         actor,
         organization_id,
         conversation_id,

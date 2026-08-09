@@ -6,6 +6,7 @@ from app.api.dependencies import get_organization_service, get_user_service
 from app.application.organizations.service import OrganizationService
 from app.application.users.service import UserService
 from app.infrastructure.database import Base
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.organization_repository import (
     OrganizationRepository,
 )
@@ -42,6 +43,7 @@ def runtime() -> Generator[Runtime]:
         return OrganizationService(
             repository=OrganizationRepository(session=session),
             session=session,
+            audit_writer=SqlAlchemyAuditRepository(session),
         )
 
     def override_user_service() -> UserService:
@@ -50,6 +52,7 @@ def runtime() -> Generator[Runtime]:
             organization_repository=OrganizationRepository(session=session),
             password_service=password_service,
             session=session,
+            audit_writer=SqlAlchemyAuditRepository(session),
         )
 
     app = create_app()

@@ -26,6 +26,7 @@ from app.infrastructure.models.user import UserModel
 from app.infrastructure.repositories.analytics_repository import (
     SqlAlchemyAnalyticsRepository,
 )
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.conversation_management_repository import (
     SqlAlchemyConversationManagementRepository,
 )
@@ -255,7 +256,11 @@ def test_prd016_postgresql_projection_concurrency_tenant_scope_and_csv(
         )
         session.add(handoff_conversation)
         session.commit()
-        handoff = HumanHandoffService(HumanHandoffRepository(session), session)
+        handoff = HumanHandoffService(
+            HumanHandoffRepository(session),
+            session,
+            SqlAlchemyAuditRepository(session),
+        )
         handoff.request(organization_a, handoff_conversation.id, actor_a, "postgresql")
         handoff.claim(organization_a, handoff_conversation.id, actor_a)
         handoff.resolve(

@@ -20,8 +20,10 @@ def get_managed_automation_service() -> Generator[ManagedAutomationService]:
         yield ManagedAutomationService(
             ManagedAutomationRepository(session),
             session,
-            HumanHandoffService(HumanHandoffRepository(session), session, audit_writer),
-            audit_writer=audit_writer,
+            audit_writer,
+            handoff=HumanHandoffService(
+                HumanHandoffRepository(session), session, audit_writer
+            ),
         )
     finally:
         session_generator.close()

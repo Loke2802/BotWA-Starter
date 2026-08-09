@@ -13,6 +13,9 @@ from app.application.users.service import (
 from app.domain.organization.contracts import OrganizationCreate
 from app.domain.user.contracts import UserCreate, UserUpdate
 from app.infrastructure.database import Base
+from app.infrastructure.repositories.audit_repository import (
+    SqlAlchemyAuditRepository,
+)
 from app.infrastructure.repositories.organization_repository import (
     OrganizationRepository,
 )
@@ -43,7 +46,11 @@ def password_service() -> PasswordService:
 @pytest.fixture
 def organization_service(session: Session) -> OrganizationService:
     repository = OrganizationRepository(session=session)
-    return OrganizationService(repository=repository, session=session)
+    return OrganizationService(
+        repository=repository,
+        session=session,
+        audit_writer=SqlAlchemyAuditRepository(session),
+    )
 
 
 @pytest.fixture
@@ -56,6 +63,7 @@ def user_service(
         organization_repository=OrganizationRepository(session=session),
         password_service=password_service,
         session=session,
+        audit_writer=SqlAlchemyAuditRepository(session),
     )
 
 
@@ -126,13 +134,20 @@ def test_create_rejects_inactive_organization(
     organization = organization_service.create(
         OrganizationCreate(name="Acme", slug="acme")
     )
-    organization_service.deactivate(organization.id)
+    owner = user_service.create(
+        UserCreate(
+            organization_id=organization.id,
+            email="owner@example.com",
+            password="valid-password-123",
+        )
+    )
+    organization_service.deactivate(organization.id, owner)
 
     with pytest.raises(OrganizationInactiveError):
         user_service.create(
             UserCreate(
                 organization_id=organization.id,
-                email="owner@example.com",
+                email="second@example.com",
                 password="valid-password-123",
             ),
         )

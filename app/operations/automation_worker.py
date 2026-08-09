@@ -28,8 +28,10 @@ def run_batch(batch_size: int) -> int:
         service = ManagedAutomationService(
             repository,
             session,
-            HumanHandoffService(HumanHandoffRepository(session), session, audit_writer),
-            audit_writer=audit_writer,
+            audit_writer,
+            handoff=HumanHandoffService(
+                HumanHandoffRepository(session), session, audit_writer
+            ),
         )
         for row in rows:
             service.run(row)

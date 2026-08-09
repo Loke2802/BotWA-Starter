@@ -15,6 +15,7 @@ from app.application.business_configuration.service import (
 from app.application.organizations.service import OrganizationService
 from app.application.users.service import UserService
 from app.infrastructure.database import Base
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.bot_repository import BotRepository
 from app.infrastructure.repositories.business_configuration_repository import (
     BusinessConfigurationRepository,
@@ -55,6 +56,7 @@ def runtime() -> Generator[Runtime]:
         return OrganizationService(
             repository=OrganizationRepository(session=session),
             session=session,
+            audit_writer=SqlAlchemyAuditRepository(session),
         )
 
     def override_user_service() -> UserService:
@@ -63,6 +65,7 @@ def runtime() -> Generator[Runtime]:
             organization_repository=OrganizationRepository(session=session),
             password_service=password_service,
             session=session,
+            audit_writer=SqlAlchemyAuditRepository(session),
         )
 
     def override_bot_service() -> BotService:
@@ -70,6 +73,7 @@ def runtime() -> Generator[Runtime]:
             repository=BotRepository(session=session),
             organization_repository=OrganizationRepository(session=session),
             session=session,
+            audit_writer=SqlAlchemyAuditRepository(session),
         )
 
     def override_business_configuration_service() -> BusinessConfigurationService:

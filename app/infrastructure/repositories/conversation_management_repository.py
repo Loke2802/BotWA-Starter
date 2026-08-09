@@ -141,9 +141,7 @@ class SqlAlchemyConversationManagementRepository(ConversationManagementRepositor
 class SqlAlchemyConversationMessageManagementRepository(
     ConversationMessageManagementRepository
 ):
-    def __init__(
-        self, session: Session, audit_writer: AuditWriter | None = None
-    ) -> None:
+    def __init__(self, session: Session, audit_writer: AuditWriter) -> None:
         self._session = session
         self._audit_writer = audit_writer
 

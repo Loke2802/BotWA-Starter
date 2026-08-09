@@ -24,6 +24,7 @@ from app.infrastructure.models.managed_automation import (
 )
 from app.infrastructure.models.organization import OrganizationModel
 from app.infrastructure.models.user import UserModel
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.business_calendar_repository import (
     BusinessCalendarRepository,
 )
@@ -113,7 +114,11 @@ def _setup(session: Session) -> tuple[ManagedAutomationService, User, UUID, UUID
     )
     session.commit()
     return (
-        ManagedAutomationService(ManagedAutomationRepository(session), session),
+        ManagedAutomationService(
+            ManagedAutomationRepository(session),
+            session,
+            SqlAlchemyAuditRepository(session),
+        ),
         actor,
         organization_id,
         bot_id,
@@ -131,6 +136,7 @@ def _active_calendar(
     calendars = BusinessCalendarService(
         BusinessCalendarRepository(session),
         session,
+        SqlAlchemyAuditRepository(session),
     )
     created = calendars.create_calendar(
         organization_id,
@@ -165,7 +171,11 @@ def test_bot_calendar_precedes_active_organization_default(session: Session) -> 
     _active_calendar(session, actor, organization_id, None)
     _active_calendar(session, actor, organization_id, bot_id)
 
-    calendars = BusinessCalendarService(BusinessCalendarRepository(session), session)
+    calendars = BusinessCalendarService(
+        BusinessCalendarRepository(session),
+        session,
+        SqlAlchemyAuditRepository(session),
+    )
     applicable = calendars.repository.active_applicable_calendar(
         organization_id,
         bot_id,
@@ -198,6 +208,7 @@ def test_active_prd015_is_source_of_truth_and_prd005_is_explicit_fallback(
     BusinessCalendarService(
         BusinessCalendarRepository(session),
         session,
+        SqlAlchemyAuditRepository(session),
     ).transition_calendar(organization_id, calendar_id, "activate", actor)
     assert (
         automations.business_hours_state(organization_id, bot_id, monday_10)
@@ -285,7 +296,11 @@ def test_only_one_active_calendar_is_allowed_per_tenant_scope(
 ) -> None:
     _automations, actor, organization_id, bot_id = _setup(session)
     _active_calendar(session, actor, organization_id, bot_id)
-    calendars = BusinessCalendarService(BusinessCalendarRepository(session), session)
+    calendars = BusinessCalendarService(
+        BusinessCalendarRepository(session),
+        session,
+        SqlAlchemyAuditRepository(session),
+    )
     duplicate = calendars.create_calendar(
         organization_id,
         BusinessCalendarCreate(

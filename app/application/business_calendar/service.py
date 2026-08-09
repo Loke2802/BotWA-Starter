@@ -132,11 +132,11 @@ class BusinessCalendarService:
         self,
         repository: BusinessCalendarRepository,
         session: Session,
+        audit_writer: AuditWriter,
         *,
         resolver: BusinessHoursResolver | None = None,
         clock: Clock | None = None,
         metrics: BusinessCalendarMetrics | None = None,
-        audit_writer: AuditWriter | None = None,
     ) -> None:
         self.repository = repository
         self.session = session

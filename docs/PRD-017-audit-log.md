@@ -78,9 +78,12 @@ Resource types: `organization`, `user`, `bot`, `conversation`, `handoff`,
 
 ## `AuditWriter`, atomicidad e idempotencia
 
-`AuditWriter.append(AuditEventDraft)` usa la `Session` existente, adjunta el
-evento y nunca hace commit ni abre otra transacción. El application service es
-dueño de commit/rollback. Mutación y audit se confirman juntos; un fallo del
+`AuditWriter.append(AuditEventDraft)` es una dependencia obligatoria de todo
+service con write paths auditables. Usa la `Session` existente y agrega el
+evento al unit of work, pero nunca hace flush/commit propio ni abre otra
+transacción. No existe
+silent no-op, writer opcional ni `NullAuditWriter` de producción. El application
+service es dueño de commit/rollback. Mutación y audit se confirman juntos; un fallo del
 audit revierte la mutación y un rollback funcional no deja evento huérfano. Se
 reutiliza el timestamp semántico cuando ya existe.
 
@@ -145,8 +148,12 @@ organization/actor y organization/resource/UUID, todos con timestamp. No hay GIN
 full text ni correlation index sin query real. El fixture de 10.000 eventos
 confirma un SELECT O(1) para first page, action, resource y next cursor.
 
-Métricas: `audit_events_written_total`, `audit_write_failures_total`,
-`audit_query_requests_total`, `audit_query_duration_seconds`, solo con labels
+Métricas: `audit_append_attempts_total` significa exclusivamente que el evento
+fue aceptado o rechazado por el unit of work; no afirma flush, commit ni
+durabilidad. Los fallos PostgreSQL se observan en el commit del application
+service, que conserva su rollback y error seguro de dominio, sin atribuirlos
+falsamente a un INSERT ya persistido. También existen
+`audit_query_requests_total` y `audit_query_duration_seconds`, solo con labels
 `operation`/`result` de baja cardinalidad.
 
 Códigos seguros: `AUDIT_INVALID_RANGE`, `AUDIT_RANGE_TOO_LARGE`,
@@ -161,9 +168,9 @@ de conservación indefinida.
 
 ## Validación
 
-- focused PRD-017: 12 passed;
+- focused PRD-017: 25 passed;
 - PostgreSQL PRD-017: 3 passed;
-- full pytest: 738 passed, 18 skipped, 2 warnings;
+- full pytest: 751 passed, 18 skipped, 2 warnings;
 - fixture PostgreSQL 10.000 events: PASS, cuatro queries O(1);
 - mypy: PASS — 415 source files;
 - Ruff: PASS;

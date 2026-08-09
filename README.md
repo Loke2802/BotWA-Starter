@@ -6,8 +6,8 @@ Quality Gates (validación técnica PRD-017):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **738 passed, 18 skipped, 2 warnings** |
-| PRD-017 focalizadas | **12 passed** |
+| `pytest` | **751 passed, 18 skipped, 2 warnings** |
+| PRD-017 focalizadas | **25 passed** |
 | PostgreSQL PRD-017 | **3 passed** |
 | Ciclo PostgreSQL | **0017 → 0018 → 0017 → 0018 PASS** |
 | `ruff check app tests` | **All checks passed** |

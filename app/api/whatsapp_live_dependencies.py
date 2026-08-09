@@ -130,8 +130,8 @@ def get_whatsapp_live_message_processor(
         ManagedAutomationService(
             ManagedAutomationRepository(session),
             session,
-            handoff,
-            audit_writer=audit_writer,
+            audit_writer,
+            handoff=handoff,
         ),
     )
     sender = WhatsAppChannelMessageSender(

@@ -63,11 +63,15 @@ class SqlAlchemyAuditRepository:
                 )
             )
             self.metrics.record(
-                "audit_events_written_total", operation="append", result="success"
+                "audit_append_attempts_total",
+                operation="append",
+                result="accepted_by_unit_of_work",
             )
         except SQLAlchemyError as exc:
             self.metrics.record(
-                "audit_write_failures_total", operation="append", result="error"
+                "audit_append_attempts_total",
+                operation="append",
+                result="rejected_by_unit_of_work",
             )
             raise AuditWriteError("audit event could not be appended") from exc
 

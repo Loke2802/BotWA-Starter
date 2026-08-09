@@ -14,7 +14,7 @@ from app.domain.user.contracts import User
 
 
 def append_user_audit(
-    writer: AuditWriter | None,
+    writer: AuditWriter,
     *,
     organization_id: UUID,
     actor: User,
@@ -25,8 +25,6 @@ def append_user_audit(
     correlation_id: UUID | None = None,
     occurred_at: datetime | None = None,
 ) -> None:
-    if writer is None:
-        return
     writer.append(
         AuditEventDraft(
             organization_id=organization_id,
@@ -44,7 +42,7 @@ def append_user_audit(
 
 
 def append_non_user_audit(
-    writer: AuditWriter | None,
+    writer: AuditWriter,
     *,
     organization_id: UUID,
     actor_type: AuditActorType,
@@ -55,8 +53,6 @@ def append_non_user_audit(
     correlation_id: UUID | None = None,
     occurred_at: datetime | None = None,
 ) -> None:
-    if writer is None:
-        return
     if actor_type == "user":
         raise ValueError("user audit events require an authenticated actor")
     writer.append(

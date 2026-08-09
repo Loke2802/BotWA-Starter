@@ -119,7 +119,7 @@ class IntegrationManagementService:
         cipher: SecretCipher,
         oauth_state_signer: OAuthStateSigner,
         providers: IntegrationProviderRegistry,
-        audit_writer: AuditWriter | None = None,
+        audit_writer: AuditWriter,
     ) -> None:
         self.repository = repository
         self.session = session

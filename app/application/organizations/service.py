@@ -33,7 +33,7 @@ class OrganizationService:
         self,
         repository: OrganizationRepository,
         session: Session,
-        audit_writer: AuditWriter | None = None,
+        audit_writer: AuditWriter,
     ) -> None:
         self._repository = repository
         self._session = session
@@ -85,7 +85,7 @@ class OrganizationService:
         self,
         organization_id: UUID,
         request: OrganizationUpdate,
-        actor: User | None = None,
+        actor: User,
     ) -> Organization:
         model = self._repository.get(organization_id)
         if model is None:
@@ -110,26 +110,21 @@ class OrganizationService:
         model.updated_at = datetime.now(UTC)
         self._repository.update(model)
         if changed_fields:
-            if actor is None and self._audit_writer is not None:
-                raise OrganizationConflictError("authenticated audit actor is required")
-            if actor is not None:
-                append_user_audit(
-                    self._audit_writer,
-                    organization_id=model.id,
-                    actor=actor,
-                    action="organization.updated",
-                    resource_type="organization",
-                    resource_id=model.id,
-                    metadata=ChangedFieldsMetadata(changed_fields=changed_fields),
-                    occurred_at=model.updated_at,
-                )
+            append_user_audit(
+                self._audit_writer,
+                organization_id=model.id,
+                actor=actor,
+                action="organization.updated",
+                resource_type="organization",
+                resource_id=model.id,
+                metadata=ChangedFieldsMetadata(changed_fields=changed_fields),
+                occurred_at=model.updated_at,
+            )
         self._commit()
         self._session.refresh(model)
         return self._to_domain(model)
 
-    def deactivate(
-        self, organization_id: UUID, actor: User | None = None
-    ) -> Organization:
+    def deactivate(self, organization_id: UUID, actor: User) -> Organization:
         model = self._repository.get(organization_id)
         if model is None:
             raise OrganizationNotFoundError("organization not found")
@@ -140,21 +135,18 @@ class OrganizationService:
             model.deactivated_at = now
             model.updated_at = now
             self._repository.update(model)
-            if actor is None and self._audit_writer is not None:
-                raise OrganizationConflictError("authenticated audit actor is required")
-            if actor is not None:
-                append_user_audit(
-                    self._audit_writer,
-                    organization_id=model.id,
-                    actor=actor,
-                    action="organization.deactivated",
-                    resource_type="organization",
-                    resource_id=model.id,
-                    metadata=StatusTransitionMetadata(
-                        from_status="active", to_status="inactive"
-                    ),
-                    occurred_at=now,
-                )
+            append_user_audit(
+                self._audit_writer,
+                organization_id=model.id,
+                actor=actor,
+                action="organization.deactivated",
+                resource_type="organization",
+                resource_id=model.id,
+                metadata=StatusTransitionMetadata(
+                    from_status="active", to_status="inactive"
+                ),
+                occurred_at=now,
+            )
             self._commit()
             self._session.refresh(model)
         return self._to_domain(model)

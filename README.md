@@ -1,21 +1,21 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-017 CLOSED
+## Estado actual - Phase 3 / PRD-018 IMPLEMENTED — PENDING CTO REVIEW
 
-Quality Gates (validación técnica PRD-017):
+Quality Gates (validación técnica PRD-018):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **751 passed, 18 skipped, 2 warnings** |
-| PRD-017 focalizadas | **25 passed** |
-| Regresión fail-closed/dominio ampliada | **82 passed** |
-| PostgreSQL PRD-017 | **3 passed** |
-| Ciclo PostgreSQL | **0017 → 0018 → 0017 → 0018 PASS** |
+| `pytest` | **761 passed, 21 skipped, 2 warnings** |
+| PRD-018 focalizadas | **10 passed** |
+| Regresión de dominios afectados | **108 passed** |
+| PostgreSQL PRD-018 | **3 passed** |
+| Ciclo PostgreSQL | **0018 → 0019 → 0018 → 0019 PASS** |
 | `ruff check app tests` | **All checks passed** |
-| `black --check app tests` | **415 files would be left unchanged** |
-| `mypy app tests` | **Success: no issues found in 415 source files** |
+| `black --check app tests` | **428 files would be left unchanged** |
+| `mypy app tests` | **Success: no issues found in 428 source files** |
 | `git diff --check` | **PASS** |
-| Alembic | **20260808_0018 (head)** |
+| Alembic | **20260810_0019 (head)** |
 
 La base actual incluye 5 Engines:
 
@@ -29,8 +29,16 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial: **PRD-001 a PRD-017 CLOSED; PRD-018 a PRD-023 permanecen NOT
-STARTED.**
+Estado oficial: **PRD-001 a PRD-017 CLOSED; PRD-018 IMPLEMENTED — PENDING CTO
+REVIEW; PRD-019 a PRD-023 permanecen NOT STARTED.**
+
+PRD-018 añade catálogo técnico de planes y assignment 1:1 tenant-scoped, features
+booleanas, límites duros calculados desde los Sources of Truth operacionales,
+enforcement transaccional con lock de Organization, optimistic concurrency,
+RBAC/API segura y Audit PRD-017 en la misma transacción. El plan `default` preserva
+el comportamiento previo con features habilitadas y límites ilimitados. Downgrade
+no destruye recursos ni detiene runtimes. Billing, subscriptions, pricing,
+metered usage, cuotas de mensajes y overage permanecen en PRD-019.
 
 PRD-017 añade un Audit Log administrativo tenant-scoped y append-only. Registra
 solo acciones exitosas con actor, rol efectivo, acción/recurso allowlisted,
@@ -699,7 +707,7 @@ PRD-001 through PRD-012 are closed. PRD-010 adds a tenant-scoped handoff
 lifecycle, bot suppression, encrypted and attributed human replies through the
 generic channel sender, idempotency, archive protection, and safe transport
 errors. PRD-011 adds the Contact increment; Customer is deferred and CRM is not
-implemented. PRD-012 through PRD-017 are closed; PRD-018 through PRD-023 are
-not started. Real
+implemented. PRD-012 through PRD-017 are closed; PRD-018 is implemented pending
+CTO review; PRD-019 through PRD-023 are not started. Real
 Meta and Google validation need explicit external credentials.
 

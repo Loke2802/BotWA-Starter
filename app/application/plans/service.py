@@ -207,21 +207,15 @@ class PlanAssignmentService:
             raise PlanAssignmentNotFound("plan assignment not found")
         if row.version != expected_version:
             raise PlanVersionConflict("plan assignment version conflict")
-        target = self.repository.get_plan_by_code(plan_code)
-        if target is None:
-            raise PlanNotFound("plan not found")
-        if target.status != "active":
-            raise PlanUnavailable("plan is retired")
-        current = self.repository.get_plan_by_id(row.plan_definition_id)
-        if current is None:
-            raise PlanUnavailable("assigned plan is unavailable")
-        if current.id == target.id:
+        change = InternalPlanAssignmentService(self.repository).stage(
+            organization_id,
+            plan_code,
+            assigned_by_user_id=actor.id,
+            organization_already_locked=True,
+        )
+        if change is None:
             return self.query_service.get(organization_id, actor)
         now = datetime.now(UTC)
-        row.plan_definition_id = target.id
-        row.version += 1
-        row.assigned_by_user_id = actor.id
-        row.updated_at = now
         try:
             append_user_audit(
                 self.audit_writer,
@@ -231,8 +225,8 @@ class PlanAssignmentService:
                 resource_type="plan_assignment",
                 resource_id=None,
                 metadata=PlanAssignmentMetadata(
-                    from_plan_code=current.plan_code,
-                    to_plan_code=target.plan_code,
+                    from_plan_code=change[0],
+                    to_plan_code=change[1],
                 ),
                 occurred_at=now,
             )
@@ -247,3 +241,41 @@ class PlanAssignmentService:
             "plan_assignment_changes_total", operation="assign", result="success"
         )
         return self.query_service.get(organization_id, actor)
+
+
+class InternalPlanAssignmentService:
+    """Stage a validated plan assignment inside a caller-owned transaction."""
+
+    def __init__(self, repository: SqlAlchemyPlanRepository) -> None:
+        self.repository = repository
+
+    def stage(
+        self,
+        organization_id: UUID,
+        plan_code: str,
+        *,
+        assigned_by_user_id: UUID | None,
+        organization_already_locked: bool = False,
+    ) -> tuple[str, str] | None:
+        if not organization_already_locked and not self.repository.lock_organization(
+            organization_id
+        ):
+            raise PlanNotFound("organization not found")
+        row = self.repository.assignment_model(organization_id)
+        if row is None:
+            raise PlanAssignmentNotFound("plan assignment not found")
+        target = self.repository.get_plan_by_code(plan_code)
+        if target is None:
+            raise PlanNotFound("plan not found")
+        if target.status != "active":
+            raise PlanUnavailable("plan is retired")
+        current = self.repository.get_plan_by_id(row.plan_definition_id)
+        if current is None:
+            raise PlanUnavailable("assigned plan is unavailable")
+        if current.id == target.id:
+            return None
+        row.plan_definition_id = target.id
+        row.version += 1
+        row.assigned_by_user_id = assigned_by_user_id
+        row.updated_at = datetime.now(UTC)
+        return current.plan_code, target.plan_code

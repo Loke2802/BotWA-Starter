@@ -114,13 +114,33 @@ materiales. No existe scheduler en PRD-019.
   transacción, mediante `InternalPlanAssignmentService` sin RBAC ni commit propio.
 - El endpoint público de PRD-018 conserva su RBAC, versionado y Audit y reutiliza
   esa misma operación interna.
-- Un downgrade se programa para `current_period_end`; no elimina recursos. Al
-  vencimiento, una reconciliación solicita el cambio y solo entonces lo aplica.
+- Un downgrade se programa para `current_period_end`; no elimina recursos.
+  `scheduled_change_at` es una guard obligatoria: antes de esa fecha, webhook y
+  reconciliación pueden refrescar el estado autoritativo, pero no promueven el
+  precio pendiente ni cambian el PlanAssignment.
+- Al vencimiento, una reconciliación solicita el cambio y exige confirmación
+  autoritativa del precio objetivo antes de promoverlo. Un webhook también puede
+  completar la transición si ya observa el monto/moneda o identidad normalizada
+  del target. `pending + active` nunca constituye confirmación suficiente.
 - Mercado Pago v1 permite cambios de precio dentro del mismo intervalo. Un cambio
   mensual↔anual se rechaza fail-closed porque la API de suscripción no documenta
   cambio de frecuencia; requiere una estrategia comercial posterior.
-- Cancelación self-service es únicamente `cancel_at_period_end`; no existe
-  cancel-now. Al vencimiento, reconcile ejecuta la cancelación remota.
+- Mercado Pago no documenta `cancel_at_period_end` ni una desactivación futura.
+  Su primitive oficial es el `PUT /preapproval/{id}` inmediato con
+  `status=canceled`; la cancelación no puede reactivarse. Por ello, una solicitud
+  self-service primero exige que el proveedor acepte esa cancelación. Solo después
+  persiste y audita `cancel_at_period_end` localmente.
+  Contrato verificado en la documentación oficial de
+  [gestión de suscripciones](https://www.mercadopago.com.pe/developers/en/docs/subscriptions/subscription-management)
+  y [gestión de suscriptores](https://www.mercadopago.com.pe/developers/en/docs/subscription-plans/manage-subscription-plan).
+- La cancelación confirmada en Mercado Pago es la garantía durable de no-renovación
+  y no depende de ejecutar reconcile exactamente al cierre. Luri conserva el
+  PlanAssignment durante el período ya pagado; un webhook previo actualiza estado
+  del proveedor sin revocar acceso ni ejecutar fallback. En
+  `scheduled_change_at`, webhook o reconcile completan el estado local y aplican
+  únicamente el fallback configurado. `default` nunca es fallback implícito.
+- Si Mercado Pago rechaza o no confirma `canceled`, la petición falla, la mutación
+  local y `subscription.cancel_requested` se revierten, y no se comunica éxito.
 - `past_due` conserva el assignment actual y no suspende por sí solo.
 - No se inventa un período de gracia; `grace_until` solo refleja una política
   configurada fuera de este corte.
@@ -197,12 +217,21 @@ Errores públicos cerrados: `BILLING_DISABLED`, `BILLING_NOT_CONFIGURED`,
 
 La suite cubre contratos/modelos, checkout hosted e idempotente, modo disabled,
 RBAC y aislamiento tenant, firma/replay/deduplicación, binding interno, estado
-autoritativo, orden de eventos, upgrades, downgrades programados, cancelación al
-período, falta de fallback, transacción/Audit, API, restricciones PostgreSQL y
-ciclo `0019 → 0020 → 0019 → 0020`.
+autoritativo, orden de eventos, upgrades, guard temporal y confirmación de
+downgrades, cancelación inmediata del proveedor con acceso local hasta el cierre,
+rechazo e idempotencia de cancelación, ausencia de fallback implícito,
+transacción/Audit, API, restricciones PostgreSQL y ciclo
+`0019 → 0020 → 0019 → 0020`.
 
 Los resultados finales de gates se registran en los documentos canónicos y en el
 Draft PR después de su ejecución completa.
+
+Resultado del hardening final: 25 pruebas PRD-019 y 9 regresiones focalizadas de
+scheduling/cancelación pasan; la regresión PRD-017/018/019 cierra en 86 passed;
+PostgreSQL PRD-019 en 4 passed; full pytest en 812 passed, 25 skipped y 2 warnings;
+mypy, Ruff, Black y `git diff --check` pasan sobre 446 source files, y Alembic
+conserva un único head `20260812_0020` con ciclo
+`0019 → 0020 → 0019 → 0020` aprobado.
 
 ## Exclusiones explícitas
 

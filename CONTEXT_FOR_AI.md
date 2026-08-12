@@ -52,9 +52,10 @@ Current validated gates:
 
 | Gate | Result |
 |---|---|
-| `pytest` | 802 passed, 27 skipped, 2 warnings |
-| Focused PRD-019 | 17 passed, 2 warnings |
-| Expanded PRD-017/018/019 regression | 74 passed, 2 warnings |
+| `pytest` | 812 passed, 25 skipped, 2 warnings |
+| Focused PRD-019 | 25 passed, 2 warnings |
+| Scheduling/cancellation regression | 9 passed, 2 warnings |
+| Expanded PRD-017/018/019 regression | 86 passed, 2 warnings |
 | PostgreSQL PRD-019 | 4 passed |
 | PostgreSQL migration cycle | `0019 → 0020 → 0019 → 0020` PASS |
 | `ruff check app tests` | All checks passed |

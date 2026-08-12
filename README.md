@@ -6,9 +6,10 @@ Quality Gates (validación técnica PRD-019):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **802 passed, 27 skipped, 2 warnings** |
-| PRD-019 focalizadas | **17 passed, 2 warnings** |
-| Regresión PRD-017/018/019 | **74 passed, 2 warnings** |
+| `pytest` | **812 passed, 25 skipped, 2 warnings** |
+| PRD-019 focalizadas | **25 passed, 2 warnings** |
+| Regresión scheduling/cancelación | **9 passed, 2 warnings** |
+| Regresión PRD-017/018/019 | **86 passed, 2 warnings** |
 | PostgreSQL PRD-019 | **4 passed** |
 | Ciclo PostgreSQL | **0019 → 0020 → 0019 → 0020 PASS** |
 | `ruff check app tests` | **All checks passed** |
@@ -35,7 +36,9 @@ REVIEW; PRD-020 a PRD-023 permanecen NOT STARTED.**
 PRD-019 añade Billing SaaS provider-agnostic, tenant-scoped y PostgreSQL-only.
 Incluye Mercado Pago detrás de un adaptador, fake determinista, checkout hosted,
 webhook firmado/deduplicado, reconcile autoritativo, cancelación al fin de período
-y aplicación transaccional de Plan/Audit. Billing está deshabilitado por defecto,
+con no-renovación inmediata confirmada por el proveedor, downgrade con guard de
+fecha y confirmación de precio, y aplicación transaccional de Plan/Audit. Billing
+está deshabilitado por defecto,
 no contiene seeds comerciales y no captura PAN/CVV. El smoke sandbox real de
 Mercado Pago y el commercial go-live permanecen bloqueados hasta disponer de
 credenciales y configuración aprobadas. PRD-020 no fue iniciado.

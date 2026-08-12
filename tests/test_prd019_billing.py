@@ -316,7 +316,7 @@ def test_verified_webhook_activates_plan_once_and_is_tenant_bound(
     ) == 1
 
 
-def test_upgrade_is_provider_confirmed_and_cancel_is_period_end_only(
+def test_upgrade_is_provider_confirmed_and_cancellation_preserves_paid_access(
     session: Session,
 ) -> None:
     organization_id, actor, basic, pro = _seed(session)
@@ -339,7 +339,161 @@ def test_upgrade_is_provider_confirmed_and_cancel_is_period_end_only(
     assert status.plan_code == "pro"
     canceled = service.request_cancellation(organization_id, status.version or 0, actor)
     assert canceled.cancel_at_period_end is True
-    assert provider.cancellation_calls == 0
+    assert canceled.status == "active"
+    assert canceled.plan_code == "pro"
+    assert provider.cancellation_calls == 1
+    assert (
+        provider.fetch_subscription(row.provider_subscription_id).status == "canceled"
+    )
+
+    duplicate = service.request_cancellation(
+        organization_id, canceled.version or 0, actor
+    )
+    assert duplicate.version == canceled.version
+    assert provider.cancellation_calls == 1
+    assert [event.action for event in writer.events].count(
+        "subscription.cancel_requested"
+    ) == 1
+
+
+def test_upgrade_rejects_unconfirmed_provider_price(session: Session) -> None:
+    organization_id, actor, basic, pro = _seed(session)
+
+    class UnconfirmedPriceProvider(FakeBillingProvider):
+        def request_plan_change(
+            self,
+            provider_subscription_id: str,
+            provider_price_id: str,
+            *,
+            unit_amount_minor: int,
+            currency: str,
+            current_interval: str,
+            target_interval: str,
+            idempotency_key: str,
+        ) -> ProviderSubscriptionSnapshot:
+            del (
+                provider_price_id,
+                unit_amount_minor,
+                currency,
+                current_interval,
+                target_interval,
+                idempotency_key,
+            )
+            self.plan_change_calls += 1
+            return self.fetch_subscription(provider_subscription_id)
+
+    provider = UnconfirmedPriceProvider()
+    writer = RecordingAuditWriter()
+    service = _service(session, provider, writer)
+    subscription_id = _checkout(service, organization_id, actor, basic)
+    row = session.get(SubscriptionModel, subscription_id)
+    assert row is not None and row.provider_subscription_id is not None
+    provider.activate(row.provider_subscription_id)
+    service.reconcile(
+        organization_id, actor.model_copy(update={"role": "platform_admin"})
+    )
+    before_version = row.version
+
+    with pytest.raises(BillingProviderRejected):
+        service.request_plan_change(
+            organization_id,
+            ChangePlanRequest(billing_price_id=pro.id, expected_version=before_version),
+            actor,
+        )
+
+    session.refresh(row)
+    assert row.billing_price_id == basic.id
+    assert row.pending_billing_price_id is None
+    assert row.version == before_version
+    assert "subscription.plan_changed" not in [event.action for event in writer.events]
+
+
+def test_provider_rejection_does_not_accept_cancellation(session: Session) -> None:
+    organization_id, actor, basic, _ = _seed(session)
+    provider = FakeBillingProvider()
+    writer = RecordingAuditWriter()
+    service = _service(session, provider, writer)
+    subscription_id = _checkout(service, organization_id, actor, basic)
+    row = session.get(SubscriptionModel, subscription_id)
+    assert row is not None and row.provider_subscription_id is not None
+    provider.activate(row.provider_subscription_id)
+    service.reconcile(
+        organization_id, actor.model_copy(update={"role": "platform_admin"})
+    )
+    before_version = row.version
+    provider.available = False
+
+    with pytest.raises(BillingProviderUnavailable):
+        service.request_cancellation(organization_id, before_version, actor)
+
+    session.refresh(row)
+    assert row.cancel_at_period_end is False
+    assert row.version == before_version
+    assert "subscription.cancel_requested" not in [
+        event.action for event in writer.events
+    ]
+
+
+def test_pre_period_cancellation_webhook_does_not_revoke_access(
+    session: Session,
+) -> None:
+    organization_id, actor, _, pro = _seed(session)
+    provider = FakeBillingProvider(webhook_secret="secret")
+    writer = RecordingAuditWriter()
+    service = _service(session, provider, writer, fallback="basic")
+    subscription_id = _checkout(service, organization_id, actor, pro)
+    row = session.get(SubscriptionModel, subscription_id)
+    assert row is not None and row.provider_subscription_id is not None
+    provider.activate(row.provider_subscription_id)
+    service.reconcile(
+        organization_id, actor.model_copy(update={"role": "platform_admin"})
+    )
+    canceled = service.request_cancellation(organization_id, row.version, actor)
+
+    receipt = _signed_event(
+        service, row.provider_subscription_id, "cancellation-before-period-end"
+    )
+    assignment = SqlAlchemyPlanRepository(session).get_assignment(organization_id)
+    assert receipt.status == "ignored"
+    assert canceled.status == "active"
+    assert row.status == "active"
+    assert assignment is not None
+    assert assignment.plan_definition_id == pro.plan_definition_id
+    assert [event.action for event in writer.events].count("subscription.canceled") == 0
+
+
+def test_effective_cancellation_applies_configured_fallback_once(
+    session: Session,
+) -> None:
+    organization_id, actor, basic, pro = _seed(session)
+    provider = FakeBillingProvider(webhook_secret="secret")
+    writer = RecordingAuditWriter()
+    service = _service(session, provider, writer, fallback="basic")
+    subscription_id = _checkout(service, organization_id, actor, pro)
+    row = session.get(SubscriptionModel, subscription_id)
+    assert row is not None and row.provider_subscription_id is not None
+    provider.activate(row.provider_subscription_id)
+    service.reconcile(
+        organization_id, actor.model_copy(update={"role": "platform_admin"})
+    )
+    service.request_cancellation(organization_id, row.version, actor)
+    past = datetime.now(UTC) - timedelta(seconds=1)
+    row.current_period_end = past
+    row.scheduled_change_at = past
+    provider.subscriptions[row.provider_subscription_id] = provider.fetch_subscription(
+        row.provider_subscription_id
+    ).model_copy(update={"current_period_end": past})
+    session.commit()
+
+    receipt = _signed_event(
+        service, row.provider_subscription_id, "cancellation-at-period-end"
+    )
+    assignment = SqlAlchemyPlanRepository(session).get_assignment(organization_id)
+    assert receipt.status == "processed"
+    assert row.status == "canceled"
+    assert assignment is not None
+    assert assignment.plan_definition_id == basic.plan_definition_id
+    assert [event.action for event in writer.events].count("subscription.canceled") == 1
 
 
 def test_terminal_without_fallback_never_assigns_default(session: Session) -> None:
@@ -354,6 +508,9 @@ def test_terminal_without_fallback_never_assigns_default(session: Session) -> No
     service.reconcile(organization_id, admin)
     row.current_period_end = datetime.now(UTC) - timedelta(seconds=1)
     row.cancel_at_period_end = True
+    provider.subscriptions[row.provider_subscription_id] = provider.fetch_subscription(
+        row.provider_subscription_id
+    ).model_copy(update={"current_period_end": row.current_period_end})
     session.commit()
     service.reconcile(organization_id, admin)
     persisted = session.get(SubscriptionModel, subscription_id)
@@ -465,6 +622,137 @@ def test_same_price_change_is_noop(session: Session) -> None:
     assert len(writer.events) == before_audits
 
 
+def test_active_webhook_before_downgrade_date_keeps_current_plan(
+    session: Session,
+) -> None:
+    organization_id, actor, basic, pro = _seed(session)
+    provider = FakeBillingProvider(webhook_secret="secret")
+    writer = RecordingAuditWriter()
+    service = _service(session, provider, writer)
+    subscription_id = _checkout(service, organization_id, actor, pro)
+    row = session.get(SubscriptionModel, subscription_id)
+    assert row is not None and row.provider_subscription_id is not None
+    provider.activate(row.provider_subscription_id)
+    admin = actor.model_copy(update={"role": "platform_admin"})
+    service.reconcile(organization_id, admin)
+    scheduled = service.request_plan_change(
+        organization_id,
+        ChangePlanRequest(billing_price_id=basic.id, expected_version=row.version),
+        actor,
+    )
+    scheduled_version = scheduled.version
+    scheduled_at = scheduled.scheduled_change_at
+
+    receipt = _signed_event(
+        service, row.provider_subscription_id, "active-before-downgrade"
+    )
+    assignment = SqlAlchemyPlanRepository(session).get_assignment(organization_id)
+    assert receipt.status == "ignored"
+    assert row.billing_price_id == pro.id
+    assert row.pending_billing_price_id == basic.id
+    assert row.scheduled_change_at == scheduled_at
+    assert row.version == scheduled_version
+    assert assignment is not None
+    assert assignment.plan_definition_id == pro.plan_definition_id
+    assert [event.action for event in writer.events].count(
+        "subscription.plan_changed"
+    ) == 0
+
+
+def test_due_downgrade_requires_provider_confirmation_and_applies_once(
+    session: Session,
+) -> None:
+    organization_id, actor, basic, pro = _seed(session)
+    provider = FakeBillingProvider(webhook_secret="secret")
+    writer = RecordingAuditWriter()
+    service = _service(session, provider, writer)
+    subscription_id = _checkout(service, organization_id, actor, pro)
+    row = session.get(SubscriptionModel, subscription_id)
+    assert row is not None and row.provider_subscription_id is not None
+    provider.activate(row.provider_subscription_id)
+    admin = actor.model_copy(update={"role": "platform_admin"})
+    service.reconcile(organization_id, admin)
+    service.request_plan_change(
+        organization_id,
+        ChangePlanRequest(billing_price_id=basic.id, expected_version=row.version),
+        actor,
+    )
+    row.scheduled_change_at = datetime.now(UTC) - timedelta(seconds=1)
+    session.commit()
+    version_before_confirmation = row.version
+
+    result = service.reconcile(organization_id, admin)
+    assignment = SqlAlchemyPlanRepository(session).get_assignment(organization_id)
+    assert result.plan_code == "basic"
+    assert row.billing_price_id == basic.id
+    assert row.pending_billing_price_id is None
+    assert row.scheduled_change_at is None
+    assert row.version == version_before_confirmation + 1
+    assert provider.plan_change_calls == 1
+    assert assignment is not None
+    assert assignment.plan_definition_id == basic.plan_definition_id
+    assert [event.action for event in writer.events].count(
+        "subscription.plan_changed"
+    ) == 1
+
+    _signed_event(service, row.provider_subscription_id, "downgrade-confirmed-again")
+    assert [event.action for event in writer.events].count(
+        "subscription.plan_changed"
+    ) == 1
+
+
+def test_due_downgrade_can_be_confirmed_by_authoritative_webhook(
+    session: Session,
+) -> None:
+    organization_id, actor, basic, pro = _seed(session)
+    provider = FakeBillingProvider(webhook_secret="secret")
+    writer = RecordingAuditWriter()
+    service = _service(session, provider, writer)
+    subscription_id = _checkout(service, organization_id, actor, pro)
+    row = session.get(SubscriptionModel, subscription_id)
+    assert row is not None and row.provider_subscription_id is not None
+    provider.activate(row.provider_subscription_id)
+    service.reconcile(
+        organization_id, actor.model_copy(update={"role": "platform_admin"})
+    )
+    service.request_plan_change(
+        organization_id,
+        ChangePlanRequest(billing_price_id=basic.id, expected_version=row.version),
+        actor,
+    )
+    row.scheduled_change_at = datetime.now(UTC) - timedelta(seconds=1)
+    session.commit()
+    unconfirmed = _signed_event(
+        service, row.provider_subscription_id, "downgrade-due-but-unconfirmed"
+    )
+    assert unconfirmed.status == "ignored"
+    assert row.billing_price_id == pro.id
+    assert row.pending_billing_price_id == basic.id
+
+    provider.request_plan_change(
+        row.provider_subscription_id,
+        basic.provider_price_id,
+        unit_amount_minor=basic.amount_minor,
+        currency=basic.currency,
+        current_interval=pro.interval,
+        target_interval=basic.interval,
+        idempotency_key="provider-confirmed-downgrade",
+    )
+
+    receipt = _signed_event(
+        service, row.provider_subscription_id, "downgrade-effective-webhook"
+    )
+    assignment = SqlAlchemyPlanRepository(session).get_assignment(organization_id)
+    assert receipt.status == "processed"
+    assert row.billing_price_id == basic.id
+    assert row.pending_billing_price_id is None
+    assert assignment is not None
+    assert assignment.plan_definition_id == basic.plan_definition_id
+    assert [event.action for event in writer.events].count(
+        "subscription.plan_changed"
+    ) == 1
+
+
 def test_billing_api_uses_typed_contracts(session: Session) -> None:
     organization_id, actor, _, _ = _seed(session)
     service = _service(session, FakeBillingProvider(), RecordingAuditWriter())
@@ -551,7 +839,10 @@ def test_mercado_pago_plan_change_maps_amount_not_plan_identity() -> None:
                 "status": "authorized",
                 "version": 2,
                 "preapproval_plan_id": "original-provider-plan",
-                "auto_recurring": {"currency_id": "PEN"},
+                "auto_recurring": {
+                    "transaction_amount": 12.5,
+                    "currency_id": "PEN",
+                },
             },
         )
 
@@ -582,7 +873,9 @@ def test_mercado_pago_plan_change_maps_amount_not_plan_identity() -> None:
         "transaction_amount": "12.50",
         "currency_id": "PEN",
     }
-    assert result.provider_price_id == "target-provider-plan"
+    assert result.provider_price_id == "original-provider-plan"
+    assert result.provider_amount_minor == 1250
+    assert result.provider_currency == "PEN"
     with pytest.raises(BillingProviderRejected):
         provider.request_plan_change(
             "mp-subscription",
@@ -593,6 +886,43 @@ def test_mercado_pago_plan_change_maps_amount_not_plan_identity() -> None:
             target_interval="annual",
             idempotency_key="interval-change",
         )
+
+
+def test_mercado_pago_cancellation_uses_immediate_official_status() -> None:
+    captured: dict[str, object] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["body"] = json.loads(request.content)
+        return httpx.Response(
+            200,
+            json={
+                "id": "mp-subscription",
+                "external_reference": "internal-subscription",
+                "status": "canceled",
+                "version": 3,
+                "auto_recurring": {
+                    "transaction_amount": 10,
+                    "currency_id": "PEN",
+                },
+            },
+        )
+
+    provider = MercadoPagoBillingProvider(
+        access_token="token",
+        webhook_secret="secret",
+        connect_timeout_seconds=1,
+        read_timeout_seconds=1,
+        signature_tolerance_seconds=300,
+        client=httpx.Client(
+            base_url="https://api.mercadopago.com",
+            transport=httpx.MockTransport(handler),
+        ),
+    )
+    snapshot = provider.request_cancellation(
+        "mp-subscription", idempotency_key="cancel-key"
+    )
+    assert captured["body"] == {"status": "canceled"}
+    assert snapshot.status == "canceled"
 
 
 def test_mercado_pago_valid_signature_is_normalized() -> None:

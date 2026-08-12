@@ -68,15 +68,19 @@ tenant-scoped Billing, Mercado Pago/fake adapters, hosted checkout, a durable
 provider-event ledger, authoritative webhook/reconcile transitions and
 same-transaction Plan/Audit application. Revision `20260812_0020` is
 PostgreSQL-only and contains no commercial seeds. Billing remains disabled by
-default; real Mercado Pago sandbox and commercial go-live gates remain pending.
+default. Mercado Pago cancellation is immediate and provider-confirmed while Luri
+preserves paid access until period end; scheduled downgrades require both their
+effective time and authoritative target-price confirmation. Real Mercado Pago
+sandbox and commercial go-live gates remain pending.
 
 ## Quality Gates
 
 | Gate | Current result |
 |---|---|
-| `pytest` | 802 passed, 27 skipped, 2 warnings |
-| Focused PRD-019 | 17 passed, 2 warnings |
-| Expanded PRD-017/018/019 regression | 74 passed, 2 warnings |
+| `pytest` | 812 passed, 25 skipped, 2 warnings |
+| Focused PRD-019 | 25 passed, 2 warnings |
+| Scheduling/cancellation regression | 9 passed, 2 warnings |
+| Expanded PRD-017/018/019 regression | 86 passed, 2 warnings |
 | PostgreSQL PRD-019 | 4 passed |
 | PostgreSQL migration cycle | `0019 → 0020 → 0019 → 0020` PASS |
 | `ruff check app tests` | All checks passed |

@@ -29,6 +29,7 @@ from app.domain.billing.errors import (
     BillingNotConfigured,
     BillingPriceNotFound,
     BillingPriceUnavailable,
+    BillingProviderRejected,
     BillingProviderUnavailable,
     BillingVersionConflict,
     BillingWebhookInvalid,
@@ -303,6 +304,7 @@ class BillingService:
                     idempotency_key=f"change-{subscription.id}-{subscription.version}",
                 )
                 self._verify_snapshot_binding(subscription, snapshot)
+                self._require_price_confirmation(snapshot, target_row)
                 subscription.pending_billing_price_id = target.id
                 self._apply_snapshot(subscription, snapshot, now=now)
             self.session.commit()
@@ -321,14 +323,24 @@ class BillingService:
         subscription = self._current_locked(organization_id)
         if subscription.version != expected_version:
             raise BillingVersionConflict("subscription version conflict")
-        if subscription.cancel_at_period_end:
+        if subscription.cancel_at_period_end and _provider_is_canceled(
+            subscription.provider_status
+        ):
             return self.get(organization_id, actor)
         now = datetime.now(UTC)
-        subscription.cancel_at_period_end = True
-        subscription.scheduled_change_at = subscription.current_period_end
-        subscription.version += 1
-        subscription.updated_at = now
         try:
+            provider_id = self._provider_subscription_id(subscription)
+            snapshot = self.provider.request_cancellation(
+                provider_id,
+                idempotency_key=f"cancel-{subscription.id}-{subscription.version}",
+            )
+            self._verify_snapshot_binding(subscription, snapshot)
+            if _internal_status(snapshot.status) != "canceled":
+                raise BillingProviderRejected(
+                    "provider did not confirm subscription cancellation"
+                )
+            subscription.cancel_at_period_end = True
+            subscription.scheduled_change_at = subscription.current_period_end
             append_user_audit(
                 self.audit_writer,
                 organization_id=organization_id,
@@ -339,11 +351,12 @@ class BillingService:
                 metadata=BillingMetadata(cancel_at_period_end=True),
                 occurred_at=now,
             )
+            self._apply_snapshot(subscription, snapshot, now=now)
             self.session.commit()
         except Exception:
             self.session.rollback()
             raise
-        self.metrics.record("billing_cancellations_total", result="scheduled")
+        self.metrics.record("billing_cancellations_total", result="provider_confirmed")
         return self.get(organization_id, actor)
 
     def reconcile(self, organization_id: UUID, actor: User) -> BillingStatusResponse:
@@ -355,15 +368,17 @@ class BillingService:
         subscription = self._current_locked(organization_id)
         provider_id = self._provider_subscription_id(subscription)
         try:
-            if (
-                subscription.cancel_at_period_end
-                and subscription.current_period_end is not None
-                and _aware(subscription.current_period_end) <= datetime.now(UTC)
+            if subscription.cancel_at_period_end and not _provider_is_canceled(
+                subscription.provider_status
             ):
                 snapshot = self.provider.request_cancellation(
                     provider_id,
                     idempotency_key=f"cancel-{subscription.id}-{subscription.version}",
                 )
+                if _internal_status(snapshot.status) != "canceled":
+                    raise BillingProviderRejected(
+                        "provider did not confirm subscription cancellation"
+                    )
             elif (
                 subscription.pending_billing_price_id is not None
                 and subscription.scheduled_change_at is not None
@@ -390,6 +405,7 @@ class BillingService:
                         f"scheduled-change-{subscription.id}-{subscription.version}"
                     ),
                 )
+                self._require_price_confirmation(snapshot, pending)
             else:
                 snapshot = self.provider.fetch_subscription(provider_id)
             self._verify_snapshot_binding(subscription, snapshot)
@@ -510,33 +526,65 @@ class BillingService:
             return False
         old_status = subscription.status
         old_price_id = subscription.billing_price_id
-        new_status = _internal_status(snapshot.status)
+        provider_status = _internal_status(snapshot.status)
+        effective_period_start = (
+            snapshot.current_period_start or subscription.current_period_start
+        )
+        effective_period_end = (
+            snapshot.current_period_end or subscription.current_period_end
+        )
+        cancellation_effective_at = (
+            subscription.scheduled_change_at or effective_period_end
+        )
+        defer_cancellation = (
+            provider_status == "canceled"
+            and cancellation_effective_at is not None
+            and _aware(cancellation_effective_at) > now
+        )
+        new_status = old_status if defer_cancellation else provider_status
         if not _transition_allowed(old_status, new_status):
             raise InvalidBillingTransition("provider state regression rejected")
         target_row = None
-        if subscription.pending_billing_price_id is not None:
-            target_row = self.repository.price_model(
+        if subscription.pending_billing_price_id is not None and new_status == "active":
+            pending_row = self.repository.price_model(
                 subscription.pending_billing_price_id
             )
+            if pending_row is None:
+                raise BillingPriceNotFound("pending billing price not found")
+            change_is_due = (
+                subscription.scheduled_change_at is None
+                or _aware(subscription.scheduled_change_at) <= now
+            )
+            if change_is_due and self._snapshot_confirms_price(snapshot, pending_row):
+                target_row = pending_row
         elif new_status == "active" and old_status == "pending":
             target_row = self.repository.price_model(subscription.billing_price_id)
+        cancellation_marker_changed = defer_cancellation and (
+            not subscription.cancel_at_period_end
+            or subscription.scheduled_change_at != cancellation_effective_at
+        )
         material = any(
             (
                 subscription.provider_status != snapshot.status,
                 subscription.status != new_status,
-                subscription.current_period_end != snapshot.current_period_end,
+                subscription.current_period_start != effective_period_start,
+                subscription.current_period_end != effective_period_end,
                 subscription.payment_state != snapshot.payment_state,
                 target_row is not None and target_row.id != old_price_id,
+                cancellation_marker_changed,
             )
         )
         subscription.provider_status = snapshot.status
         subscription.status = new_status
-        subscription.current_period_start = snapshot.current_period_start
-        subscription.current_period_end = snapshot.current_period_end
+        subscription.current_period_start = effective_period_start
+        subscription.current_period_end = effective_period_end
         subscription.payment_state = snapshot.payment_state
         subscription.provider_sequence = snapshot.provider_sequence
         subscription.last_synced_at = now
         subscription.updated_at = now
+        if defer_cancellation:
+            subscription.cancel_at_period_end = True
+            subscription.scheduled_change_at = cancellation_effective_at
         if not material:
             return False
         subscription.version += 1
@@ -597,6 +645,36 @@ class BillingService:
                 )
         return True
 
+    @staticmethod
+    def _snapshot_confirms_price(
+        snapshot: ProviderSubscriptionSnapshot, target: BillingPriceModel
+    ) -> bool:
+        provider_identity_matches = (
+            snapshot.provider_price_id is not None
+            and snapshot.provider_price_id == target.provider_price_id
+        )
+        provider_exposes_amount = (
+            snapshot.provider_amount_minor is not None
+            or snapshot.provider_currency is not None
+        )
+        amount_and_currency_match = (
+            snapshot.provider_amount_minor is not None
+            and snapshot.provider_amount_minor == target.amount_minor
+            and snapshot.provider_currency is not None
+            and snapshot.provider_currency.upper() == target.currency.upper()
+        )
+        if provider_exposes_amount:
+            return amount_and_currency_match
+        return provider_identity_matches
+
+    def _require_price_confirmation(
+        self, snapshot: ProviderSubscriptionSnapshot, target: BillingPriceModel
+    ) -> None:
+        if _internal_status(snapshot.status) != "active" or not (
+            self._snapshot_confirms_price(snapshot, target)
+        ):
+            raise BillingProviderRejected("provider did not confirm billing price")
+
     def _active_price(self, price_id: UUID) -> BillingPriceModel:
         row = self.repository.price_model(price_id)
         if row is None:
@@ -656,6 +734,13 @@ def _internal_status(provider_status: str) -> str:
     if mapped is None:
         raise InvalidBillingTransition("unknown provider subscription state")
     return mapped
+
+
+def _provider_is_canceled(provider_status: str | None) -> bool:
+    return provider_status is not None and provider_status.lower() in (
+        "canceled",
+        "cancelled",
+    )
 
 
 def _transition_allowed(current: str, target: str) -> bool:

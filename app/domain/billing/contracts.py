@@ -88,6 +88,18 @@ class ProviderSubscriptionSnapshot(BaseModel):
     payment_state: PaymentState = "unknown"
     provider_sequence: int | None = None
     provider_price_id: str | None = None
+    provider_amount_minor: Annotated[int, Field(ge=0)] | None = None
+    provider_currency: str | None = None
+
+    @field_validator("provider_currency")
+    @classmethod
+    def provider_currency_is_iso_shape(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().upper()
+        if len(normalized) != 3 or not normalized.isalpha():
+            raise ValueError("provider_currency must be a three-letter ISO code")
+        return normalized
 
 
 class CheckoutCommand(BaseModel):

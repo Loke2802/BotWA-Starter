@@ -50,17 +50,17 @@ class FakeBillingProvider:
         target_interval: str,
         idempotency_key: str,
     ) -> ProviderSubscriptionSnapshot:
-        del (
-            unit_amount_minor,
-            currency,
-            current_interval,
-            target_interval,
-            idempotency_key,
-        )
+        del current_interval, target_interval, idempotency_key
         self._require_available()
         self.plan_change_calls += 1
         current = self.fetch_subscription(provider_subscription_id)
-        changed = current.model_copy(update={"provider_price_id": provider_price_id})
+        changed = current.model_copy(
+            update={
+                "provider_price_id": provider_price_id,
+                "provider_amount_minor": unit_amount_minor,
+                "provider_currency": currency,
+            }
+        )
         self.subscriptions[provider_subscription_id] = changed
         return changed
 
@@ -74,7 +74,7 @@ class FakeBillingProvider:
         self._require_available()
         self.cancellation_calls += 1
         current = self.fetch_subscription(provider_subscription_id)
-        canceled = current.model_copy(update={"status": "cancelled"})
+        canceled = current.model_copy(update={"status": "canceled"})
         self.subscriptions[provider_subscription_id] = canceled
         return canceled
 

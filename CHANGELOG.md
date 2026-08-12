@@ -9,14 +9,16 @@
 - Added PostgreSQL-only `billing_account`, `billing_price`, `subscription` and
   `billing_provider_event` via Alembic `20260812_0020`, with no commercial seeds.
 - Added hosted idempotent checkout, verified/deduplicated authoritative webhooks,
-  manual Platform Admin reconcile, optimistic concurrency, period-end downgrade
-  and cancellation, local last-known-good reads and fail-closed fallback policy.
+  manual Platform Admin reconcile, optimistic concurrency, guarded period-end
+  downgrade and provider-confirmed immediate no-renewal with paid-period access,
+  local last-known-good reads and fail-closed fallback policy.
 - Added shared internal Plan assignment staging so provider-confirmed Subscription,
   PRD-018 assignment and PRD-017 Audit commit in one local transaction.
 - Added least-privilege Billing RBAC, tenant-scoped APIs, allowlisted audit metadata,
   low-cardinality metrics and responses without external identifiers or PII.
-- Validation: focused PRD-019 17 passed; PRD-017/018/019 regression 74 passed;
-  PostgreSQL PRD-019 4 passed; full pytest 802 passed, 27 skipped, 2 warnings;
+- Validation: focused PRD-019 25 passed; scheduling/cancellation regression 9
+  passed; PRD-017/018/019 regression 86 passed; PostgreSQL PRD-019 4 passed;
+  full pytest 812 passed, 25 skipped, 2 warnings;
   mypy PASS across 446 source files; Alembic cycle
   `0019 → 0020 → 0019 → 0020` PASS.
 - Billing remains disabled by default. No Plan/BillingPrice commercial data was

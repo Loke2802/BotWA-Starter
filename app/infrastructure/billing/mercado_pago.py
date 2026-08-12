@@ -3,6 +3,7 @@ import hmac
 import json
 import time
 from datetime import UTC, datetime
+from decimal import Decimal, InvalidOperation
 
 import httpx
 
@@ -93,9 +94,7 @@ class MercadoPagoBillingProvider:
                 }
             },
         )
-        return self._snapshot(data).model_copy(
-            update={"provider_price_id": provider_price_id}
-        )
+        return self._snapshot(data)
 
     def request_cancellation(
         self,
@@ -107,7 +106,7 @@ class MercadoPagoBillingProvider:
             "PUT",
             f"/preapproval/{provider_subscription_id}",
             idempotency_key=idempotency_key,
-            json_data={"status": "cancelled"},
+            json_data={"status": "canceled"},
         )
         return self._snapshot(data)
 
@@ -198,6 +197,8 @@ class MercadoPagoBillingProvider:
         auto_recurring = data.get("auto_recurring")
         recurring = auto_recurring if isinstance(auto_recurring, dict) else {}
         provider_price_id = data.get("preapproval_plan_id")
+        provider_amount_minor = _minor_units(recurring.get("transaction_amount"))
+        provider_currency = recurring.get("currency_id")
         payment_state: PaymentState = (
             "paid"
             if status == "authorized"
@@ -213,6 +214,10 @@ class MercadoPagoBillingProvider:
             payment_state=payment_state,
             provider_sequence=int(sequence) if isinstance(sequence, int) else None,
             provider_price_id=str(provider_price_id) if provider_price_id else None,
+            provider_amount_minor=provider_amount_minor,
+            provider_currency=(
+                str(provider_currency) if provider_currency is not None else None
+            ),
         )
 
 
@@ -221,3 +226,16 @@ def _parse_datetime(value: object) -> datetime | None:
         return None
     parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
+
+
+def _minor_units(value: object) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return None
+    minor = amount * 100
+    if amount < 0 or minor != minor.to_integral_value():
+        return None
+    return int(minor)

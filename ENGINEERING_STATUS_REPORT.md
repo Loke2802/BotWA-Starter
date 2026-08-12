@@ -1,10 +1,10 @@
 # Engineering Status Report - Official Current Status
 
-**Date:** 2026-08-10
+**Date:** 2026-08-11
 **Role:** Lead Engineer  
-**Project phase:** Phase 3 - PRD-018 IMPLEMENTED — PENDING CTO REVIEW
-**Status source:** branch `feat/prd-018-plans-limits` from master
-`66d10ea1fb65fec7b6871981b879fde54925d65b`
+**Project phase:** Phase 3 - PRD-001 through PRD-018 CLOSED
+**Status source:** PRD-018 merged via PR #28 at
+`63f2fc79444e6b3f85b516b917860fb17fa8f779`
 
 ## Executive Summary
 
@@ -54,7 +54,9 @@ final hardening makes `AuditWriter` mandatory and fail-closed across production
 composition paths; `audit_append_attempts_total` reports only unit-of-work
 acceptance/rejection, never durable persistence.
 
-PRD-018 is IMPLEMENTED — PENDING CTO REVIEW. It adds an internal tenant-scoped
+PRD-018 is CLOSED after PR #28 at merge commit
+`63f2fc79444e6b3f85b516b917860fb17fa8f779`, with final approved head
+`2776a1b2ca6082142f14862c4eac4cf889eea631`. It adds an internal tenant-scoped
 plan catalog and current 1:1 Organization assignment, closed boolean entitlements,
 operational resource-count hard limits, application-service enforcement,
 Organization row locking, optimistic concurrency, safe APIs/RBAC and
@@ -67,14 +69,14 @@ remain exclusively in PRD-019, which is NOT STARTED.
 
 | Gate | Current result |
 |---|---|
-| `pytest` | 761 passed, 21 skipped, 2 warnings |
-| Focused PRD-018 | 10 passed |
-| Expanded affected-domain regression | 108 passed |
+| `pytest` | 787 passed, 21 skipped, 2 warnings |
+| Focused PRD-018 plus fail-closed | 36 passed, 2 warnings |
+| Expanded affected-domain regression | 159 passed, 2 warnings |
 | PostgreSQL PRD-018 | 3 passed |
 | PostgreSQL migration cycle | `0018 → 0019 → 0018 → 0019` PASS |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 428 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 428 source files |
+| `black --check app tests` | 430 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 430 source files |
 | `git diff --check` | PASS |
 | Alembic | `20260810_0019 (head)` |
 
@@ -99,7 +101,7 @@ remain exclusively in PRD-019, which is NOT STARTED.
 | PRD-015 Business Hours & Holidays | CLOSED |
 | PRD-016 Analytics & Reports | CLOSED |
 | PRD-017 Audit Log | CLOSED |
-| PRD-018 Plans and Limits | IMPLEMENTED — PENDING CTO REVIEW |
+| PRD-018 Plans and Limits | CLOSED |
 | PRD-019 through PRD-023 | NOT STARTED |
 
 ## PRD-004 Bot Management
@@ -259,8 +261,8 @@ Only the following items remain pending:
 
 ## Next Official Objective
 
-**PRD-001 through PRD-017 are CLOSED. PRD-018 is IMPLEMENTED — PENDING CTO
-REVIEW. PRD-019 through PRD-023 remain NOT STARTED.**
+**PRD-001 through PRD-018 are CLOSED. PRD-019 through PRD-023 remain NOT
+STARTED.**
 
 ## PRD-010 through PRD-015 Status
 
@@ -279,12 +281,14 @@ CLOSED after PR #22 at merge commit
 merge commit `601499071f39aad85dc4d9595fc04425f40a3962`, final approved head
 `6cafee11a0f807e07a9277eae98e128ab68aa711`. PRD-017 is CLOSED after PR #26 at
 merge commit `01c809c909360f4a31a6b26b1d4126a1c98e9c8b`, final approved head
-`3f7808da24d0dc1e3b5d6f3d337ee4562f5398b6`; PRD-018 is IMPLEMENTED — PENDING
-CTO REVIEW and PRD-019 through PRD-023 remain NOT STARTED.
+`3f7808da24d0dc1e3b5d6f3d337ee4562f5398b6`; PRD-018 is CLOSED after PR #28 at
+merge commit `63f2fc79444e6b3f85b516b917860fb17fa8f779`, final approved head
+`2776a1b2ca6082142f14862c4eac4cf889eea631`; PRD-019 through PRD-023 remain NOT
+STARTED.
 
 ## CTO Review Status
 
-PRD-018 IMPLEMENTED — PENDING CTO REVIEW
+PRD-018 CLOSED - PR #28 MERGED
 
 PRD-017 CLOSED - PR #26 MERGED
 

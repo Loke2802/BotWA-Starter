@@ -1,7 +1,7 @@
 # BotWA Starter - Context For AI Assistants
 
-**Last updated:** 2026-08-10
-**Project phase:** Phase 3 - PRD-018 IMPLEMENTED — PENDING CTO REVIEW
+**Last updated:** 2026-08-11
+**Project phase:** Phase 3 - PRD-001 through PRD-018 CLOSED
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
@@ -27,7 +27,10 @@ CLOSED after PR #24 at merge commit
 `6cafee11a0f807e07a9277eae98e128ab68aa711`. PRD-017 Audit Log is CLOSED after
 PR #26 at merge commit `01c809c909360f4a31a6b26b1d4126a1c98e9c8b`, with final
 approved head `3f7808da24d0dc1e3b5d6f3d337ee4562f5398b6`. PRD-018 Plans and Limits is
-IMPLEMENTED — PENDING CTO REVIEW. PRD-019 through PRD-023 remain NOT STARTED.
+CLOSED after PR #28 at merge commit
+`63f2fc79444e6b3f85b516b917860fb17fa8f779`, with final approved head
+`2776a1b2ca6082142f14862c4eac4cf889eea631`. PRD-019 through PRD-023 remain
+NOT STARTED.
 
 All five core engines are implemented and closed:
 
@@ -45,14 +48,14 @@ Current validated gates:
 
 | Gate | Result |
 |---|---|
-| `pytest` | 761 passed, 21 skipped, 2 warnings |
-| Focused PRD-018 | 10 passed |
-| Expanded affected-domain regression | 108 passed |
+| `pytest` | 787 passed, 21 skipped, 2 warnings |
+| Focused PRD-018 plus fail-closed | 36 passed, 2 warnings |
+| Expanded affected-domain regression | 159 passed, 2 warnings |
 | PostgreSQL PRD-018 | 3 passed |
 | PostgreSQL migration cycle | `0018 → 0019 → 0018 → 0019` PASS |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 428 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 428 source files |
+| `black --check app tests` | 430 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 430 source files |
 | `git diff --check` | PASS |
 
 ## Infrastructure Validation
@@ -87,8 +90,7 @@ Current validated gates:
 
 ## Current Official Objective
 
-PRD-001 through PRD-017 are CLOSED. PRD-018 is IMPLEMENTED — PENDING CTO
-REVIEW. PRD-019 through PRD-023 remain NOT STARTED.
+PRD-001 through PRD-018 are CLOSED. PRD-019 through PRD-023 remain NOT STARTED.
 
 **Phase 3**
 
@@ -111,7 +113,7 @@ REVIEW. PRD-019 through PRD-023 remain NOT STARTED.
 | 15 | PRD-015 Business Hours & Holidays | CLOSED |
 | 16 | PRD-016 Analytics & Reports | CLOSED |
 | 17 | PRD-017 Audit Log | CLOSED |
-| 18 | PRD-018 Plans and Limits | IMPLEMENTED — PENDING CTO REVIEW |
+| 18 | PRD-018 Plans and Limits | CLOSED |
 | 19-23 | Future approved product increments | NOT STARTED |
 
 The MVP milestone comprises PRD-001 through PRD-010.
@@ -226,5 +228,7 @@ PRD-014 Dashboard is CLOSED after PR #22, merge commit
 merge commit `601499071f39aad85dc4d9595fc04425f40a3962`, final approved head
 `6cafee11a0f807e07a9277eae98e128ab68aa711`; PRD-017 is CLOSED after PR #26,
 merge commit `01c809c909360f4a31a6b26b1d4126a1c98e9c8b`, final approved head
-`3f7808da24d0dc1e3b5d6f3d337ee4562f5398b6`. PRD-018 is IMPLEMENTED — PENDING
-CTO REVIEW; PRD-019 through PRD-023 are NOT STARTED.
+`3f7808da24d0dc1e3b5d6f3d337ee4562f5398b6`. PRD-018 is CLOSED after PR #28,
+merge commit `63f2fc79444e6b3f85b516b917860fb17fa8f779`, final approved head
+`2776a1b2ca6082142f14862c4eac4cf889eea631`; PRD-019 through PRD-023 are NOT
+STARTED.

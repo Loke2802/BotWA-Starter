@@ -1,5 +1,31 @@
 # Changelog
 
+## PRD-018 Plans and Limits v1 - 2026-08-10
+
+### IMPLEMENTED — PENDING CTO REVIEW
+
+- Added PostgreSQL-only `plan_definition` and 1:1
+  `organization_plan_assignment` as the current plan Source of Truth.
+- Added deterministic `default` seed and existing-Organization backfill that
+  preserve all pre-PRD-018 behavior with enabled features and unlimited limits.
+- Added closed typed feature/limit configuration, direct operational resource
+  counts, safe errors, `plan.read`/`plan.assign`, and tenant-scoped GET/PUT APIs.
+- Added application-service enforcement across Bots, Users, Integrations,
+  Automations, Business Calendar, Knowledge, WhatsApp, Human Handoff, Analytics
+  and Audit-read while preserving existing runtimes and reducing actions.
+- Added Organization `FOR UPDATE`, optimistic assignment versioning, non-destructive
+  downgrade/over-limit semantics and real PostgreSQL concurrency coverage.
+- Extended PRD-017 with typed `plan.assigned`/`plan.changed` Audit contracts;
+  Audit writes remain mandatory, same-transaction and never plan-gated.
+- Added Alembic `20260810_0019`, including backfill and composite Bot/User count
+  indexes; migration cycle `0018 → 0019 → 0018 → 0019` passes.
+- Validation: focused PRD-018 10 passed; affected-domain regression 108 passed;
+  PostgreSQL PRD-018 3 passed; full pytest 761 passed, 21 skipped, 2 warnings;
+  mypy/Ruff/Black/diff check PASS across 428 source files; Alembic head
+  `20260810_0019`.
+- Billing, subscriptions, pricing, currencies, trials, invoices, message quota,
+  metered usage and overage remain exclusively deferred to PRD-019.
+
 ## PRD-017 Audit Log v1 - 2026-08-09
 
 ### CLOSED after PR #26

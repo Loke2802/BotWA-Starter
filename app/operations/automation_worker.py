@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from app.application.automation_management.service import ManagedAutomationService
 from app.application.human_handoff.service import HumanHandoffService
+from app.application.plans.service import PlanEnforcementService
 from app.infrastructure.database import SessionLocal
 from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.human_handoff_repository import (
@@ -15,6 +16,7 @@ from app.infrastructure.repositories.human_handoff_repository import (
 from app.infrastructure.repositories.managed_automation_repository import (
     ManagedAutomationRepository,
 )
+from app.infrastructure.repositories.plan_repository import SqlAlchemyPlanRepository
 
 
 def run_batch(batch_size: int) -> int:
@@ -22,6 +24,7 @@ def run_batch(batch_size: int) -> int:
     try:
         repository = ManagedAutomationRepository(session)
         audit_writer = SqlAlchemyAuditRepository(session)
+        plan_enforcement = PlanEnforcementService(SqlAlchemyPlanRepository(session))
         rows = repository.claim(
             f"automation-worker-{os.getpid()}-{uuid4()}", batch_size, 60
         )
@@ -29,8 +32,12 @@ def run_batch(batch_size: int) -> int:
             repository,
             session,
             audit_writer,
+            plan_enforcement=plan_enforcement,
             handoff=HumanHandoffService(
-                HumanHandoffRepository(session), session, audit_writer
+                HumanHandoffRepository(session),
+                session,
+                audit_writer,
+                plan_enforcement,
             ),
         )
         for row in rows:

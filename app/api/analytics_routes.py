@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.api.analytics_dependencies import get_analytics_query_service
 from app.api.dependencies import require_permission
+from app.api.plan_routes import raise_plan_error
 from app.application.analytics.service import AnalyticsQueryService
 from app.domain.analytics.contracts import (
     AnalyticsCompare,
@@ -21,6 +22,7 @@ from app.domain.analytics.errors import (
     AnalyticsNotFound,
     AnalyticsRangeTooLarge,
 )
+from app.domain.plans.errors import PlanError
 from app.domain.user.contracts import User
 
 router = APIRouter(
@@ -86,6 +88,8 @@ def get_analytics(
             group_by=_grouping(group_by),
             compare=_comparison(compare),
         )
+    except PlanError as exc:
+        raise_plan_error(exc)
     except AnalyticsError as exc:
         _raise(exc)
 
@@ -119,5 +123,7 @@ def export_analytics(
                 "Content-Disposition": "attachment; filename=analytics-report.csv"
             },
         )
+    except PlanError as exc:
+        raise_plan_error(exc)
     except AnalyticsError as exc:
         _raise(exc)

@@ -35,6 +35,8 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from tests.plan_support import allow_all_plan_enforcement
+
 
 @pytest.fixture
 def session() -> Generator[Session]:
@@ -118,6 +120,7 @@ def _setup(session: Session) -> tuple[ManagedAutomationService, User, UUID, UUID
             ManagedAutomationRepository(session),
             session,
             SqlAlchemyAuditRepository(session),
+            allow_all_plan_enforcement(),
         ),
         actor,
         organization_id,
@@ -137,6 +140,7 @@ def _active_calendar(
         BusinessCalendarRepository(session),
         session,
         SqlAlchemyAuditRepository(session),
+        plan_enforcement=allow_all_plan_enforcement(),
     )
     created = calendars.create_calendar(
         organization_id,
@@ -175,6 +179,7 @@ def test_bot_calendar_precedes_active_organization_default(session: Session) -> 
         BusinessCalendarRepository(session),
         session,
         SqlAlchemyAuditRepository(session),
+        plan_enforcement=allow_all_plan_enforcement(),
     )
     applicable = calendars.repository.active_applicable_calendar(
         organization_id,
@@ -209,6 +214,7 @@ def test_active_prd015_is_source_of_truth_and_prd005_is_explicit_fallback(
         BusinessCalendarRepository(session),
         session,
         SqlAlchemyAuditRepository(session),
+        plan_enforcement=allow_all_plan_enforcement(),
     ).transition_calendar(organization_id, calendar_id, "activate", actor)
     assert (
         automations.business_hours_state(organization_id, bot_id, monday_10)
@@ -300,6 +306,7 @@ def test_only_one_active_calendar_is_allowed_per_tenant_scope(
         BusinessCalendarRepository(session),
         session,
         SqlAlchemyAuditRepository(session),
+        plan_enforcement=allow_all_plan_enforcement(),
     )
     duplicate = calendars.create_calendar(
         organization_id,

@@ -15,6 +15,8 @@ from app.infrastructure.repositories.knowledge_entry_repository import (
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from tests.plan_support import allow_all_plan_enforcement
+
 
 def test_integrity_error_rolls_back_and_becomes_domain_conflict() -> None:
     organization_id = uuid4()
@@ -37,6 +39,7 @@ def test_integrity_error_rolls_back_and_becomes_domain_conflict() -> None:
         bot_repository=bot_repository,
         organization_repository=organization_repository,
         session=session,
+        plan_enforcement=allow_all_plan_enforcement(),
     )
 
     with pytest.raises(KnowledgeEntryConflictError):

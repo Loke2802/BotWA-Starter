@@ -5,6 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.application.audit.writer import append_user_audit
+from app.application.plans.service import PlanEnforcementService
 from app.domain.access.contracts import Permission
 from app.domain.audit.contracts import ChangedFieldsMetadata, StatusTransitionMetadata
 from app.domain.audit.ports import AuditWriter
@@ -50,11 +51,13 @@ class BotService:
         organization_repository: OrganizationRepository,
         session: Session,
         audit_writer: AuditWriter,
+        plan_enforcement: PlanEnforcementService,
     ) -> None:
         self._repository = repository
         self._organization_repository = organization_repository
         self._session = session
         self._audit_writer = audit_writer
+        self._plan_enforcement = plan_enforcement
 
     def create(self, request: BotCreate, actor: User) -> Bot:
         organization_id = self._resolve_target_organization(request, actor)
@@ -167,6 +170,9 @@ class BotService:
         model = self._get_visible_model(bot_id, actor, "bots.activate")
         self._require_active_organization(model.organization_id)
         if model.status != "active":
+            self._plan_enforcement.require_consuming_action(
+                model.organization_id, limit="max_active_bots"
+            )
             now = datetime.now(UTC)
             model.status = "active"
             model.activated_at = now

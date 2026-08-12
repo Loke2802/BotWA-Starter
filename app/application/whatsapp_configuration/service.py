@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.application.plans.service import PlanEnforcementService
 from app.application.whatsapp_configuration.repository import (
     WhatsAppConfigurationRepository,
 )
@@ -56,12 +57,14 @@ class WhatsAppConfigurationService:
         organization_repository: OrganizationRepository,
         secret_cipher: SecretCipher,
         session: Session,
+        plan_enforcement: PlanEnforcementService,
     ) -> None:
         self._repository = repository
         self._bot_repository = bot_repository
         self._organization_repository = organization_repository
         self._secret_cipher = secret_cipher
         self._session = session
+        self._plan_enforcement = plan_enforcement
 
     def create(
         self,
@@ -90,6 +93,11 @@ class WhatsAppConfigurationService:
                 "whatsapp_config.rotate_secrets",
                 organization_id,
             )
+        self._plan_enforcement.require_consuming_action(
+            organization_id,
+            feature="whatsapp_configuration",
+            limit="max_whatsapp_configurations",
+        )
         now = datetime.now(UTC)
         model = WhatsAppChannelConfigurationModel(
             id=uuid4(),
@@ -224,6 +232,9 @@ class WhatsAppConfigurationService:
             "whatsapp_config.activate",
         )
         self._require_active_organization(organization_id)
+        self._plan_enforcement.require_consuming_action(
+            organization_id, feature="whatsapp_configuration"
+        )
         model = self._get_configuration(
             configuration_id,
             organization_id,

@@ -30,6 +30,8 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from tests.plan_support import allow_all_plan_enforcement
+
 
 @pytest.fixture
 def session() -> Generator[Session]:
@@ -104,6 +106,7 @@ def setup(
             HumanHandoffRepository(session),
             session,
             SqlAlchemyAuditRepository(session),
+            allow_all_plan_enforcement(),
         ),
         actor,
         organization_id,

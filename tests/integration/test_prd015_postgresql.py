@@ -33,6 +33,7 @@ from app.infrastructure.repositories.business_calendar_repository import (
 from app.infrastructure.settings import get_settings
 from sqlalchemy import create_engine, inspect, select
 from sqlalchemy.orm import Session, sessionmaker
+from tests.plan_support import allow_all_plan_enforcement
 
 DATABASE_URL = os.getenv("BOTWA_PRD015_POSTGRES_URL")
 
@@ -102,6 +103,7 @@ def _service(session: Session) -> BusinessCalendarService:
         BusinessCalendarRepository(session),
         session,
         SqlAlchemyAuditRepository(session),
+        plan_enforcement=allow_all_plan_enforcement(),
     )
 
 

@@ -33,6 +33,7 @@ from app.infrastructure.repositories.integration_management_repository import (
 from app.security.secret_cipher import EnvironmentSecretCipher
 from sqlalchemy import create_engine, inspect, select
 from sqlalchemy.orm import Session, sessionmaker
+from tests.plan_support import allow_all_plan_enforcement
 from tests.test_prd013_integration_management import FakeGoogleCalendarAdapter
 
 DATABASE_URL = os.getenv("BOTWA_PRD013_POSTGRES_URL")
@@ -57,6 +58,7 @@ def _service(
         OAuthStateSigner(secret_key="p" * 32),
         IntegrationProviderRegistry((adapter,)),
         SqlAlchemyAuditRepository(session),
+        allow_all_plan_enforcement(),
     )
 
 

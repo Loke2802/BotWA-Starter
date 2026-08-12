@@ -56,6 +56,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from tests.plan_support import allow_all_plan_enforcement
+
 NOW = datetime(2026, 8, 8, 18, tzinfo=UTC)
 
 
@@ -156,6 +158,7 @@ def _service(session: Session) -> AuditQueryService:
     return AuditQueryService(
         SqlAlchemyAuditRepository(session),
         cursor_codec=AuditCursorCodec("audit-test-secret"),
+        plan_enforcement=allow_all_plan_enforcement(),
     )
 
 

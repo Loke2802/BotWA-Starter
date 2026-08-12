@@ -5,6 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.application.audit.writer import append_non_user_audit, append_user_audit
+from app.application.plans.service import PlanEnforcementService
 from app.domain.access.contracts import Permission
 from app.domain.audit.ports import AuditWriter
 from app.domain.human_handoff.contracts import HandoffSessionResponse
@@ -48,9 +49,11 @@ class HumanHandoffService:
         repository: HumanHandoffRepository,
         session: Session,
         audit_writer: AuditWriter,
+        plan_enforcement: PlanEnforcementService,
     ) -> None:
         self._repository, self._session = repository, session
         self._audit_writer = audit_writer
+        self._plan_enforcement = plan_enforcement
 
     def request(
         self,
@@ -60,6 +63,9 @@ class HumanHandoffService:
         reason_code: str | None,
     ) -> HandoffSessionResponse:
         self._authorize(actor, "handoff.request", organization_id)
+        self._plan_enforcement.require_consuming_action(
+            organization_id, feature="human_handoff"
+        )
         conversation = self._conversation(conversation_id, organization_id)
         existing = self._repository.get(conversation_id, organization_id, lock=True)
         if existing and existing.status in {"waiting_human", "human_active"}:

@@ -5,6 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.application.audit.writer import append_non_user_audit, append_user_audit
+from app.application.plans.service import PlanEnforcementService
 from app.domain.access.contracts import Role
 from app.domain.audit.contracts import (
     ChangedFieldsMetadata,
@@ -63,12 +64,14 @@ class UserService:
         password_service: PasswordService,
         session: Session,
         audit_writer: AuditWriter,
+        plan_enforcement: PlanEnforcementService,
     ) -> None:
         self._repository = repository
         self._organization_repository = organization_repository
         self._password_service = password_service
         self._session = session
         self._audit_writer = audit_writer
+        self._plan_enforcement = plan_enforcement
 
     def create(self, request: UserCreate, actor: User | None = None) -> User:
         organization = self._organization_repository.get(request.organization_id)
@@ -94,6 +97,10 @@ class UserService:
                     require_role_assignment(actor, role)
             except AuthorizationError as exc:
                 raise UserForbiddenError("permission denied") from exc
+
+        self._plan_enforcement.require_consuming_action(
+            request.organization_id, limit="max_active_users"
+        )
 
         if self._repository.find_by_email(request.email) is not None:
             raise UserConflictError("user email already exists")

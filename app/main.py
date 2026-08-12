@@ -1,7 +1,8 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
 
 from app.api.analytics_routes import router as analytics_router
 from app.api.audit_routes import router as audit_router
@@ -21,6 +22,7 @@ from app.api.integration_management_routes import (
     router as integration_management_router,
 )
 from app.api.knowledge_routes import router as knowledge_management_router
+from app.api.plan_routes import router as plan_router
 from app.api.routes import router
 from app.api.whatsapp_configuration_routes import (
     router as whatsapp_configuration_router,
@@ -30,6 +32,15 @@ from app.api.whatsapp_configuration_routes import (
 )
 from app.api.whatsapp_live_routes import router as whatsapp_live_router
 from app.channels.whatsapp.webhook import router as whatsapp_router
+from app.domain.plans.errors import (
+    PlanAssignmentNotFound,
+    PlanError,
+    PlanFeatureNotAvailable,
+    PlanForbidden,
+    PlanLimitReached,
+    PlanNotFound,
+    PlanVersionConflict,
+)
 from app.infrastructure.database import engine
 from app.infrastructure.logging import configure_logging
 from app.infrastructure.settings import get_settings
@@ -53,6 +64,22 @@ def create_app() -> FastAPI:
         version=settings.api_version,
         lifespan=lifespan,
     )
+
+    @app.exception_handler(PlanError)
+    async def handle_plan_error(_request: Request, exc: PlanError) -> JSONResponse:
+        if isinstance(exc, (PlanForbidden, PlanFeatureNotAvailable)):
+            code = status.HTTP_403_FORBIDDEN
+        elif isinstance(exc, (PlanNotFound, PlanAssignmentNotFound)):
+            code = status.HTTP_404_NOT_FOUND
+        elif isinstance(exc, (PlanVersionConflict, PlanLimitReached)):
+            code = status.HTTP_409_CONFLICT
+        else:
+            code = status.HTTP_503_SERVICE_UNAVAILABLE
+        detail: dict[str, str] = {"code": exc.safe_code}
+        if isinstance(exc, PlanLimitReached):
+            detail["limit_key"] = exc.limit_key
+        return JSONResponse(status_code=code, content={"detail": detail})
+
     app.include_router(router)
     app.include_router(analytics_router)
     app.include_router(audit_router)
@@ -65,6 +92,7 @@ def create_app() -> FastAPI:
     app.include_router(integration_management_router)
     app.include_router(integration_oauth_router)
     app.include_router(knowledge_management_router)
+    app.include_router(plan_router)
     app.include_router(whatsapp_configuration_router)
     app.include_router(configured_whatsapp_webhook_router)
     app.include_router(whatsapp_live_router)

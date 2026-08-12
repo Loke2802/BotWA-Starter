@@ -47,6 +47,8 @@ AuditAction = Literal[
     "business_calendar.activated",
     "business_calendar.deactivated",
     "business_calendar.archived",
+    "plan.assigned",
+    "plan.changed",
 ]
 AuditResourceType = Literal[
     "organization",
@@ -57,6 +59,7 @@ AuditResourceType = Literal[
     "automation",
     "integration",
     "business_calendar",
+    "plan_assignment",
 ]
 AuditStatus = Literal[
     "draft",
@@ -125,12 +128,20 @@ class CredentialRotationMetadata(BaseModel):
     credential_changed: Literal[True] = True
 
 
+class PlanAssignmentMetadata(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    from_plan_code: str | None
+    to_plan_code: str
+
+
 AuditMetadata = (
     EmptyMetadata
     | ChangedFieldsMetadata
     | StatusTransitionMetadata
     | RoleAssignmentMetadata
     | CredentialRotationMetadata
+    | PlanAssignmentMetadata
 )
 AUDIT_METADATA_ADAPTER: TypeAdapter[AuditMetadata] = TypeAdapter(AuditMetadata)
 

@@ -70,6 +70,7 @@ from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from tests.plan_support import allow_all_plan_enforcement, no_op_plan_repository
 from tests.test_prd013_integration_management import (
     _payload as integration_payload,
 )
@@ -147,7 +148,7 @@ def _seed_actor_scope(session: Session) -> tuple[UUID, UUID, User]:
 def test_organization_user_access_and_bot_actions_are_atomic(session: Session) -> None:
     writer = SqlAlchemyAuditRepository(session)
     organizations = OrganizationService(
-        OrganizationRepository(session), session, writer
+        OrganizationRepository(session), session, writer, no_op_plan_repository()
     )
     organization = organizations.create(
         OrganizationCreate(name="Kalivur", slug=f"kalivur-{uuid4()}")
@@ -158,6 +159,7 @@ def test_organization_user_access_and_bot_actions_are_atomic(session: Session) -
         PasswordService(),
         session,
         writer,
+        allow_all_plan_enforcement(),
     )
     owner = users.create(
         UserCreate(
@@ -184,7 +186,11 @@ def test_organization_user_access_and_bot_actions_are_atomic(session: Session) -
     )
     users.deactivate(member.id, actor=owner)
     bots = BotService(
-        BotRepository(session), OrganizationRepository(session), session, writer
+        BotRepository(session),
+        OrganizationRepository(session),
+        session,
+        writer,
+        allow_all_plan_enforcement(),
     )
     bot = bots.create(
         BotCreate(
@@ -262,6 +268,7 @@ def test_audit_fk_failure_rolls_back_business_mutation(session: Session) -> None
         OrganizationRepository(session),
         session,
         InvalidAuditWriter(),
+        allow_all_plan_enforcement(),
     )
     with pytest.raises(ValueError, match="persistence failed"):
         service.create(
@@ -340,7 +347,12 @@ def test_conversation_and_handoff_keep_domain_history_plus_generic_audit(
     )
     session.add(handoff_conversation)
     session.commit()
-    handoff = HumanHandoffService(HumanHandoffRepository(session), session, writer)
+    handoff = HumanHandoffService(
+        HumanHandoffRepository(session),
+        session,
+        writer,
+        allow_all_plan_enforcement(),
+    )
     handoff.request(organization_id, handoff_conversation.id, actor, "support")
     handoff.claim(organization_id, handoff_conversation.id, actor)
     handoff.release(organization_id, handoff_conversation.id, actor)
@@ -386,7 +398,10 @@ def test_automation_integration_and_calendar_emit_only_admin_audit(
     organization_id, bot_id, actor = _seed_actor_scope(session)
     writer = SqlAlchemyAuditRepository(session)
     automation = ManagedAutomationService(
-        ManagedAutomationRepository(session), session, audit_writer=writer
+        ManagedAutomationRepository(session),
+        session,
+        audit_writer=writer,
+        plan_enforcement=allow_all_plan_enforcement(),
     )
     definition = automation.create(
         organization_id,
@@ -454,7 +469,10 @@ def test_automation_integration_and_calendar_emit_only_admin_audit(
     integration.archive(integration_org, connection.id, integration_actor)
 
     calendar = BusinessCalendarService(
-        BusinessCalendarRepository(session), session, audit_writer=writer
+        BusinessCalendarRepository(session),
+        session,
+        audit_writer=writer,
+        plan_enforcement=allow_all_plan_enforcement(),
     )
     calendar_response = calendar.create_calendar(
         organization_id,

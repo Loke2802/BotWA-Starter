@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.application.audit.writer import append_user_audit
 from app.application.business_calendar.clock import SystemClock
 from app.application.business_calendar.metrics import BusinessCalendarMetrics
+from app.application.plans.service import PlanEnforcementService
 from app.domain.access.contracts import Permission
 from app.domain.audit.contracts import (
     AuditAction,
@@ -137,6 +138,7 @@ class BusinessCalendarService:
         resolver: BusinessHoursResolver | None = None,
         clock: Clock | None = None,
         metrics: BusinessCalendarMetrics | None = None,
+        plan_enforcement: "PlanEnforcementService",
     ) -> None:
         self.repository = repository
         self.session = session
@@ -145,6 +147,7 @@ class BusinessCalendarService:
         self.metrics = metrics or BusinessCalendarMetrics()
         self.logger = structlog.get_logger(__name__)
         self.audit_writer = audit_writer
+        self.plan_enforcement = plan_enforcement
 
     @staticmethod
     def _authorize(actor: User, permission: Permission, organization_id: UUID) -> None:
@@ -466,6 +469,11 @@ class BusinessCalendarService:
         )
         if replay is not None:
             return replay
+        self.plan_enforcement.require_consuming_action(
+            organization_id,
+            feature="business_calendar",
+            limit="max_business_calendars",
+        )
         now = self.clock.now()
         row = BusinessCalendarModel(
             id=uuid4(),
@@ -625,6 +633,10 @@ class BusinessCalendarService:
         else:
             raise ScheduleValidationError("calendar transition is invalid")
         self._authorize(actor, permission, organization_id)
+        if target == "activate":
+            self.plan_enforcement.require_consuming_action(
+                organization_id, feature="business_calendar"
+            )
         row = self._calendar(organization_id, calendar_id, lock=True)
         state = {
             "activate": "active",

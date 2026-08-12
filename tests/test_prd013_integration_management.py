@@ -56,6 +56,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from tests.plan_support import allow_all_plan_enforcement
+
 
 def _key(seed: bytes = b"i") -> str:
     return base64.urlsafe_b64encode(seed * 32).decode("ascii")
@@ -189,6 +191,7 @@ def _setup(
         OAuthStateSigner(secret_key="s" * 32),
         IntegrationProviderRegistry((adapter,)),
         SqlAlchemyAuditRepository(session),
+        allow_all_plan_enforcement(),
     )
     return service, adapter, actor, organization_id, bot_id
 

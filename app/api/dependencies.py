@@ -16,6 +16,7 @@ from app.application.business_configuration.service import (
     BusinessConfigurationService,
 )
 from app.application.organizations.service import OrganizationService
+from app.application.plans.service import PlanEnforcementService
 from app.application.users.service import UserService
 from app.core.automation.event_publisher import AutomationEventPublisher
 from app.core.automation.execution_monitor import WorkflowExecutionMonitor
@@ -92,6 +93,7 @@ from app.infrastructure.repositories.message_repository import MessageRepository
 from app.infrastructure.repositories.organization_repository import (
     OrganizationRepository,
 )
+from app.infrastructure.repositories.plan_repository import SqlAlchemyPlanRepository
 from app.infrastructure.repositories.user_repository import UserRepository
 from app.infrastructure.settings import get_settings
 from app.security.authorization import (
@@ -254,6 +256,7 @@ def get_organization_service() -> Generator[OrganizationService]:
             repository=repository,
             session=session,
             audit_writer=SqlAlchemyAuditRepository(session),
+            plan_repository=SqlAlchemyPlanRepository(session),
         )
     finally:
         session_generator.close()
@@ -284,6 +287,7 @@ def get_user_service() -> Generator[UserService]:
             password_service=get_password_service(),
             session=session,
             audit_writer=SqlAlchemyAuditRepository(session),
+            plan_enforcement=PlanEnforcementService(SqlAlchemyPlanRepository(session)),
         )
     finally:
         session_generator.close()
@@ -300,6 +304,7 @@ def get_bot_service() -> Generator[BotService]:
             organization_repository=organization_repository,
             session=session,
             audit_writer=SqlAlchemyAuditRepository(session),
+            plan_enforcement=PlanEnforcementService(SqlAlchemyPlanRepository(session)),
         )
     finally:
         session_generator.close()

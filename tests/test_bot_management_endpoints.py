@@ -25,6 +25,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from tests.plan_support import allow_all_plan_enforcement, no_op_plan_repository
+
 
 @dataclass(frozen=True)
 class Runtime:
@@ -50,6 +52,7 @@ def runtime() -> Generator[Runtime]:
             repository=OrganizationRepository(session=session),
             session=session,
             audit_writer=SqlAlchemyAuditRepository(session),
+            plan_repository=no_op_plan_repository(),
         )
 
     def override_user_service() -> UserService:
@@ -59,6 +62,7 @@ def runtime() -> Generator[Runtime]:
             password_service=password_service,
             session=session,
             audit_writer=SqlAlchemyAuditRepository(session),
+            plan_enforcement=allow_all_plan_enforcement(),
         )
 
     def override_bot_service() -> BotService:
@@ -67,6 +71,7 @@ def runtime() -> Generator[Runtime]:
             organization_repository=OrganizationRepository(session=session),
             session=session,
             audit_writer=SqlAlchemyAuditRepository(session),
+            plan_enforcement=allow_all_plan_enforcement(),
         )
 
     app = create_app()

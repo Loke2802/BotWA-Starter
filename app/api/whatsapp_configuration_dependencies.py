@@ -2,6 +2,7 @@ from collections.abc import Generator
 
 from fastapi import HTTPException, status
 
+from app.application.plans.service import PlanEnforcementService
 from app.application.whatsapp_configuration.resolver import (
     WhatsAppChannelResolver,
 )
@@ -19,6 +20,7 @@ from app.infrastructure.repositories.bot_repository import BotRepository
 from app.infrastructure.repositories.organization_repository import (
     OrganizationRepository,
 )
+from app.infrastructure.repositories.plan_repository import SqlAlchemyPlanRepository
 from app.infrastructure.repositories.whatsapp_configuration_repository import (
     SqlAlchemyWhatsAppConfigurationRepository,
 )
@@ -50,6 +52,7 @@ def get_whatsapp_configuration_service() -> Generator[WhatsAppConfigurationServi
             organization_repository=OrganizationRepository(session),
             secret_cipher=get_whatsapp_secret_cipher(),
             session=session,
+            plan_enforcement=PlanEnforcementService(SqlAlchemyPlanRepository(session)),
         )
     finally:
         session_generator.close()

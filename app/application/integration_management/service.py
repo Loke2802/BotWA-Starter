@@ -18,6 +18,7 @@ from app.application.integration_management.providers import (
     IntegrationProviderResponseError,
     IntegrationProviderUnreachableError,
 )
+from app.application.plans.service import PlanEnforcementService
 from app.domain.access.contracts import Permission
 from app.domain.audit.contracts import (
     AuditAction,
@@ -120,6 +121,7 @@ class IntegrationManagementService:
         oauth_state_signer: OAuthStateSigner,
         providers: IntegrationProviderRegistry,
         audit_writer: AuditWriter,
+        plan_enforcement: PlanEnforcementService,
     ) -> None:
         self.repository = repository
         self.session = session
@@ -127,6 +129,7 @@ class IntegrationManagementService:
         self.oauth_state_signer = oauth_state_signer
         self.providers = providers
         self.audit_writer = audit_writer
+        self.plan_enforcement = plan_enforcement
 
     def _persistence_error(
         self,
@@ -196,6 +199,11 @@ class IntegrationManagementService:
     ) -> IntegrationConnectionResponse:
         self._authorize(actor, "integration.create", organization_id)
         self._validate_bot(organization_id, payload.bot_id)
+        self.plan_enforcement.require_consuming_action(
+            organization_id,
+            feature="integrations",
+            limit="max_integrations",
+        )
         row = IntegrationConnectionModel(
             organization_id=organization_id,
             bot_id=payload.bot_id,
@@ -370,6 +378,10 @@ class IntegrationManagementService:
         permission: Permission,
     ) -> IntegrationConnectionResponse:
         self._authorize(actor, permission, organization_id)
+        if transition == "activate":
+            self.plan_enforcement.require_consuming_action(
+                organization_id, feature="integrations"
+            )
         row = self._connection(organization_id, integration_id, lock=True)
         target = {
             "activate": "active",

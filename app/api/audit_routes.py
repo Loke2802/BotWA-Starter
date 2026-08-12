@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.api.audit_dependencies import get_audit_query_service
 from app.api.dependencies import require_authenticated_user
+from app.api.plan_routes import raise_plan_error
 from app.application.audit.service import AuditQueryService
 from app.domain.audit.contracts import AuditEventListResponse
 from app.domain.audit.errors import (
@@ -16,6 +17,7 @@ from app.domain.audit.errors import (
     AuditInvalidRange,
     AuditRangeTooLarge,
 )
+from app.domain.plans.errors import PlanError
 from app.domain.user.contracts import User
 
 router = APIRouter(
@@ -63,5 +65,7 @@ def list_audit_events(
             cursor=cursor,
             limit=limit,
         )
+    except PlanError as exc:
+        raise_plan_error(exc)
     except AuditError as exc:
         _raise(exc)

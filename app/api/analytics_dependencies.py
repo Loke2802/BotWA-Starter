@@ -5,10 +5,12 @@ from app.application.analytics.service import (
     AnalyticsProjectionService,
     AnalyticsQueryService,
 )
+from app.application.plans.service import PlanEnforcementService
 from app.infrastructure.database import get_session
 from app.infrastructure.repositories.analytics_repository import (
     SqlAlchemyAnalyticsRepository,
 )
+from app.infrastructure.repositories.plan_repository import SqlAlchemyPlanRepository
 
 _metrics = AnalyticsMetricsRegistry()
 
@@ -22,7 +24,9 @@ def get_analytics_query_service() -> Generator[AnalyticsQueryService]:
     session = next(session_generator)
     try:
         yield AnalyticsQueryService(
-            SqlAlchemyAnalyticsRepository(session), metrics=_metrics
+            SqlAlchemyAnalyticsRepository(session),
+            metrics=_metrics,
+            plan_enforcement=PlanEnforcementService(SqlAlchemyPlanRepository(session)),
         )
     finally:
         session_generator.close()

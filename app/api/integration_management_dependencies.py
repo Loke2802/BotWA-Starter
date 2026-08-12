@@ -2,6 +2,7 @@ from collections.abc import Generator
 
 from app.application.integration_management.oauth_state import OAuthStateSigner
 from app.application.integration_management.service import IntegrationManagementService
+from app.application.plans.service import PlanEnforcementService
 from app.infrastructure.database import get_session
 from app.infrastructure.integrations.google_calendar import GoogleCalendarAdapter
 from app.infrastructure.integrations.registry import IntegrationProviderRegistry
@@ -9,6 +10,7 @@ from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepo
 from app.infrastructure.repositories.integration_management_repository import (
     IntegrationManagementRepository,
 )
+from app.infrastructure.repositories.plan_repository import SqlAlchemyPlanRepository
 from app.infrastructure.settings import Settings, get_settings
 from app.security.secret_cipher import EnvironmentSecretCipher, SecretCipher
 
@@ -54,6 +56,7 @@ def get_integration_management_service() -> Generator[IntegrationManagementServi
             ),
             IntegrationProviderRegistry((adapter,)),
             SqlAlchemyAuditRepository(session),
+            PlanEnforcementService(SqlAlchemyPlanRepository(session)),
         )
     finally:
         session_generator.close()

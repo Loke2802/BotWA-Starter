@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import structlog
 
 from app.application.analytics.metrics import AnalyticsMetricsRegistry
+from app.application.plans.service import PlanEnforcementService
 from app.domain.analytics.contracts import (
     AnalyticsCompare,
     AnalyticsComparison,
@@ -225,10 +226,12 @@ class AnalyticsQueryService:
         repository: AnalyticsRepository,
         *,
         metrics: AnalyticsMetricsRegistry | None = None,
+        plan_enforcement: PlanEnforcementService | None = None,
     ) -> None:
         self.repository = repository
         self.metrics = metrics or AnalyticsMetricsRegistry()
         self.logger = structlog.get_logger(__name__)
+        self.plan_enforcement = plan_enforcement
 
     def query(
         self,
@@ -247,6 +250,8 @@ class AnalyticsQueryService:
                 require_scoped_permission(actor, "analytics.read", organization_id)
             except AuthorizationError as exc:
                 raise AnalyticsForbidden("permission denied") from exc
+            if self.plan_enforcement is not None:
+                self.plan_enforcement.require_feature(organization_id, "analytics")
             days = AnalyticsProjectionService._range_days(from_, to)
             scope = self.repository.scope(organization_id, bot_id)
             if scope is None:
@@ -308,6 +313,8 @@ class AnalyticsQueryService:
             require_scoped_permission(actor, "analytics.export", organization_id)
         except AuthorizationError as exc:
             raise AnalyticsForbidden("permission denied") from exc
+        if self.plan_enforcement is not None:
+            self.plan_enforcement.require_feature(organization_id, "analytics_export")
         response = self.query(
             organization_id,
             actor,

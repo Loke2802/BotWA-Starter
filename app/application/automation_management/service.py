@@ -8,6 +8,7 @@ from app.application.business_calendar.compatibility import (
 )
 from app.application.business_calendar.service import BusinessCalendarService
 from app.application.human_handoff.service import HumanHandoffService
+from app.application.plans.service import PlanEnforcementService
 from app.domain.audit.contracts import (
     AuditAction,
     ChangedFieldsMetadata,
@@ -70,6 +71,7 @@ class ManagedAutomationService:
         audit_writer: AuditWriter,
         handoff: HumanHandoffService | None = None,
         business_hours: BusinessHoursStateProvider | None = None,
+        plan_enforcement: PlanEnforcementService | None = None,
     ) -> None:
         self.repo, self.session, self.handoff = repository, session, handoff
         self.business_hours = business_hours or BusinessHoursStateCompatibilityService(
@@ -79,6 +81,7 @@ class ManagedAutomationService:
             session,
         )
         self.audit_writer = audit_writer
+        self.plan_enforcement = plan_enforcement
 
     def _auth(self, actor: User, permission: str, organization_id: UUID) -> None:
         try:
@@ -90,6 +93,12 @@ class ManagedAutomationService:
         self, organization_id: UUID, payload: AutomationDefinitionInput, actor: User
     ) -> ManagedAutomationDefinitionModel:
         self._auth(actor, "automation.create", organization_id)
+        if self.plan_enforcement is not None:
+            self.plan_enforcement.require_consuming_action(
+                organization_id,
+                feature="automations",
+                limit="max_automations",
+            )
         from app.infrastructure.models.managed_automation import (
             ManagedAutomationDefinitionModel,
         )
@@ -284,6 +293,10 @@ class ManagedAutomationService:
         self, organization_id: UUID, automation_id: UUID, target: str, actor: User
     ) -> ManagedAutomationDefinitionModel:
         self._auth(actor, f"automation.{target}", organization_id)
+        if target == "activate" and self.plan_enforcement is not None:
+            self.plan_enforcement.require_consuming_action(
+                organization_id, feature="automations"
+            )
         row = self.repo.definition(organization_id, automation_id, lock=True)
         if row is None:
             raise AutomationNotFoundError("automation not found")

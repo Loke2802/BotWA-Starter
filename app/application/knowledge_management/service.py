@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.application.knowledge_management.provider import knowledge_entry_from_model
 from app.application.knowledge_management.repository import KnowledgeEntryRepository
+from app.application.plans.service import PlanEnforcementService
 from app.domain.access.contracts import Permission
 from app.domain.knowledge_management.contracts import (
     KnowledgeEntry,
@@ -49,11 +50,13 @@ class KnowledgeManagementService:
         bot_repository: BotRepository,
         organization_repository: OrganizationRepository,
         session: Session,
+        plan_enforcement: PlanEnforcementService | None = None,
     ) -> None:
         self._repository = repository
         self._bot_repository = bot_repository
         self._organization_repository = organization_repository
         self._session = session
+        self._plan_enforcement = plan_enforcement
 
     def create(
         self,
@@ -64,6 +67,12 @@ class KnowledgeManagementService:
     ) -> KnowledgeEntry:
         self._validate_scope(organization_id, bot_id, actor, "knowledge.create")
         self._require_active_organization(organization_id)
+        if self._plan_enforcement is not None:
+            self._plan_enforcement.require_consuming_action(
+                organization_id,
+                feature="knowledge",
+                limit="max_knowledge_entries",
+            )
         now = datetime.now(UTC)
         model = KnowledgeEntryModel(
             id=uuid4(),
@@ -209,6 +218,10 @@ class KnowledgeManagementService:
     ) -> KnowledgeEntry:
         self._validate_scope(organization_id, bot_id, actor, permission)
         self._require_active_organization(organization_id)
+        if target == "published" and self._plan_enforcement is not None:
+            self._plan_enforcement.require_consuming_action(
+                organization_id, feature="knowledge"
+            )
         model = self._get_entry(entry_id, organization_id, bot_id)
         if model.status not in expected:
             raise KnowledgeEntryConflictError(

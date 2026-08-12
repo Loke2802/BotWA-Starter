@@ -1,7 +1,7 @@
 # BotWA Product Roadmap v1.0
 
-**Status:** PRD-001 through PRD-018 CLOSED; PRD-019 through PRD-023 NOT STARTED
-**Date:** 2026-08-11
+**Status:** PRD-001 through PRD-018 CLOSED; PRD-019 IMPLEMENTED — PENDING CTO REVIEW; PRD-020 through PRD-023 NOT STARTED
+**Date:** 2026-08-12
 
 ## Current State
 
@@ -18,8 +18,9 @@ PR #26 at merge commit `01c809c909360f4a31a6b26b1d4126a1c98e9c8b`, with final
 approved head `3f7808da24d0dc1e3b5d6f3d337ee4562f5398b6`. PRD-018 Plans and Limits is
 closed after PR #28 at merge commit
 `63f2fc79444e6b3f85b516b917860fb17fa8f779`, with final approved head
-`2776a1b2ca6082142f14862c4eac4cf889eea631`; PRD-019 through PRD-023 are not
-started.
+`2776a1b2ca6082142f14862c4eac4cf889eea631`. PRD-019 Billing & Subscriptions is
+implemented and pending CTO review with Billing disabled by default; PRD-020
+through PRD-023 are not started.
 
 **MVP milestone:** PRD-001 through PRD-010.
 
@@ -45,7 +46,7 @@ started.
 | 16 | PRD-016 Analytics and Reports | CLOSED |
 | 17 | PRD-017 Audit Log | CLOSED |
 | 18 | PRD-018 Plans and Limits | CLOSED |
-| 19 | PRD-019 Billing and Subscriptions | NOT STARTED |
+| 19 | PRD-019 Billing and Subscriptions | IMPLEMENTED — PENDING CTO REVIEW |
 | 20 | PRD-020 Onboarding | NOT STARTED |
 | 21 | PRD-021 Security Hardening | NOT STARTED |
 | 22 | PRD-022 Observability | NOT STARTED |
@@ -64,16 +65,16 @@ started.
 
 | Gate | Result |
 |---|---|
-| `pytest` | 787 passed, 21 skipped, 2 warnings |
-| Focused PRD-018 plus fail-closed | 36 passed, 2 warnings |
-| Expanded affected-domain regression | 159 passed, 2 warnings |
-| PostgreSQL PRD-018 | 3 passed |
-| PostgreSQL migration cycle | `0018 → 0019 → 0018 → 0019` PASS |
+| `pytest` | 799 passed, 24 skipped, 2 warnings |
+| Focused PRD-019 | 12 passed, 2 warnings |
+| Expanded PRD-017/018/019 regression | 69 passed, 2 warnings |
+| PostgreSQL PRD-019 | 3 passed |
+| PostgreSQL migration cycle | `0019 → 0020 → 0019 → 0020` PASS |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 430 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 430 source files |
+| `black --check app tests` | 446 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 446 source files |
 | `git diff --check` | PASS |
-| Alembic | `20260810_0019 (head)` |
+| Alembic | `20260812_0020 (head)` |
 
 ## Channel Runtime Boundary
 
@@ -100,7 +101,8 @@ post-merge validation.
 - Core architecture remains stable.
 - New functionality must be tied to PRDs.
 - Quality gates remain mandatory.
-- PRD-001 through PRD-018 are closed. PRD-019 through PRD-023 are not started.
+- PRD-001 through PRD-018 are closed. PRD-019 is implemented and pending CTO
+  review. PRD-020 through PRD-023 are not started.
 - PRD-010 documents lifecycle/RBAC, tenant isolation, suppression/resume,
   encrypted idempotent replies, archive protection, and migration chain
   `0010` → `0011` → `0012`.

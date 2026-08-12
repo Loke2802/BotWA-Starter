@@ -1,7 +1,7 @@
 # BotWA Starter - Context For AI Assistants
 
-**Last updated:** 2026-08-11
-**Project phase:** Phase 3 - PRD-001 through PRD-018 CLOSED
+**Last updated:** 2026-08-12
+**Project phase:** Phase 3 - PRD-019 IMPLEMENTED — PENDING CTO REVIEW
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
@@ -29,8 +29,12 @@ PR #26 at merge commit `01c809c909360f4a31a6b26b1d4126a1c98e9c8b`, with final
 approved head `3f7808da24d0dc1e3b5d6f3d337ee4562f5398b6`. PRD-018 Plans and Limits is
 CLOSED after PR #28 at merge commit
 `63f2fc79444e6b3f85b516b917860fb17fa8f779`, with final approved head
-`2776a1b2ca6082142f14862c4eac4cf889eea631`. PRD-019 through PRD-023 remain
-NOT STARTED.
+`2776a1b2ca6082142f14862c4eac4cf889eea631`. PRD-019 Billing & Subscriptions is
+IMPLEMENTED — PENDING CTO REVIEW. It is provider-agnostic with Mercado Pago and
+fake adapters, hosted checkout, verified authoritative webhooks, transactional
+Plan/Audit application and revision `20260812_0020`. Billing remains disabled by
+default and commercial go-live is blocked. PRD-020 through PRD-023 remain NOT
+STARTED.
 
 All five core engines are implemented and closed:
 
@@ -48,14 +52,14 @@ Current validated gates:
 
 | Gate | Result |
 |---|---|
-| `pytest` | 787 passed, 21 skipped, 2 warnings |
-| Focused PRD-018 plus fail-closed | 36 passed, 2 warnings |
-| Expanded affected-domain regression | 159 passed, 2 warnings |
-| PostgreSQL PRD-018 | 3 passed |
-| PostgreSQL migration cycle | `0018 → 0019 → 0018 → 0019` PASS |
+| `pytest` | 799 passed, 24 skipped, 2 warnings |
+| Focused PRD-019 | 12 passed, 2 warnings |
+| Expanded PRD-017/018/019 regression | 69 passed, 2 warnings |
+| PostgreSQL PRD-019 | 3 passed |
+| PostgreSQL migration cycle | `0019 → 0020 → 0019 → 0020` PASS |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 430 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 430 source files |
+| `black --check app tests` | 446 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 446 source files |
 | `git diff --check` | PASS |
 
 ## Infrastructure Validation
@@ -63,7 +67,7 @@ Current validated gates:
 | Area | Result |
 |---|---|
 | Docker/PostgreSQL | PASS |
-| Alembic migrations | PASS - `20260810_0019 (head)`, one head, PRD-018 PostgreSQL cycle validated |
+| Alembic migrations | PASS - `20260812_0020 (head)`, one head, PRD-019 PostgreSQL cycle validated |
 | DB-backed product persistence | PASS - receipts, managed encrypted messages, and delivery attempts survive API restart |
 | Docker smoke tests | PASS - signed inbound, Core/Knowledge, fake outbound, lifecycle/RBAC, statuses, restart |
 | Integration controlled errors | PASS |
@@ -90,7 +94,8 @@ Current validated gates:
 
 ## Current Official Objective
 
-PRD-001 through PRD-018 are CLOSED. PRD-019 through PRD-023 remain NOT STARTED.
+PRD-001 through PRD-018 are CLOSED. PRD-019 is IMPLEMENTED — PENDING CTO REVIEW.
+PRD-020 through PRD-023 remain NOT STARTED.
 
 **Phase 3**
 
@@ -114,7 +119,8 @@ PRD-001 through PRD-018 are CLOSED. PRD-019 through PRD-023 remain NOT STARTED.
 | 16 | PRD-016 Analytics & Reports | CLOSED |
 | 17 | PRD-017 Audit Log | CLOSED |
 | 18 | PRD-018 Plans and Limits | CLOSED |
-| 19-23 | Future approved product increments | NOT STARTED |
+| 19 | PRD-019 Billing & Subscriptions | IMPLEMENTED — PENDING CTO REVIEW |
+| 20-23 | Future approved product increments | NOT STARTED |
 
 The MVP milestone comprises PRD-001 through PRD-010.
 
@@ -230,5 +236,5 @@ merge commit `601499071f39aad85dc4d9595fc04425f40a3962`, final approved head
 merge commit `01c809c909360f4a31a6b26b1d4126a1c98e9c8b`, final approved head
 `3f7808da24d0dc1e3b5d6f3d337ee4562f5398b6`. PRD-018 is CLOSED after PR #28,
 merge commit `63f2fc79444e6b3f85b516b917860fb17fa8f779`, final approved head
-`2776a1b2ca6082142f14862c4eac4cf889eea631`; PRD-019 through PRD-023 are NOT
-STARTED.
+`2776a1b2ca6082142f14862c4eac4cf889eea631`. PRD-019 is IMPLEMENTED — PENDING
+CTO REVIEW; PRD-020 through PRD-023 are NOT STARTED.

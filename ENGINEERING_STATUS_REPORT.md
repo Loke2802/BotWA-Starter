@@ -1,10 +1,9 @@
 # Engineering Status Report - Official Current Status
 
-**Date:** 2026-08-11
+**Date:** 2026-08-12
 **Role:** Lead Engineer  
-**Project phase:** Phase 3 - PRD-001 through PRD-018 CLOSED
-**Status source:** PRD-018 merged via PR #28 at
-`63f2fc79444e6b3f85b516b917860fb17fa8f779`
+**Project phase:** Phase 3 - PRD-019 IMPLEMENTED — PENDING CTO REVIEW
+**Status source:** local PRD-019 implementation branch pending Draft PR
 
 ## Executive Summary
 
@@ -62,23 +61,29 @@ operational resource-count hard limits, application-service enforcement,
 Organization row locking, optimistic concurrency, safe APIs/RBAC and
 same-transaction PRD-017 Audit. The default bootstrap is backward-compatible and
 unlimited. Downgrades are non-destructive and do not stop existing runtimes.
-Revision `20260810_0019` is PostgreSQL-only. Billing and all commercial metering
-remain exclusively in PRD-019, which is NOT STARTED.
+Revision `20260810_0019` is PostgreSQL-only.
+
+PRD-019 is IMPLEMENTED — PENDING CTO REVIEW. It adds provider-agnostic
+tenant-scoped Billing, Mercado Pago/fake adapters, hosted checkout, a durable
+provider-event ledger, authoritative webhook/reconcile transitions and
+same-transaction Plan/Audit application. Revision `20260812_0020` is
+PostgreSQL-only and contains no commercial seeds. Billing remains disabled by
+default; real Mercado Pago sandbox and commercial go-live gates remain pending.
 
 ## Quality Gates
 
 | Gate | Current result |
 |---|---|
-| `pytest` | 787 passed, 21 skipped, 2 warnings |
-| Focused PRD-018 plus fail-closed | 36 passed, 2 warnings |
-| Expanded affected-domain regression | 159 passed, 2 warnings |
-| PostgreSQL PRD-018 | 3 passed |
-| PostgreSQL migration cycle | `0018 → 0019 → 0018 → 0019` PASS |
+| `pytest` | 799 passed, 24 skipped, 2 warnings |
+| Focused PRD-019 | 12 passed, 2 warnings |
+| Expanded PRD-017/018/019 regression | 69 passed, 2 warnings |
+| PostgreSQL PRD-019 | 3 passed |
+| PostgreSQL migration cycle | `0019 → 0020 → 0019 → 0020` PASS |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 430 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 430 source files |
+| `black --check app tests` | 446 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 446 source files |
 | `git diff --check` | PASS |
-| Alembic | `20260810_0019 (head)` |
+| Alembic | `20260812_0020 (head)` |
 
 ## Phase 3 Product Status
 
@@ -102,7 +107,8 @@ remain exclusively in PRD-019, which is NOT STARTED.
 | PRD-016 Analytics & Reports | CLOSED |
 | PRD-017 Audit Log | CLOSED |
 | PRD-018 Plans and Limits | CLOSED |
-| PRD-019 through PRD-023 | NOT STARTED |
+| PRD-019 Billing & Subscriptions | IMPLEMENTED — PENDING CTO REVIEW |
+| PRD-020 through PRD-023 | NOT STARTED |
 
 ## PRD-004 Bot Management
 
@@ -261,8 +267,8 @@ Only the following items remain pending:
 
 ## Next Official Objective
 
-**PRD-001 through PRD-018 are CLOSED. PRD-019 through PRD-023 remain NOT
-STARTED.**
+**PRD-001 through PRD-018 are CLOSED. PRD-019 is IMPLEMENTED — PENDING CTO
+REVIEW. PRD-020 through PRD-023 remain NOT STARTED.**
 
 ## PRD-010 through PRD-015 Status
 
@@ -283,8 +289,8 @@ merge commit `601499071f39aad85dc4d9595fc04425f40a3962`, final approved head
 merge commit `01c809c909360f4a31a6b26b1d4126a1c98e9c8b`, final approved head
 `3f7808da24d0dc1e3b5d6f3d337ee4562f5398b6`; PRD-018 is CLOSED after PR #28 at
 merge commit `63f2fc79444e6b3f85b516b917860fb17fa8f779`, final approved head
-`2776a1b2ca6082142f14862c4eac4cf889eea631`; PRD-019 through PRD-023 remain NOT
-STARTED.
+`2776a1b2ca6082142f14862c4eac4cf889eea631`. PRD-019 is IMPLEMENTED — PENDING
+CTO REVIEW; PRD-020 through PRD-023 remain NOT STARTED.
 
 ## CTO Review Status
 

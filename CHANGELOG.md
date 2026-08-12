@@ -1,5 +1,28 @@
 # Changelog
 
+## PRD-019 Billing & Subscriptions v1 - 2026-08-12
+
+### IMPLEMENTED — PENDING CTO REVIEW
+
+- Added provider-agnostic Billing contracts and typed errors, Mercado Pago and
+  deterministic fake adapters, explicit timeouts and environment-only secrets.
+- Added PostgreSQL-only `billing_account`, `billing_price`, `subscription` and
+  `billing_provider_event` via Alembic `20260812_0020`, with no commercial seeds.
+- Added hosted idempotent checkout, verified/deduplicated authoritative webhooks,
+  manual Platform Admin reconcile, optimistic concurrency, period-end downgrade
+  and cancellation, local last-known-good reads and fail-closed fallback policy.
+- Added shared internal Plan assignment staging so provider-confirmed Subscription,
+  PRD-018 assignment and PRD-017 Audit commit in one local transaction.
+- Added least-privilege Billing RBAC, tenant-scoped APIs, allowlisted audit metadata,
+  low-cardinality metrics and responses without external identifiers or PII.
+- Validation: focused PRD-019 12 passed; PRD-017/018/019 regression 69 passed;
+  PostgreSQL PRD-019 3 passed; full pytest 799 passed, 24 skipped, 2 warnings;
+  mypy PASS across 446 source files; Alembic cycle
+  `0019 → 0020 → 0019 → 0020` PASS.
+- Billing remains disabled by default. No Plan/BillingPrice commercial data was
+  seeded. Real Mercado Pago sandbox smoke and commercial go-live remain blocked
+  pending approved credentials/configuration. PRD-020 remains NOT STARTED.
+
 ## PRD-018 Plans and Limits v1 - 2026-08-10
 
 ### CLOSED after PR #28

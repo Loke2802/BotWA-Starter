@@ -2,14 +2,15 @@ import os
 from collections.abc import Generator
 
 import pytest
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, inspect, text
 
 
 @pytest.fixture(autouse=True)
 def isolate_postgresql_smoke_data() -> Generator[None]:
     """Keep every explicit PostgreSQL smoke independent while preserving Alembic."""
     database_url = (
-        os.getenv("BOTWA_PRD018_POSTGRES_URL")
+        os.getenv("BOTWA_PRD019_POSTGRES_URL")
+        or os.getenv("BOTWA_PRD018_POSTGRES_URL")
         or os.getenv("BOTWA_PRD017_POSTGRES_URL")
         or os.getenv("BOTWA_PRD016_POSTGRES_URL")
         or os.getenv("BOTWA_PRD015_POSTGRES_URL")
@@ -19,8 +20,9 @@ def isolate_postgresql_smoke_data() -> Generator[None]:
     if database_url:
         engine = create_engine(database_url)
         try:
-            with engine.begin() as connection:
-                connection.execute(text("TRUNCATE TABLE organization CASCADE"))
+            if inspect(engine).has_table("organization"):
+                with engine.begin() as connection:
+                    connection.execute(text("TRUNCATE TABLE organization CASCADE"))
         finally:
             engine.dispose()
     yield

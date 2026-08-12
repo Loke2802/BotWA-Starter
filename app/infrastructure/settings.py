@@ -63,6 +63,20 @@ class Settings(BaseSettings):
     auth_algorithm: str = "HS256"
     auth_access_token_expire_minutes: int = 30
     auth_password_min_length: int = 12
+    billing_enabled: bool = False
+    billing_provider: str = "mercado_pago"
+    billing_mercado_pago_access_token: str = ""
+    billing_mercado_pago_webhook_secret: str = ""
+    billing_connect_timeout_seconds: float = Field(default=3.0, gt=0, le=30)
+    billing_read_timeout_seconds: float = Field(default=10.0, gt=0, le=120)
+    billing_success_url: str = ""
+    billing_cancel_url: str = ""
+    billing_webhook_max_body_bytes: int = Field(default=262_144, ge=1_024, le=1_048_576)
+    billing_webhook_signature_tolerance_seconds: int = Field(
+        default=300, ge=30, le=3_600
+    )
+    billing_fallback_plan_code: str = ""
+    billing_freshness_seconds: int = Field(default=900, ge=60, le=86_400)
 
 
 @lru_cache

@@ -7,19 +7,19 @@ class BillingDisabled(BillingError):
 
 
 class BillingNotConfigured(BillingError):
-    safe_code = "NOT_CONFIGURED"
+    safe_code = "BILLING_NOT_CONFIGURED"
 
 
 class BillingAccountNotFound(BillingError):
-    safe_code = "ACCOUNT_NOT_FOUND"
+    safe_code = "BILLING_ACCOUNT_NOT_FOUND"
 
 
 class BillingPriceNotFound(BillingError):
-    safe_code = "PRICE_NOT_FOUND"
+    safe_code = "BILLING_PRICE_NOT_FOUND"
 
 
 class BillingPriceUnavailable(BillingError):
-    safe_code = "PRICE_UNAVAILABLE"
+    safe_code = "BILLING_PRICE_UNAVAILABLE"
 
 
 class SubscriptionNotFound(BillingError):
@@ -31,32 +31,32 @@ class SubscriptionConflict(BillingError):
 
 
 class InvalidBillingTransition(BillingError):
-    safe_code = "INVALID_TRANSITION"
+    safe_code = "SUBSCRIPTION_INVALID_TRANSITION"
 
 
 class BillingVersionConflict(BillingError):
-    safe_code = "VERSION_CONFLICT"
+    safe_code = "SUBSCRIPTION_VERSION_CONFLICT"
 
 
 class BillingProviderUnavailable(BillingError):
-    safe_code = "PROVIDER_UNAVAILABLE"
+    safe_code = "BILLING_PROVIDER_UNAVAILABLE"
 
 
 class BillingProviderRejected(BillingError):
-    safe_code = "PROVIDER_REJECTED"
+    safe_code = "BILLING_PROVIDER_REJECTED"
 
 
 class BillingWebhookInvalid(BillingError):
-    safe_code = "WEBHOOK_INVALID"
+    safe_code = "BILLING_WEBHOOK_INVALID"
 
 
 class BillingEventDuplicate(BillingError):
-    safe_code = "EVENT_DUPLICATE"
+    safe_code = "BILLING_EVENT_DUPLICATE"
 
 
 class BillingFallbackNotConfigured(BillingError):
-    safe_code = "FALLBACK_NOT_CONFIGURED"
+    safe_code = "BILLING_FALLBACK_NOT_CONFIGURED"
 
 
 class BillingForbidden(BillingError):
-    safe_code = "FORBIDDEN"
+    safe_code = "BILLING_FORBIDDEN"

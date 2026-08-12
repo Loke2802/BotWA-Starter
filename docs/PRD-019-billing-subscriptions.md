@@ -125,7 +125,7 @@ materiales. No existe scheduler en PRD-019.
 Para `suspended|canceled|expired`, el fallback solo puede usar
 `BOTWA_BILLING_FALLBACK_PLAN_CODE` si está configurado explícitamente. Nunca se
 asigna `default` implícitamente. Sin fallback, se conserva el estado comercial,
-no se cambia el assignment y se registra `FALLBACK_NOT_CONFIGURED` para
+no se cambia el assignment y se registra `BILLING_FALLBACK_NOT_CONFIGURED` para
 reconciliación operativa.
 
 ## API y RBAC
@@ -167,11 +167,14 @@ Métricas low-cardinality:
 - `billing_cancellations_total`;
 - `billing_reconciliations_total`.
 
-Errores públicos cerrados: `BILLING_DISABLED`, `NOT_CONFIGURED`,
-`ACCOUNT_NOT_FOUND`, `PRICE_NOT_FOUND`, `PRICE_UNAVAILABLE`,
-`SUBSCRIPTION_NOT_FOUND`, `SUBSCRIPTION_CONFLICT`, `INVALID_TRANSITION`,
-`VERSION_CONFLICT`, `PROVIDER_UNAVAILABLE`, `PROVIDER_REJECTED`,
-`WEBHOOK_INVALID`, `EVENT_DUPLICATE`, `FALLBACK_NOT_CONFIGURED` y `FORBIDDEN`.
+Errores públicos cerrados: `BILLING_DISABLED`, `BILLING_NOT_CONFIGURED`,
+`BILLING_ACCOUNT_NOT_FOUND`, `BILLING_PRICE_NOT_FOUND`, `BILLING_PRICE_UNAVAILABLE`,
+`SUBSCRIPTION_NOT_FOUND`, `SUBSCRIPTION_CONFLICT`,
+`SUBSCRIPTION_INVALID_TRANSITION`,
+`SUBSCRIPTION_VERSION_CONFLICT`, `BILLING_PROVIDER_UNAVAILABLE`,
+`BILLING_PROVIDER_REJECTED`, `BILLING_WEBHOOK_INVALID`,
+`BILLING_EVENT_DUPLICATE`, `BILLING_FALLBACK_NOT_CONFIGURED` y
+`BILLING_FORBIDDEN`.
 
 ## Configuración
 

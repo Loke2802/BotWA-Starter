@@ -1,5 +1,7 @@
 import os
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
+from threading import Barrier
 from uuid import uuid4
 
 import pytest
@@ -47,6 +49,14 @@ def test_prd019_postgresql_schema_is_empty_and_constrained() -> None:
             "subscription",
             "billing_provider_event",
         } <= set(inspector.get_table_names())
+        assert {"organization_id"} in [
+            set(item["column_names"])
+            for item in inspector.get_unique_constraints("billing_account")
+        ]
+        assert {"provider", "provider_price_id"} in [
+            set(item["column_names"])
+            for item in inspector.get_unique_constraints("billing_price")
+        ]
         factory = sessionmaker(bind=engine)
         with factory() as session:
             assert session.scalar(select(BillingPriceModel)) is None
@@ -147,6 +157,53 @@ def test_prd019_postgresql_current_subscription_and_event_dedupe() -> None:
         )
         with pytest.raises(IntegrityError):
             session.commit()
+    engine.dispose()
+
+
+def test_prd019_postgresql_concurrent_webhook_receipt_deduplication() -> None:
+    _alembic("20260812_0020")
+    engine = create_engine(_url())
+    factory = sessionmaker(bind=engine)
+    event_id = f"concurrent-{uuid4()}"
+    barrier = Barrier(2)
+
+    def append_receipt(payload_hash: str) -> str:
+        with factory() as session:
+            session.add(
+                BillingProviderEventModel(
+                    provider="fake",
+                    provider_event_id=event_id,
+                    event_type="subscription",
+                    status="received",
+                    received_at=datetime.now(UTC),
+                    attempts=1,
+                    payload_hash=payload_hash,
+                )
+            )
+            barrier.wait(timeout=10)
+            try:
+                session.commit()
+            except IntegrityError:
+                session.rollback()
+                return "duplicate"
+            return "accepted"
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first = executor.submit(append_receipt, "a" * 64)
+        second = executor.submit(append_receipt, "b" * 64)
+        results = sorted((first.result(timeout=15), second.result(timeout=15)))
+    assert results == ["accepted", "duplicate"]
+    with factory() as session:
+        assert (
+            len(
+                session.scalars(
+                    select(BillingProviderEventModel).where(
+                        BillingProviderEventModel.provider_event_id == event_id
+                    )
+                ).all()
+            )
+            == 1
+        )
     engine.dispose()
 
 

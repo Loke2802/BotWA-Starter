@@ -19,10 +19,13 @@ from app.domain.billing.contracts import (
     ChangePlanRequest,
     CheckoutCommand,
     CheckoutRequest,
+    ProviderEventReceipt,
+    ProviderSubscriptionSnapshot,
 )
 from app.domain.billing.errors import (
     BillingDisabled,
     BillingForbidden,
+    BillingProviderUnavailable,
     BillingWebhookInvalid,
 )
 from app.domain.user.contracts import User
@@ -232,6 +235,24 @@ def _checkout(
     ).subscription_id
 
 
+def _signed_event(
+    service: BillingService,
+    provider_subscription_id: str,
+    event_id: str,
+    *,
+    secret: str = "secret",
+) -> ProviderEventReceipt:
+    body = json.dumps(
+        {
+            "id": event_id,
+            "type": "subscription_preapproval",
+            "data": {"id": provider_subscription_id},
+        }
+    ).encode()
+    signature = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+    return service.process_webhook(body, {"x-signature": signature}, {})
+
+
 def test_disabled_mode_is_read_safe_and_rejects_mutations(session: Session) -> None:
     organization_id, actor, basic, _ = _seed(session)
     service = _service(
@@ -338,7 +359,7 @@ def test_terminal_without_fallback_never_assigns_default(session: Session) -> No
     assignment = SqlAlchemyPlanRepository(session).get_assignment(organization_id)
     assert persisted is not None
     assert persisted.status == "canceled"
-    assert persisted.safe_error_code == "FALLBACK_NOT_CONFIGURED"
+    assert persisted.safe_error_code == "BILLING_FALLBACK_NOT_CONFIGURED"
     assert assignment is not None
     assert assignment.plan_definition_id == basic.plan_definition_id
 
@@ -354,6 +375,93 @@ def test_tenant_isolation_and_rbac_are_fail_closed(session: Session) -> None:
         _service(session, FakeBillingProvider(), RecordingAuditWriter()).get(
             organization_id, other
         )
+    operator = other.model_copy(
+        update={"organization_id": organization_id, "role": "operator"}
+    )
+    with pytest.raises(BillingForbidden):
+        _service(session, FakeBillingProvider(), RecordingAuditWriter()).get(
+            organization_id, operator
+        )
+
+
+def test_out_of_order_webhook_is_ignored_without_duplicate_audit(
+    session: Session,
+) -> None:
+    organization_id, actor, _, pro = _seed(session)
+    provider = FakeBillingProvider(webhook_secret="secret")
+    writer = RecordingAuditWriter()
+    service = _service(session, provider, writer)
+    subscription_id = _checkout(service, organization_id, actor, pro)
+    row = session.get(SubscriptionModel, subscription_id)
+    assert row is not None and row.provider_subscription_id is not None
+    provider.activate(row.provider_subscription_id, sequence=2)
+    _signed_event(service, row.provider_subscription_id, "ordered-event")
+    provider.subscriptions[row.provider_subscription_id] = ProviderSubscriptionSnapshot(
+        provider_subscription_id=row.provider_subscription_id,
+        external_reference=str(row.id),
+        status="pending",
+        payment_state="pending",
+        provider_sequence=1,
+        provider_price_id=pro.provider_price_id,
+    )
+    receipt = _signed_event(service, row.provider_subscription_id, "stale-event")
+    assert receipt.status == "ignored"
+    assert service.get(organization_id, actor).status == "active"
+    assert [event.action for event in writer.events].count(
+        "subscription.activated"
+    ) == 1
+
+
+def test_unknown_webhook_binding_is_safely_ignored(session: Session) -> None:
+    _seed(session)
+    service = _service(
+        session,
+        FakeBillingProvider(webhook_secret="secret"),
+        RecordingAuditWriter(),
+    )
+    receipt = _signed_event(service, "unknown-subscription", "unknown-event")
+    assert receipt.status == "ignored"
+
+
+def test_provider_outage_preserves_last_known_good(session: Session) -> None:
+    organization_id, actor, basic, _ = _seed(session)
+    provider = FakeBillingProvider()
+    service = _service(session, provider, RecordingAuditWriter())
+    subscription_id = _checkout(service, organization_id, actor, basic)
+    row = session.get(SubscriptionModel, subscription_id)
+    assert row is not None and row.provider_subscription_id is not None
+    provider.activate(row.provider_subscription_id)
+    admin = actor.model_copy(update={"role": "platform_admin"})
+    service.reconcile(organization_id, admin)
+    provider.available = False
+    with pytest.raises(BillingProviderUnavailable):
+        service.reconcile(organization_id, admin)
+    assert service.get(organization_id, actor).status == "active"
+
+
+def test_same_price_change_is_noop(session: Session) -> None:
+    organization_id, actor, basic, _ = _seed(session)
+    provider = FakeBillingProvider()
+    writer = RecordingAuditWriter()
+    service = _service(session, provider, writer)
+    subscription_id = _checkout(service, organization_id, actor, basic)
+    row = session.get(SubscriptionModel, subscription_id)
+    assert row is not None and row.provider_subscription_id is not None
+    provider.activate(row.provider_subscription_id)
+    service.reconcile(
+        organization_id, actor.model_copy(update={"role": "platform_admin"})
+    )
+    before_version = row.version
+    before_calls = provider.plan_change_calls
+    before_audits = len(writer.events)
+    response = service.request_plan_change(
+        organization_id,
+        ChangePlanRequest(billing_price_id=basic.id, expected_version=before_version),
+        actor,
+    )
+    assert response.version == before_version
+    assert provider.plan_change_calls == before_calls
+    assert len(writer.events) == before_audits
 
 
 def test_billing_api_uses_typed_contracts(session: Session) -> None:

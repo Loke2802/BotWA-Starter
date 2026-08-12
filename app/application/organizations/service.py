@@ -18,6 +18,7 @@ from app.infrastructure.models.organization import OrganizationModel
 from app.infrastructure.repositories.organization_repository import (
     OrganizationRepository,
 )
+from app.infrastructure.repositories.plan_repository import SqlAlchemyPlanRepository
 
 
 class OrganizationNotFoundError(ValueError):
@@ -34,10 +35,12 @@ class OrganizationService:
         repository: OrganizationRepository,
         session: Session,
         audit_writer: AuditWriter,
+        plan_repository: SqlAlchemyPlanRepository | None = None,
     ) -> None:
         self._repository = repository
         self._session = session
         self._audit_writer = audit_writer
+        self._plan_repository = plan_repository
 
     def create(self, request: OrganizationCreate) -> Organization:
         if self._repository.find_by_slug(request.slug) is not None:
@@ -54,6 +57,9 @@ class OrganizationService:
             updated_at=now,
         )
         self._repository.add(model)
+        if self._plan_repository is not None:
+            self._session.flush()
+            self._plan_repository.create_default_assignment(model.id)
         try:
             self._session.flush()
         except SQLAlchemyError as exc:

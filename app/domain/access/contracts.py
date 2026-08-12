@@ -86,6 +86,8 @@ Permission = Literal[
     "analytics.read",
     "analytics.export",
     "audit.read",
+    "plan.read",
+    "plan.assign",
     "platform.organizations.read",
     "platform.organizations.manage",
 ]
@@ -173,6 +175,8 @@ ALL_PERMISSIONS: tuple[Permission, ...] = (
     "analytics.read",
     "analytics.export",
     "audit.read",
+    "plan.read",
+    "plan.assign",
     "platform.organizations.read",
     "platform.organizations.manage",
 )
@@ -255,6 +259,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "analytics.read",
             "analytics.export",
             "audit.read",
+            "plan.read",
         )
     ),
     "organization_admin": frozenset(
@@ -332,6 +337,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "analytics.read",
             "analytics.export",
             "audit.read",
+            "plan.read",
         )
     ),
     "operator": frozenset(

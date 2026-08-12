@@ -43,6 +43,8 @@ from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from tests.plan_support import allow_all_plan_enforcement
+
 DAY = date(2026, 8, 8)
 NOON = datetime(2026, 8, 8, 12, tzinfo=UTC)
 
@@ -252,7 +254,9 @@ def _services(
     session: Session,
 ) -> tuple[AnalyticsProjectionService, AnalyticsQueryService]:
     repository = SqlAlchemyAnalyticsRepository(session)
-    return AnalyticsProjectionService(repository), AnalyticsQueryService(repository)
+    return AnalyticsProjectionService(repository), AnalyticsQueryService(
+        repository, plan_enforcement=allow_all_plan_enforcement()
+    )
 
 
 def _bot(session: Session, bot_id: UUID) -> BotModel:

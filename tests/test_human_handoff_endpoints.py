@@ -53,6 +53,8 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from tests.plan_support import allow_all_plan_enforcement
+
 
 @pytest.fixture
 def runtime() -> (
@@ -160,7 +162,10 @@ def runtime() -> (
     )
     audit_writer = SqlAlchemyAuditRepository(session)
     service = HumanHandoffService(
-        HumanHandoffRepository(session), session, audit_writer
+        HumanHandoffRepository(session),
+        session,
+        audit_writer,
+        allow_all_plan_enforcement(),
     )
     service.request(organization_id, conversation_id, actor, None)
     service.claim(organization_id, conversation_id, actor)

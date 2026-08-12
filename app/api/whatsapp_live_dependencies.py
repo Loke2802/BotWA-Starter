@@ -21,6 +21,7 @@ from app.application.conversation_management.service import (
 )
 from app.application.human_handoff.service import HumanHandoffService
 from app.application.knowledge_management.provider import BotKnowledgeProvider
+from app.application.plans.service import PlanEnforcementService
 from app.application.whatsapp_configuration.resolver import (
     WhatsAppChannelResolver,
 )
@@ -49,6 +50,7 @@ from app.infrastructure.repositories.knowledge_entry_repository import (
 from app.infrastructure.repositories.managed_automation_repository import (
     ManagedAutomationRepository,
 )
+from app.infrastructure.repositories.plan_repository import SqlAlchemyPlanRepository
 from app.infrastructure.repositories.whatsapp_configuration_repository import (
     SqlAlchemyWhatsAppConfigurationRepository,
 )
@@ -96,6 +98,7 @@ def get_whatsapp_live_message_processor(
 ) -> WhatsAppLiveMessageProcessor:
     configuration_repository = SqlAlchemyWhatsAppConfigurationRepository(session)
     audit_writer = SqlAlchemyAuditRepository(session)
+    plan_enforcement = PlanEnforcementService(SqlAlchemyPlanRepository(session))
     management = ConversationManagementService(
         conversations=SqlAlchemyConversationManagementRepository(session),
         messages=SqlAlchemyConversationMessageManagementRepository(
@@ -107,7 +110,7 @@ def get_whatsapp_live_message_processor(
         audit_writer=audit_writer,
     )
     handoff = HumanHandoffService(
-        HumanHandoffRepository(session), session, audit_writer
+        HumanHandoffRepository(session), session, audit_writer, plan_enforcement
     )
     contacts = ContactResolutionService(
         SqlAlchemyContactRepository(session),
@@ -131,6 +134,7 @@ def get_whatsapp_live_message_processor(
             ManagedAutomationRepository(session),
             session,
             audit_writer,
+            plan_enforcement=plan_enforcement,
             handoff=handoff,
         ),
     )

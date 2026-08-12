@@ -64,7 +64,7 @@ class UserService:
         password_service: PasswordService,
         session: Session,
         audit_writer: AuditWriter,
-        plan_enforcement: PlanEnforcementService | None = None,
+        plan_enforcement: PlanEnforcementService,
     ) -> None:
         self._repository = repository
         self._organization_repository = organization_repository
@@ -98,10 +98,9 @@ class UserService:
             except AuthorizationError as exc:
                 raise UserForbiddenError("permission denied") from exc
 
-        if self._plan_enforcement is not None:
-            self._plan_enforcement.require_consuming_action(
-                request.organization_id, limit="max_active_users"
-            )
+        self._plan_enforcement.require_consuming_action(
+            request.organization_id, limit="max_active_users"
+        )
 
         if self._repository.find_by_email(request.email) is not None:
             raise UserConflictError("user email already exists")

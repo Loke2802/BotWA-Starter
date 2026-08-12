@@ -20,6 +20,8 @@ from app.infrastructure.repositories.organization_repository import (
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from tests.plan_support import no_op_plan_repository
+
 
 @pytest.fixture
 def session() -> Generator[Session]:
@@ -39,6 +41,7 @@ def service(session: Session) -> OrganizationService:
         repository=repository,
         session=session,
         audit_writer=SqlAlchemyAuditRepository(session),
+        plan_repository=no_op_plan_repository(),
     )
 
 

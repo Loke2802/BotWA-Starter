@@ -13,6 +13,8 @@ from app.domain.whatsapp_configuration.contracts import (
 from app.security.secret_cipher import SecretCipher
 from sqlalchemy.exc import IntegrityError
 
+from tests.plan_support import allow_all_plan_enforcement
+
 
 def test_integrity_error_rolls_back_without_leaking_database_details() -> None:
     repository = Mock()
@@ -40,6 +42,7 @@ def test_integrity_error_rolls_back_without_leaking_database_details() -> None:
         organization_repository,
         cipher,
         session,
+        allow_all_plan_enforcement(),
     )
 
     with pytest.raises(

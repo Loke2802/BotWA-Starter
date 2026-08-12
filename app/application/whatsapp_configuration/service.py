@@ -57,7 +57,7 @@ class WhatsAppConfigurationService:
         organization_repository: OrganizationRepository,
         secret_cipher: SecretCipher,
         session: Session,
-        plan_enforcement: PlanEnforcementService | None = None,
+        plan_enforcement: PlanEnforcementService,
     ) -> None:
         self._repository = repository
         self._bot_repository = bot_repository
@@ -93,12 +93,11 @@ class WhatsAppConfigurationService:
                 "whatsapp_config.rotate_secrets",
                 organization_id,
             )
-        if self._plan_enforcement is not None:
-            self._plan_enforcement.require_consuming_action(
-                organization_id,
-                feature="whatsapp_configuration",
-                limit="max_whatsapp_configurations",
-            )
+        self._plan_enforcement.require_consuming_action(
+            organization_id,
+            feature="whatsapp_configuration",
+            limit="max_whatsapp_configurations",
+        )
         now = datetime.now(UTC)
         model = WhatsAppChannelConfigurationModel(
             id=uuid4(),
@@ -233,10 +232,9 @@ class WhatsAppConfigurationService:
             "whatsapp_config.activate",
         )
         self._require_active_organization(organization_id)
-        if self._plan_enforcement is not None:
-            self._plan_enforcement.require_consuming_action(
-                organization_id, feature="whatsapp_configuration"
-            )
+        self._plan_enforcement.require_consuming_action(
+            organization_id, feature="whatsapp_configuration"
+        )
         model = self._get_configuration(
             configuration_id,
             organization_id,

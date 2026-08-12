@@ -121,7 +121,7 @@ class IntegrationManagementService:
         oauth_state_signer: OAuthStateSigner,
         providers: IntegrationProviderRegistry,
         audit_writer: AuditWriter,
-        plan_enforcement: PlanEnforcementService | None = None,
+        plan_enforcement: PlanEnforcementService,
     ) -> None:
         self.repository = repository
         self.session = session
@@ -199,12 +199,11 @@ class IntegrationManagementService:
     ) -> IntegrationConnectionResponse:
         self._authorize(actor, "integration.create", organization_id)
         self._validate_bot(organization_id, payload.bot_id)
-        if self.plan_enforcement is not None:
-            self.plan_enforcement.require_consuming_action(
-                organization_id,
-                feature="integrations",
-                limit="max_integrations",
-            )
+        self.plan_enforcement.require_consuming_action(
+            organization_id,
+            feature="integrations",
+            limit="max_integrations",
+        )
         row = IntegrationConnectionModel(
             organization_id=organization_id,
             bot_id=payload.bot_id,
@@ -379,7 +378,7 @@ class IntegrationManagementService:
         permission: Permission,
     ) -> IntegrationConnectionResponse:
         self._authorize(actor, permission, organization_id)
-        if transition == "activate" and self.plan_enforcement is not None:
+        if transition == "activate":
             self.plan_enforcement.require_consuming_action(
                 organization_id, feature="integrations"
             )

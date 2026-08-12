@@ -69,14 +69,17 @@ class ManagedAutomationService:
         repository: ManagedAutomationRepository,
         session: Session,
         audit_writer: AuditWriter,
+        plan_enforcement: PlanEnforcementService,
         handoff: HumanHandoffService | None = None,
         business_hours: BusinessHoursStateProvider | None = None,
-        plan_enforcement: PlanEnforcementService | None = None,
     ) -> None:
         self.repo, self.session, self.handoff = repository, session, handoff
         self.business_hours = business_hours or BusinessHoursStateCompatibilityService(
             BusinessCalendarService(
-                BusinessCalendarRepository(session), session, audit_writer
+                BusinessCalendarRepository(session),
+                session,
+                audit_writer,
+                plan_enforcement=plan_enforcement,
             ),
             session,
         )
@@ -93,12 +96,11 @@ class ManagedAutomationService:
         self, organization_id: UUID, payload: AutomationDefinitionInput, actor: User
     ) -> ManagedAutomationDefinitionModel:
         self._auth(actor, "automation.create", organization_id)
-        if self.plan_enforcement is not None:
-            self.plan_enforcement.require_consuming_action(
-                organization_id,
-                feature="automations",
-                limit="max_automations",
-            )
+        self.plan_enforcement.require_consuming_action(
+            organization_id,
+            feature="automations",
+            limit="max_automations",
+        )
         from app.infrastructure.models.managed_automation import (
             ManagedAutomationDefinitionModel,
         )
@@ -293,7 +295,7 @@ class ManagedAutomationService:
         self, organization_id: UUID, automation_id: UUID, target: str, actor: User
     ) -> ManagedAutomationDefinitionModel:
         self._auth(actor, f"automation.{target}", organization_id)
-        if target == "activate" and self.plan_enforcement is not None:
+        if target == "activate":
             self.plan_enforcement.require_consuming_action(
                 organization_id, feature="automations"
             )

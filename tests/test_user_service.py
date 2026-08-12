@@ -25,6 +25,8 @@ from argon2 import PasswordHasher
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from tests.plan_support import allow_all_plan_enforcement, no_op_plan_repository
+
 
 @pytest.fixture
 def session() -> Generator[Session]:
@@ -50,6 +52,7 @@ def organization_service(session: Session) -> OrganizationService:
         repository=repository,
         session=session,
         audit_writer=SqlAlchemyAuditRepository(session),
+        plan_repository=no_op_plan_repository(),
     )
 
 
@@ -64,6 +67,7 @@ def user_service(
         password_service=password_service,
         session=session,
         audit_writer=SqlAlchemyAuditRepository(session),
+        plan_enforcement=allow_all_plan_enforcement(),
     )
 
 

@@ -36,6 +36,7 @@ from app.infrastructure.repositories.human_handoff_repository import (
 from app.infrastructure.settings import get_settings
 from sqlalchemy import create_engine, func, inspect, select
 from sqlalchemy.orm import Session, sessionmaker
+from tests.plan_support import allow_all_plan_enforcement
 
 DATABASE_URL = os.getenv("BOTWA_PRD016_POSTGRES_URL")
 
@@ -180,7 +181,10 @@ def test_prd016_postgresql_projection_concurrency_tenant_scope_and_csv(
         projection.rebuild_day(organization_a, None, LOCAL_DAY)
         projection.rebuild_day(organization_b, bot_b, LOCAL_DAY)
         projection.rebuild_day(organization_b, None, LOCAL_DAY)
-        query = AnalyticsQueryService(SqlAlchemyAnalyticsRepository(session))
+        query = AnalyticsQueryService(
+            SqlAlchemyAnalyticsRepository(session),
+            plan_enforcement=allow_all_plan_enforcement(),
+        )
         result = query.query(
             organization_a,
             actor_a,
@@ -260,6 +264,7 @@ def test_prd016_postgresql_projection_concurrency_tenant_scope_and_csv(
             HumanHandoffRepository(session),
             session,
             SqlAlchemyAuditRepository(session),
+            allow_all_plan_enforcement(),
         )
         handoff.request(organization_a, handoff_conversation.id, actor_a, "postgresql")
         handoff.claim(organization_a, handoff_conversation.id, actor_a)

@@ -68,7 +68,7 @@ class AuditQueryService:
         *,
         cursor_codec: AuditCursorCodec,
         metrics: AuditMetricsRegistry | None = None,
-        plan_enforcement: PlanEnforcementService | None = None,
+        plan_enforcement: PlanEnforcementService,
     ) -> None:
         self.reader = reader
         self.cursor_codec = cursor_codec
@@ -98,8 +98,7 @@ class AuditQueryService:
                 "audit_query_requests_total", operation="query", result="forbidden"
             )
             raise AuditForbidden("audit access denied") from exc
-        if self.plan_enforcement is not None:
-            self.plan_enforcement.require_feature(organization_id, "audit")
+        self.plan_enforcement.require_feature(organization_id, "audit")
         try:
             upper = self._aware(to or now or datetime.now(UTC))
             lower = self._aware(from_) if from_ is not None else upper - DEFAULT_RANGE

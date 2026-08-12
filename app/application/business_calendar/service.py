@@ -138,7 +138,7 @@ class BusinessCalendarService:
         resolver: BusinessHoursResolver | None = None,
         clock: Clock | None = None,
         metrics: BusinessCalendarMetrics | None = None,
-        plan_enforcement: "PlanEnforcementService | None" = None,
+        plan_enforcement: "PlanEnforcementService",
     ) -> None:
         self.repository = repository
         self.session = session
@@ -469,12 +469,11 @@ class BusinessCalendarService:
         )
         if replay is not None:
             return replay
-        if self.plan_enforcement is not None:
-            self.plan_enforcement.require_consuming_action(
-                organization_id,
-                feature="business_calendar",
-                limit="max_business_calendars",
-            )
+        self.plan_enforcement.require_consuming_action(
+            organization_id,
+            feature="business_calendar",
+            limit="max_business_calendars",
+        )
         now = self.clock.now()
         row = BusinessCalendarModel(
             id=uuid4(),
@@ -634,7 +633,7 @@ class BusinessCalendarService:
         else:
             raise ScheduleValidationError("calendar transition is invalid")
         self._authorize(actor, permission, organization_id)
-        if target == "activate" and self.plan_enforcement is not None:
+        if target == "activate":
             self.plan_enforcement.require_consuming_action(
                 organization_id, feature="business_calendar"
             )

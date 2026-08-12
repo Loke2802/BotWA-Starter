@@ -226,7 +226,7 @@ class AnalyticsQueryService:
         repository: AnalyticsRepository,
         *,
         metrics: AnalyticsMetricsRegistry | None = None,
-        plan_enforcement: PlanEnforcementService | None = None,
+        plan_enforcement: PlanEnforcementService,
     ) -> None:
         self.repository = repository
         self.metrics = metrics or AnalyticsMetricsRegistry()
@@ -250,8 +250,7 @@ class AnalyticsQueryService:
                 require_scoped_permission(actor, "analytics.read", organization_id)
             except AuthorizationError as exc:
                 raise AnalyticsForbidden("permission denied") from exc
-            if self.plan_enforcement is not None:
-                self.plan_enforcement.require_feature(organization_id, "analytics")
+            self.plan_enforcement.require_feature(organization_id, "analytics")
             days = AnalyticsProjectionService._range_days(from_, to)
             scope = self.repository.scope(organization_id, bot_id)
             if scope is None:
@@ -313,8 +312,7 @@ class AnalyticsQueryService:
             require_scoped_permission(actor, "analytics.export", organization_id)
         except AuthorizationError as exc:
             raise AnalyticsForbidden("permission denied") from exc
-        if self.plan_enforcement is not None:
-            self.plan_enforcement.require_feature(organization_id, "analytics_export")
+        self.plan_enforcement.require_feature(organization_id, "analytics_export")
         response = self.query(
             organization_id,
             actor,

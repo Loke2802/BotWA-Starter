@@ -55,6 +55,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from tests.plan_support import allow_all_plan_enforcement, no_op_plan_repository
+
 
 @dataclass(frozen=True)
 class Runtime:
@@ -83,6 +85,7 @@ def runtime() -> Generator[Runtime]:
             OrganizationRepository(session),
             session,
             SqlAlchemyAuditRepository(session),
+            no_op_plan_repository(),
         )
 
     def user_service() -> UserService:
@@ -92,6 +95,7 @@ def runtime() -> Generator[Runtime]:
             password_service,
             session,
             SqlAlchemyAuditRepository(session),
+            allow_all_plan_enforcement(),
         )
 
     def bot_service() -> BotService:
@@ -100,6 +104,7 @@ def runtime() -> Generator[Runtime]:
             OrganizationRepository(session),
             session,
             SqlAlchemyAuditRepository(session),
+            allow_all_plan_enforcement(),
         )
 
     def whatsapp_service() -> WhatsAppConfigurationService:
@@ -109,6 +114,7 @@ def runtime() -> Generator[Runtime]:
             OrganizationRepository(session),
             cipher,
             session,
+            allow_all_plan_enforcement(),
         )
 
     def webhook_service() -> WhatsAppWebhookValidationService:

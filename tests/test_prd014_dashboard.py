@@ -61,6 +61,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from tests.plan_support import allow_all_plan_enforcement
+
 NOW = datetime(2026, 8, 10, 15, 0, tzinfo=UTC)
 
 
@@ -144,6 +146,7 @@ def _service(session: Session) -> DashboardQueryService:
         BusinessCalendarRepository(session),
         session,
         SqlAlchemyAuditRepository(session),
+        plan_enforcement=allow_all_plan_enforcement(),
     )
     return DashboardQueryService(
         SqlAlchemyDashboardRepository(session),
@@ -665,7 +668,10 @@ def test_dashboard_business_resolution_error_is_unknown_and_read_only(
     organization_id, _foreign_id, _bot_a1, _bot_a2, _actor = _base(session)
     repository = BusinessCalendarRepository(session)
     calendars = BusinessCalendarService(
-        repository, session, SqlAlchemyAuditRepository(session)
+        repository,
+        session,
+        SqlAlchemyAuditRepository(session),
+        plan_enforcement=allow_all_plan_enforcement(),
     )
 
     def fail(_organization_id: UUID) -> BusinessCalendarModel | None:

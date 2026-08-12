@@ -35,7 +35,7 @@ class OrganizationService:
         repository: OrganizationRepository,
         session: Session,
         audit_writer: AuditWriter,
-        plan_repository: SqlAlchemyPlanRepository | None = None,
+        plan_repository: SqlAlchemyPlanRepository,
     ) -> None:
         self._repository = repository
         self._session = session
@@ -57,9 +57,8 @@ class OrganizationService:
             updated_at=now,
         )
         self._repository.add(model)
-        if self._plan_repository is not None:
-            self._session.flush()
-            self._plan_repository.create_default_assignment(model.id)
+        self._session.flush()
+        self._plan_repository.create_default_assignment(model.id)
         try:
             self._session.flush()
         except SQLAlchemyError as exc:

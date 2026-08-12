@@ -19,14 +19,18 @@ def get_managed_automation_service() -> Generator[ManagedAutomationService]:
     session = next(session_generator)
     try:
         audit_writer = SqlAlchemyAuditRepository(session)
+        plan_enforcement = PlanEnforcementService(SqlAlchemyPlanRepository(session))
         yield ManagedAutomationService(
             ManagedAutomationRepository(session),
             session,
             audit_writer,
+            plan_enforcement=plan_enforcement,
             handoff=HumanHandoffService(
-                HumanHandoffRepository(session), session, audit_writer
+                HumanHandoffRepository(session),
+                session,
+                audit_writer,
+                plan_enforcement,
             ),
-            plan_enforcement=PlanEnforcementService(SqlAlchemyPlanRepository(session)),
         )
     finally:
         session_generator.close()

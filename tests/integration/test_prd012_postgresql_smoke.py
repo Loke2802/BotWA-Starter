@@ -25,6 +25,7 @@ from app.infrastructure.repositories.managed_automation_repository import (
 )
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import sessionmaker
+from tests.plan_support import allow_all_plan_enforcement
 
 DATABASE_URL = os.getenv("BOTWA_PRD012_POSTGRES_URL")
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason="requires real PostgreSQL")
@@ -92,12 +93,16 @@ def test_prd012_postgresql_critical_smoke() -> None:
         )
         audit_writer = SqlAlchemyAuditRepository(session)
         handoff = HumanHandoffService(
-            HumanHandoffRepository(session), session, audit_writer
+            HumanHandoffRepository(session),
+            session,
+            audit_writer,
+            allow_all_plan_enforcement(),
         )
         service = ManagedAutomationService(
             ManagedAutomationRepository(session),
             session,
             audit_writer,
+            plan_enforcement=allow_all_plan_enforcement(),
             handoff=handoff,
         )
         definition = service.create(

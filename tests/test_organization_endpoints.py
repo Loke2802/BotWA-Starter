@@ -19,6 +19,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from tests.plan_support import allow_all_plan_enforcement, no_op_plan_repository
+
 
 @pytest.fixture
 def client() -> Generator[TestClient]:
@@ -39,6 +41,7 @@ def client() -> Generator[TestClient]:
             repository=repository,
             session=session,
             audit_writer=SqlAlchemyAuditRepository(session),
+            plan_repository=no_op_plan_repository(),
         )
 
     def override_user_service() -> UserService:
@@ -48,6 +51,7 @@ def client() -> Generator[TestClient]:
             password_service=password_service,
             session=session,
             audit_writer=SqlAlchemyAuditRepository(session),
+            plan_enforcement=allow_all_plan_enforcement(),
         )
 
     app = create_app()

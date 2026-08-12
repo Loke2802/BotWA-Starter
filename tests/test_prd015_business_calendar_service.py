@@ -42,6 +42,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from tests.plan_support import allow_all_plan_enforcement
+
 
 @pytest.fixture
 def session() -> Generator[Session]:
@@ -104,6 +106,7 @@ def _setup(
             BusinessCalendarRepository(session),
             session,
             SqlAlchemyAuditRepository(session),
+            plan_enforcement=allow_all_plan_enforcement(),
         ),
         actor,
         organization_id,

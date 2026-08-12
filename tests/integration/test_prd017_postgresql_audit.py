@@ -19,6 +19,7 @@ from app.infrastructure.settings import get_settings
 from sqlalchemy import create_engine, event, func, inspect, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
+from tests.plan_support import allow_all_plan_enforcement
 
 DATABASE_URL = os.getenv("BOTWA_PRD017_POSTGRES_URL") or os.getenv(
     "BOTWA_PRD016_POSTGRES_URL"
@@ -113,6 +114,7 @@ def _query(session: Session) -> AuditQueryService:
     return AuditQueryService(
         SqlAlchemyAuditRepository(session),
         cursor_codec=AuditCursorCodec("postgres-audit-secret"),
+        plan_enforcement=allow_all_plan_enforcement(),
     )
 
 

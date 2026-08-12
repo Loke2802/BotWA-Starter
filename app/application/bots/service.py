@@ -51,7 +51,7 @@ class BotService:
         organization_repository: OrganizationRepository,
         session: Session,
         audit_writer: AuditWriter,
-        plan_enforcement: PlanEnforcementService | None = None,
+        plan_enforcement: PlanEnforcementService,
     ) -> None:
         self._repository = repository
         self._organization_repository = organization_repository
@@ -170,10 +170,9 @@ class BotService:
         model = self._get_visible_model(bot_id, actor, "bots.activate")
         self._require_active_organization(model.organization_id)
         if model.status != "active":
-            if self._plan_enforcement is not None:
-                self._plan_enforcement.require_consuming_action(
-                    model.organization_id, limit="max_active_bots"
-                )
+            self._plan_enforcement.require_consuming_action(
+                model.organization_id, limit="max_active_bots"
+            )
             now = datetime.now(UTC)
             model.status = "active"
             model.activated_at = now

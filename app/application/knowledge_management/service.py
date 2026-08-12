@@ -50,7 +50,7 @@ class KnowledgeManagementService:
         bot_repository: BotRepository,
         organization_repository: OrganizationRepository,
         session: Session,
-        plan_enforcement: PlanEnforcementService | None = None,
+        plan_enforcement: PlanEnforcementService,
     ) -> None:
         self._repository = repository
         self._bot_repository = bot_repository
@@ -67,12 +67,11 @@ class KnowledgeManagementService:
     ) -> KnowledgeEntry:
         self._validate_scope(organization_id, bot_id, actor, "knowledge.create")
         self._require_active_organization(organization_id)
-        if self._plan_enforcement is not None:
-            self._plan_enforcement.require_consuming_action(
-                organization_id,
-                feature="knowledge",
-                limit="max_knowledge_entries",
-            )
+        self._plan_enforcement.require_consuming_action(
+            organization_id,
+            feature="knowledge",
+            limit="max_knowledge_entries",
+        )
         now = datetime.now(UTC)
         model = KnowledgeEntryModel(
             id=uuid4(),
@@ -218,7 +217,7 @@ class KnowledgeManagementService:
     ) -> KnowledgeEntry:
         self._validate_scope(organization_id, bot_id, actor, permission)
         self._require_active_organization(organization_id)
-        if target == "published" and self._plan_enforcement is not None:
+        if target == "published":
             self._plan_enforcement.require_consuming_action(
                 organization_id, feature="knowledge"
             )

@@ -49,7 +49,7 @@ class HumanHandoffService:
         repository: HumanHandoffRepository,
         session: Session,
         audit_writer: AuditWriter,
-        plan_enforcement: PlanEnforcementService | None = None,
+        plan_enforcement: PlanEnforcementService,
     ) -> None:
         self._repository, self._session = repository, session
         self._audit_writer = audit_writer
@@ -63,10 +63,9 @@ class HumanHandoffService:
         reason_code: str | None,
     ) -> HandoffSessionResponse:
         self._authorize(actor, "handoff.request", organization_id)
-        if self._plan_enforcement is not None:
-            self._plan_enforcement.require_consuming_action(
-                organization_id, feature="human_handoff"
-            )
+        self._plan_enforcement.require_consuming_action(
+            organization_id, feature="human_handoff"
+        )
         conversation = self._conversation(conversation_id, organization_id)
         existing = self._repository.get(conversation_id, organization_id, lock=True)
         if existing and existing.status in {"waiting_human", "human_active"}:

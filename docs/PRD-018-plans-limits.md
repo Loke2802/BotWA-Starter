@@ -1,6 +1,10 @@
 # PRD-018 Plans and Limits v1
 
-**Estado:** IMPLEMENTED — PENDING CTO REVIEW
+**Estado:** CLOSED
+
+**Cierre aprobado:** PR #28, merge commit
+`63f2fc79444e6b3f85b516b917860fb17fa8f779`, final approved head
+`2776a1b2ca6082142f14862c4eac4cf889eea631`.
 
 ## Objetivo
 
@@ -19,6 +23,32 @@ sistema es interno, PostgreSQL-only y no introduce Billing.
 - cambio administrativo con optimistic concurrency;
 - Audit PRD-017 en la misma Session/transacción;
 - locking PostgreSQL por Organization para serializar cambio de plan y consumo.
+
+## Decisiones de arquitectura cerradas
+
+- `Organization` es el scope comercial y tenant canónico.
+- `plan_definition` es un catálogo interno seed-controlled; `plan_code` es
+  estable y está separado de `display_name`.
+- `organization_plan_assignment` es el Source of Truth 1:1 del plan vigente.
+- El plan `default` habilita todas las features y define todos los límites como
+  `unlimited`; Organizations existentes fueron backfilled y nuevas Organizations
+  reciben ese assignment dentro de su Unit of Work.
+- `configuration` JSONB es estrictamente tipada y allowlisted. Features booleanas
+  y resource-count hard limits son mecanismos separados; `unlimited` es
+  explícito, sin magic numbers.
+- Los counts proceden de Sources of Truth operacionales. No existe
+  `usage_counter`; Analytics y Audit no son SoT de enforcement.
+- El enforcement es obligatorio y fail-closed. Plan y RBAC son mecanismos
+  separados, y solo Platform Admin asigna o cambia plan en v1.
+- Organization `FOR UPDATE` protege concurrencia; assignment usa optimistic
+  versioning y same-plan PUT es un no-op idempotente.
+- Downgrade es no destructivo; over-limit bloquea nuevos consumos sin destruir
+  recursos; upgrade toma efecto inmediatamente después del commit.
+- Retired plans no aceptan nuevas asignaciones, aunque assignments existentes
+  siguen siendo válidos.
+- Audit PRD-017 registra `plan.changed` con metadata tipada en la misma
+  transacción. Audit WRITE nunca se plan-gatea.
+- Aislamiento tenant estricto, PostgreSQL-only, sin cache/Redis y sin frontend.
 
 ## PRD-018 vs PRD-019
 
@@ -140,6 +170,25 @@ Audit y commit. El lock vive en la misma Session hasta commit/rollback y seriali
 
 No se usan advisory locks, isolation global serializable, slots ni counters.
 
+### Contrato fail-closed cerrado
+
+`PlanEnforcementService` es una dependencia obligatoria de todo application
+service que expone acciones plan-gated. No existe `Optional`, default `None`,
+bypass condicional ni `NullPlanEnforcementService` de producción. Todos los
+composition roots de producción construyen el enforcement con el mismo objeto
+SQLAlchemy `Session` usado por repository, AuditWriter, lock, count, mutación y
+commit owner.
+
+Las consuming actions ejecutan enforcement siempre. Las reducing actions
+permanecen permitidas para evitar lock-in. El worker existente de Automation,
+WhatsApp inbound/outbound, la resolución runtime de Business Calendar, la
+resolución de handoffs abiertos y Audit WRITE no son consuming/read-gated y se
+preservan después de un downgrade.
+
+Analytics read requiere `analytics`; export requiere `analytics_export` y también
+la lectura canónica de Analytics. Audit read requiere `audit`. Audit WRITE nunca
+se plan-gatea.
+
 ## Lifecycle
 
 ### Upgrade
@@ -221,9 +270,24 @@ La integración PostgreSQL valida tablas, seed, backfill, JSONB/FKs, row lock,
 capacidad concurrente, plan-change-vs-create y el ciclo
 `0018 → 0019 → 0018 → 0019`.
 
+## Gates finales de cierre
+
+- Focused PRD-018 + fail-closed: 36 passed, 2 warnings;
+- expanded affected-domain regression: 159 passed, 2 warnings;
+- PostgreSQL PRD-018: 3 passed;
+- full pytest: 787 passed, 21 skipped, 2 warnings;
+- mypy: PASS — 430 source files;
+- Ruff: PASS;
+- Black: PASS — 430 files;
+- `git diff --check`: PASS;
+- Alembic head: `20260810_0019`;
+- migration cycle `0018 → 0019 → 0018 → 0019`: PASS.
+
 ## Exclusiones y limitaciones conocidas
 
 - sin Billing ni scope PRD-019;
+- sin subscriptions, checkout, invoices, payments ni provider sync;
+- sin billing cycles ni renewals;
 - sin cuotas/metering de mensajes;
 - sin pricing/currencies/trials/overage;
 - sin catálogo mutable por API;

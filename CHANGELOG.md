@@ -2,7 +2,11 @@
 
 ## PRD-018 Plans and Limits v1 - 2026-08-10
 
-### IMPLEMENTED — PENDING CTO REVIEW
+### CLOSED after PR #28
+
+- Merged into `master` via PR #28 at
+  `63f2fc79444e6b3f85b516b917860fb17fa8f779`, with final approved head
+  `2776a1b2ca6082142f14862c4eac4cf889eea631`.
 
 - Added PostgreSQL-only `plan_definition` and 1:1
   `organization_plan_assignment` as the current plan Source of Truth.
@@ -19,10 +23,15 @@
   Audit writes remain mandatory, same-transaction and never plan-gated.
 - Added Alembic `20260810_0019`, including backfill and composite Bot/User count
   indexes; migration cycle `0018 → 0019 → 0018 → 0019` passes.
-- Validation: focused PRD-018 10 passed; affected-domain regression 108 passed;
-  PostgreSQL PRD-018 3 passed; full pytest 761 passed, 21 skipped, 2 warnings;
-  mypy/Ruff/Black/diff check PASS across 428 source files; Alembic head
-  `20260810_0019`.
+- Final validation: focused PRD-018 plus fail-closed 36 passed, 2 warnings;
+  affected-domain regression 159 passed, 2 warnings; PostgreSQL PRD-018 3
+  passed; full pytest 787 passed, 21 skipped, 2 warnings; mypy PASS across 430
+  source files; Ruff PASS; Black PASS across 430 files; `git diff --check` PASS;
+  Alembic head `20260810_0019`; migration cycle
+  `0018 → 0019 → 0018 → 0019` PASS.
+- Final hardening made `PlanEnforcementService` mandatory and fail-closed across
+  every gated service and production composition root, while preserving reducing
+  actions, Audit writes, and existing runtime paths after downgrade.
 - Billing, subscriptions, pricing, currencies, trials, invoices, message quota,
   metered usage and overage remain exclusively deferred to PRD-019.
 

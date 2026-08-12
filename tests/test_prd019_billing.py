@@ -25,6 +25,7 @@ from app.domain.billing.contracts import (
 from app.domain.billing.errors import (
     BillingDisabled,
     BillingForbidden,
+    BillingProviderRejected,
     BillingProviderUnavailable,
     BillingWebhookInvalid,
 )
@@ -535,6 +536,63 @@ def test_mercado_pago_checkout_maps_only_hosted_contract() -> None:
     body = captured["body"]
     assert isinstance(body, dict)
     assert not {"pan", "cvv", "payment_method"}.intersection(body)
+
+
+def test_mercado_pago_plan_change_maps_amount_not_plan_identity() -> None:
+    captured: dict[str, object] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["body"] = json.loads(request.content)
+        return httpx.Response(
+            200,
+            json={
+                "id": "mp-subscription",
+                "external_reference": "internal-subscription",
+                "status": "authorized",
+                "version": 2,
+                "preapproval_plan_id": "original-provider-plan",
+                "auto_recurring": {"currency_id": "PEN"},
+            },
+        )
+
+    provider = MercadoPagoBillingProvider(
+        access_token="token",
+        webhook_secret="secret",
+        connect_timeout_seconds=1,
+        read_timeout_seconds=1,
+        signature_tolerance_seconds=300,
+        client=httpx.Client(
+            base_url="https://api.mercadopago.com",
+            transport=httpx.MockTransport(handler),
+        ),
+    )
+    result = provider.request_plan_change(
+        "mp-subscription",
+        "target-provider-plan",
+        unit_amount_minor=1250,
+        currency="PEN",
+        current_interval="monthly",
+        target_interval="monthly",
+        idempotency_key="change-key",
+    )
+    body = captured["body"]
+    assert isinstance(body, dict)
+    assert "preapproval_plan_id" not in body
+    assert body["auto_recurring"] == {
+        "transaction_amount": "12.50",
+        "currency_id": "PEN",
+    }
+    assert result.provider_price_id == "target-provider-plan"
+    with pytest.raises(BillingProviderRejected):
+        provider.request_plan_change(
+            "mp-subscription",
+            "annual-provider-plan",
+            unit_amount_minor=12000,
+            currency="PEN",
+            current_interval="monthly",
+            target_interval="annual",
+            idempotency_key="interval-change",
+        )
 
 
 def test_mercado_pago_valid_signature_is_normalized() -> None:

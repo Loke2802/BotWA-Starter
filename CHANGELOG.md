@@ -15,8 +15,8 @@
   PRD-018 assignment and PRD-017 Audit commit in one local transaction.
 - Added least-privilege Billing RBAC, tenant-scoped APIs, allowlisted audit metadata,
   low-cardinality metrics and responses without external identifiers or PII.
-- Validation: focused PRD-019 16 passed; PRD-017/018/019 regression 73 passed;
-  PostgreSQL PRD-019 4 passed; full pytest 803 passed, 25 skipped, 2 warnings;
+- Validation: focused PRD-019 17 passed; PRD-017/018/019 regression 74 passed;
+  PostgreSQL PRD-019 4 passed; full pytest 802 passed, 27 skipped, 2 warnings;
   mypy PASS across 446 source files; Alembic cycle
   `0019 → 0020 → 0019 → 0020` PASS.
 - Billing remains disabled by default. No Plan/BillingPrice commercial data was

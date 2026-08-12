@@ -44,9 +44,19 @@ class FakeBillingProvider:
         provider_subscription_id: str,
         provider_price_id: str,
         *,
+        unit_amount_minor: int,
+        currency: str,
+        current_interval: str,
+        target_interval: str,
         idempotency_key: str,
     ) -> ProviderSubscriptionSnapshot:
-        del idempotency_key
+        del (
+            unit_amount_minor,
+            currency,
+            current_interval,
+            target_interval,
+            idempotency_key,
+        )
         self._require_available()
         self.plan_change_calls += 1
         current = self.fetch_subscription(provider_subscription_id)

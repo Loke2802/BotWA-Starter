@@ -59,6 +59,8 @@ exactamente cuatro tablas y deja un único head:
 
 El adaptador Mercado Pago usa `/preapproval` para crear la suscripción y obtener
 su `init_point`, y consulta `/preapproval/{id}` antes de aplicar confirmaciones.
+Los cambios de importe usan `auto_recurring.transaction_amount` y `currency_id`,
+como define la API oficial; no intenta reasignar `preapproval_plan_id`.
 Usa timeouts explícitos, token solo desde configuración de entorno, clave secreta
 de webhook, HMAC SHA-256, timestamp con tolerancia y comparación constante. Las
 fallas de red/5xx se mapean a `PROVIDER_UNAVAILABLE`; rechazos seguros a
@@ -114,6 +116,9 @@ materiales. No existe scheduler en PRD-019.
   esa misma operación interna.
 - Un downgrade se programa para `current_period_end`; no elimina recursos. Al
   vencimiento, una reconciliación solicita el cambio y solo entonces lo aplica.
+- Mercado Pago v1 permite cambios de precio dentro del mismo intervalo. Un cambio
+  mensual↔anual se rechaza fail-closed porque la API de suscripción no documenta
+  cambio de frecuencia; requiere una estrategia comercial posterior.
 - Cancelación self-service es únicamente `cancel_at_period_end`; no existe
   cancel-now. Al vencimiento, reconcile ejecuta la cancelación remota.
 - `past_due` conserva el assignment actual y no suspende por sí solo.

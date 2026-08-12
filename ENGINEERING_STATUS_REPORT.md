@@ -74,9 +74,9 @@ default; real Mercado Pago sandbox and commercial go-live gates remain pending.
 
 | Gate | Current result |
 |---|---|
-| `pytest` | 803 passed, 25 skipped, 2 warnings |
-| Focused PRD-019 | 16 passed, 2 warnings |
-| Expanded PRD-017/018/019 regression | 73 passed, 2 warnings |
+| `pytest` | 802 passed, 27 skipped, 2 warnings |
+| Focused PRD-019 | 17 passed, 2 warnings |
+| Expanded PRD-017/018/019 regression | 74 passed, 2 warnings |
 | PostgreSQL PRD-019 | 4 passed |
 | PostgreSQL migration cycle | `0019 → 0020 → 0019 → 0020` PASS |
 | `ruff check app tests` | All checks passed |

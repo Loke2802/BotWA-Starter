@@ -16,6 +16,10 @@ class BillingProviderPort(Protocol):
         provider_subscription_id: str,
         provider_price_id: str,
         *,
+        unit_amount_minor: int,
+        currency: str,
+        current_interval: str,
+        target_interval: str,
         idempotency_key: str,
     ) -> ProviderSubscriptionSnapshot: ...
 

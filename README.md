@@ -6,9 +6,9 @@ Quality Gates (validación técnica PRD-019):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **803 passed, 25 skipped, 2 warnings** |
-| PRD-019 focalizadas | **16 passed, 2 warnings** |
-| Regresión PRD-017/018/019 | **73 passed, 2 warnings** |
+| `pytest` | **802 passed, 27 skipped, 2 warnings** |
+| PRD-019 focalizadas | **17 passed, 2 warnings** |
+| Regresión PRD-017/018/019 | **74 passed, 2 warnings** |
 | PostgreSQL PRD-019 | **4 passed** |
 | Ciclo PostgreSQL | **0019 → 0020 → 0019 → 0020 PASS** |
 | `ruff check app tests` | **All checks passed** |

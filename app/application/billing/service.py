@@ -296,6 +296,10 @@ class BillingService:
                 snapshot = self.provider.request_plan_change(
                     provider_id,
                     target.provider_price_id,
+                    unit_amount_minor=target.amount_minor,
+                    currency=target.currency,
+                    current_interval=current.interval,
+                    target_interval=target.interval,
                     idempotency_key=f"change-{subscription.id}-{subscription.version}",
                 )
                 self._verify_snapshot_binding(subscription, snapshot)
@@ -370,9 +374,18 @@ class BillingService:
                 )
                 if pending is None:
                     raise BillingPriceNotFound("pending billing price not found")
+                current_price = self.repository.price_model(
+                    subscription.billing_price_id
+                )
+                if current_price is None:
+                    raise BillingPriceNotFound("current billing price not found")
                 snapshot = self.provider.request_plan_change(
                     provider_id,
                     pending.provider_price_id,
+                    unit_amount_minor=pending.amount_minor,
+                    currency=pending.currency,
+                    current_interval=self.repository.price(current_price).interval,
+                    target_interval=self.repository.price(pending).interval,
                     idempotency_key=(
                         f"scheduled-change-{subscription.id}-{subscription.version}"
                     ),
@@ -501,14 +514,12 @@ class BillingService:
         if not _transition_allowed(old_status, new_status):
             raise InvalidBillingTransition("provider state regression rejected")
         target_row = None
-        if snapshot.provider_price_id:
-            target_row = self.repository.price_by_provider_id(
-                self.provider_name, snapshot.provider_price_id
-            )
-        if target_row is None and subscription.pending_billing_price_id is not None:
+        if subscription.pending_billing_price_id is not None:
             target_row = self.repository.price_model(
                 subscription.pending_billing_price_id
             )
+        elif new_status == "active" and old_status == "pending":
+            target_row = self.repository.price_model(subscription.billing_price_id)
         material = any(
             (
                 subscription.provider_status != snapshot.status,

@@ -71,15 +71,31 @@ class MercadoPagoBillingProvider:
         provider_subscription_id: str,
         provider_price_id: str,
         *,
+        unit_amount_minor: int,
+        currency: str,
+        current_interval: str,
+        target_interval: str,
         idempotency_key: str,
     ) -> ProviderSubscriptionSnapshot:
+        if current_interval != target_interval:
+            raise BillingProviderRejected(
+                "billing interval changes require a new provider subscription"
+            )
+        transaction_amount = f"{unit_amount_minor // 100}.{unit_amount_minor % 100:02d}"
         data = self._request(
             "PUT",
             f"/preapproval/{provider_subscription_id}",
             idempotency_key=idempotency_key,
-            json_data={"preapproval_plan_id": provider_price_id},
+            json_data={
+                "auto_recurring": {
+                    "transaction_amount": transaction_amount,
+                    "currency_id": currency,
+                }
+            },
         )
-        return self._snapshot(data)
+        return self._snapshot(data).model_copy(
+            update={"provider_price_id": provider_price_id}
+        )
 
     def request_cancellation(
         self,

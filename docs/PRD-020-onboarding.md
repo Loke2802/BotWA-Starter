@@ -1,7 +1,9 @@
 # PRD-020 — Onboarding v1
 
-**Status:** IMPLEMENTED — PENDING CTO REVIEW  
-**Date:** 2026-08-13  
+**Status:** IMPLEMENTED — PENDING CTO REVIEW
+
+**Date:** 2026-08-13
+
 **Alembic revision:** `20260813_0021`
 
 ## Scope and architecture

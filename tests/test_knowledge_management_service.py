@@ -40,6 +40,7 @@ def test_integrity_error_rolls_back_and_becomes_domain_conflict() -> None:
         organization_repository=organization_repository,
         session=session,
         plan_enforcement=allow_all_plan_enforcement(),
+        audit_writer=MagicMock(),
     )
 
     with pytest.raises(KnowledgeEntryConflictError):

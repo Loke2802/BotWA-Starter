@@ -177,7 +177,11 @@ def runtime() -> Generator[tuple[TestClient, Session, dict[str, object]]]:
     )
     session.commit()
     contact_service = ContactAdministrationService(
-        SqlAlchemyContactRepository(session), hasher, cipher, session
+        SqlAlchemyContactRepository(session),
+        hasher,
+        cipher,
+        session,
+        SqlAlchemyAuditRepository(session),
     )
     audit_writer = SqlAlchemyAuditRepository(session)
     conversation_service = ConversationManagementService(

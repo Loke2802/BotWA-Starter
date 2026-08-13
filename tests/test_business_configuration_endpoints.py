@@ -87,6 +87,7 @@ def runtime() -> Generator[Runtime]:
             bot_repository=BotRepository(session=session),
             organization_repository=OrganizationRepository(session=session),
             session=session,
+            audit_writer=SqlAlchemyAuditRepository(session),
         )
 
     app = create_app()
@@ -408,8 +409,8 @@ def test_admin_can_write_and_inactive_organization_blocks_write(
     )
 
     assert created["business_name"] == "Acme Support"
-    assert read_after_deactivate.status_code == 200
-    assert update_after_deactivate.status_code == 409
+    assert read_after_deactivate.status_code == 403
+    assert update_after_deactivate.status_code == 403
 
 
 def test_bot_inactive_can_keep_and_read_configuration(runtime: Runtime) -> None:

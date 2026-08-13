@@ -86,6 +86,7 @@ def runtime() -> Generator[Runtime]:
             OrganizationRepository(session),
             session,
             allow_all_plan_enforcement(),
+            SqlAlchemyAuditRepository(session),
         )
 
     app = create_app()

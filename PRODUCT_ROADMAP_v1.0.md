@@ -1,7 +1,7 @@
 # BotWA Product Roadmap v1.0
 
-**Status:** PRD-001 through PRD-019 CLOSED; PRD-020 through PRD-023 NOT STARTED
-**Date:** 2026-08-12
+**Status:** PRD-001 through PRD-019 CLOSED; PRD-020 IMPLEMENTED — PENDING CTO REVIEW; PRD-021 through PRD-023 NOT STARTED
+**Date:** 2026-08-13
 
 ## Current State
 
@@ -23,7 +23,9 @@ closed after normal merge PR #30 at
 `5a87ffc32be4315ebb6f9e64826bdb96f36ada58`, with final approved implementation
 head `2a15b7f022c2989d73bb97d9b964495dba961778`. Billing remains disabled by
 default and commercial enablement remains blocked by configuration and real
-Mercado Pago sandbox gates. PRD-020 through PRD-023 are not started.
+Mercado Pago sandbox gates. PRD-020 Onboarding is implemented pending CTO review
+as a minimal historical workflow with derived current readiness and revision
+`20260813_0021`. PRD-021 through PRD-023 are not started.
 
 **MVP milestone:** PRD-001 through PRD-010.
 
@@ -50,7 +52,7 @@ Mercado Pago sandbox gates. PRD-020 through PRD-023 are not started.
 | 17 | PRD-017 Audit Log | CLOSED |
 | 18 | PRD-018 Plans and Limits | CLOSED |
 | 19 | PRD-019 Billing and Subscriptions | CLOSED |
-| 20 | PRD-020 Onboarding | NOT STARTED |
+| 20 | PRD-020 Onboarding | IMPLEMENTED — PENDING CTO REVIEW |
 | 21 | PRD-021 Security Hardening | NOT STARTED |
 | 22 | PRD-022 Observability | NOT STARTED |
 | 23 | PRD-023 CI/CD and Deployments | NOT STARTED |
@@ -68,18 +70,16 @@ Mercado Pago sandbox gates. PRD-020 through PRD-023 are not started.
 
 | Gate | Result |
 |---|---|
-| `pytest` | 821 passed, 26 skipped, 2 warnings |
-| Focused PRD-019 | 34 passed, 2 warnings |
-| Due-transition processor | 10 passed, 2 warnings |
-| Scheduling/cancellation regression | 17 passed, 2 warnings |
-| Expanded PRD-017/018/019 regression | 95 passed, 2 warnings |
-| PostgreSQL PRD-019 | 5 passed |
-| PostgreSQL migration cycle | `0019 → 0020 → 0019 → 0020` PASS |
+| `pytest` | 839 passed, 29 skipped, 2 warnings |
+| Focused PRD-020 | 18 passed |
+| Affected-domain regression | 123 passed |
+| PostgreSQL PRD-020 | 3 passed |
+| PostgreSQL migration cycle | `0020 → 0021 → 0020 → 0021` PASS |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 449 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 449 source files |
+| `black --check app tests` | 463 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 463 source files |
 | `git diff --check` | PASS |
-| Alembic | `20260812_0020 (head)` |
+| Alembic | `20260813_0021 (head)` |
 
 ## Channel Runtime Boundary
 
@@ -106,7 +106,8 @@ post-merge validation.
 - Core architecture remains stable.
 - New functionality must be tied to PRDs.
 - Quality gates remain mandatory.
-- PRD-001 through PRD-019 are closed. PRD-020 through PRD-023 are not started.
+- PRD-001 through PRD-019 are closed. PRD-020 is implemented pending CTO review.
+  PRD-021 through PRD-023 are not started.
 - PRD-010 documents lifecycle/RBAC, tenant isolation, suppression/resume,
   encrypted idempotent replies, archive protection, and migration chain
   `0010` → `0011` → `0012`.

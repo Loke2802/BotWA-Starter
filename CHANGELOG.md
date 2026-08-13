@@ -1,5 +1,35 @@
 # Changelog
 
+## PRD-020 Onboarding v1 - 2026-08-13
+
+### IMPLEMENTED — PENDING CTO REVIEW
+
+- Added a tenant-scoped hybrid onboarding model: minimal historical workflow in
+  `organization_onboarding`, while current readiness is derived only from existing
+  operational Sources of Truth.
+- Added Alembic `20260813_0021` with one constrained table, no JSON/readiness
+  duplication, no backfill, no PII and no invented historical state.
+- Added typed read/start/complete APIs, deterministic multi-Bot selection,
+  required/conditional/optional steps, Plan-driven applicability and historical
+  completion that reports `degraded` when current resources regress.
+- Added least-privilege RBAC, tenant isolation, Organization-first locking,
+  optimistic versioning, idempotent no-ops, same-transaction fail-closed PRD-017
+  Audit, safe metrics/logs and closed typed errors.
+- WhatsApp setup readiness is local and conditional; Knowledge and Integrations
+  remain optional; BusinessCalendar is non-blocking. There are no external calls,
+  resource mutations, Billing changes, provider provisioning or runtime gates.
+- Final hardening validates BusinessConfiguration through the domain contract
+  before assigning the ready-configured Bot tier, preserves deterministic
+  `created_at`/`id` ordering, and explicitly commits read-only no-op transactions
+  before returning so PostgreSQL row locks are released at the service boundary.
+- Validation: focused PRD-020 22 passed; affected-domain regression 123 passed;
+  PostgreSQL PRD-020 3 passed; migration cycle `0020 → 0021 → 0020 → 0021`
+  PASS; full pytest 843 passed, 29 skipped, 2 warnings; mypy PASS across 463
+  source files; Ruff PASS; Black PASS across 463 files; `git diff --check` PASS;
+  Alembic one head at `20260813_0021`.
+- PRD-001 through PRD-019 remain CLOSED. PRD-021 through PRD-023 remain NOT
+  STARTED.
+
 ## PRD-019 Billing & Subscriptions v1 - 2026-08-12
 
 ### CLOSED after PR #30
@@ -37,7 +67,8 @@
   BLOCKED pending approved credentials, commercial Plan/BillingPrice and
   currency/price, explicit fallback/restricted plan, past_due/grace policy,
   external due-transition scheduling, and the real Mercado Pago sandbox smoke.
-  This operational gate does not reopen PRD-019. PRD-020 remains NOT STARTED.
+  This operational gate does not reopen PRD-019 and remains separate from
+  PRD-020.
 
 ## PRD-018 Plans and Limits v1 - 2026-08-10
 

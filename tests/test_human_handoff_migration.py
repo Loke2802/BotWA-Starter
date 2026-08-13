@@ -120,4 +120,4 @@ def test_prd_010_migration_chain(migration_database: URL) -> None:
 
     script = ScriptDirectory.from_config(config)
     heads = script.get_heads()
-    assert heads == ["20260812_0020"]
+    assert heads == ["20260813_0021"]

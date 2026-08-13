@@ -1,7 +1,7 @@
 # BotWA Starter - Context For AI Assistants
 
-**Last updated:** 2026-08-12
-**Project phase:** Phase 3 - PRD-001 through PRD-019 CLOSED
+**Last updated:** 2026-08-13
+**Project phase:** Phase 3 - PRD-001 through PRD-019 CLOSED; PRD-020 IMPLEMENTED — PENDING CTO REVIEW
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
@@ -40,7 +40,14 @@ the four PRD-019 tables, and revision `20260812_0020`. Billing remains disabled 
 default. A bounded one-shot due-transition job closes paid access and prepares
 downgrades under an external deployment scheduler; manual reconcile is recovery
 only. Commercial enablement remains BLOCKED as a separate operational gate, not a
-code-closure blocker. PRD-020 through PRD-023 remain NOT STARTED.
+code-closure blocker. PRD-020 Onboarding is IMPLEMENTED — PENDING CTO REVIEW. It
+adds one minimal tenant-scoped historical workflow row per Organization and
+derives current readiness from operational Sources of Truth. It exposes
+read/start/complete, closed typed steps and blockers, deterministic Bot selection,
+Plan-driven applicability, same-transaction PRD-017 Audit, RBAC, concurrency
+protection and revision `20260813_0021`. It does not duplicate CRUD, call external
+providers, gate runtime, activate Billing, or start PRD-021. PRD-021 through
+PRD-023 remain NOT STARTED.
 
 All five core engines are implemented and closed:
 
@@ -58,16 +65,14 @@ Current validated gates:
 
 | Gate | Result |
 |---|---|
-| `pytest` | 821 passed, 26 skipped, 2 warnings |
-| Focused PRD-019 | 34 passed, 2 warnings |
-| Due-transition processor | 10 passed, 2 warnings |
-| Scheduling/cancellation regression | 17 passed, 2 warnings |
-| Expanded PRD-017/018/019 regression | 95 passed, 2 warnings |
-| PostgreSQL PRD-019 | 5 passed |
-| PostgreSQL migration cycle | `0019 → 0020 → 0019 → 0020` PASS |
+| `pytest` | 843 passed, 29 skipped, 2 warnings |
+| Focused PRD-020 | 22 passed |
+| Affected-domain regression | 123 passed |
+| PostgreSQL PRD-020 | 3 passed |
+| PostgreSQL migration cycle | `0020 → 0021 → 0020 → 0021` PASS |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 449 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 449 source files |
+| `black --check app tests` | 463 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 463 source files |
 | `git diff --check` | PASS |
 
 ## Infrastructure Validation
@@ -75,7 +80,7 @@ Current validated gates:
 | Area | Result |
 |---|---|
 | Docker/PostgreSQL | PASS |
-| Alembic migrations | PASS - `20260812_0020 (head)`, one head, PRD-019 PostgreSQL cycle validated |
+| Alembic migrations | PASS - `20260813_0021 (head)`, one head, PRD-020 PostgreSQL cycle validated |
 | DB-backed product persistence | PASS - receipts, managed encrypted messages, and delivery attempts survive API restart |
 | Docker smoke tests | PASS - signed inbound, Core/Knowledge, fake outbound, lifecycle/RBAC, statuses, restart |
 | Integration controlled errors | PASS |
@@ -102,7 +107,8 @@ Current validated gates:
 
 ## Current Official Objective
 
-PRD-001 through PRD-019 are CLOSED. PRD-020 through PRD-023 remain NOT STARTED.
+PRD-001 through PRD-019 are CLOSED. PRD-020 is IMPLEMENTED — PENDING CTO REVIEW.
+PRD-021 through PRD-023 remain NOT STARTED.
 
 **Phase 3**
 
@@ -127,7 +133,8 @@ PRD-001 through PRD-019 are CLOSED. PRD-020 through PRD-023 remain NOT STARTED.
 | 17 | PRD-017 Audit Log | CLOSED |
 | 18 | PRD-018 Plans and Limits | CLOSED |
 | 19 | PRD-019 Billing & Subscriptions | CLOSED |
-| 20-23 | Future approved product increments | NOT STARTED |
+| 20 | PRD-020 Onboarding | IMPLEMENTED — PENDING CTO REVIEW |
+| 21-23 | Future approved product increments | NOT STARTED |
 
 The MVP milestone comprises PRD-001 through PRD-010.
 
@@ -245,6 +252,7 @@ merge commit `01c809c909360f4a31a6b26b1d4126a1c98e9c8b`, final approved head
 merge commit `63f2fc79444e6b3f85b516b917860fb17fa8f779`, final approved head
 `2776a1b2ca6082142f14862c4eac4cf889eea631`. PRD-019 is CLOSED after normal merge
 PR #30, merge commit `5a87ffc32be4315ebb6f9e64826bdb96f36ada58`, final approved
-implementation head `2a15b7f022c2989d73bb97d9b964495dba961778`. PRD-020 through
-PRD-023 are NOT STARTED. Billing commercial enablement remains BLOCKED pending
+implementation head `2a15b7f022c2989d73bb97d9b964495dba961778`. PRD-020 is
+IMPLEMENTED — PENDING CTO REVIEW; PRD-021 through PRD-023 are NOT STARTED.
+Billing commercial enablement remains BLOCKED pending
 approved configuration and the real Mercado Pago sandbox smoke.

@@ -52,6 +52,7 @@ from app.infrastructure.models.managed_automation import (
     ManagedAutomationExecutionModel,
 )
 from app.infrastructure.models.message import MessageModel
+from app.infrastructure.models.onboarding import OrganizationOnboardingModel
 from app.infrastructure.models.organization import OrganizationModel
 from app.infrastructure.models.user import UserModel
 from app.infrastructure.models.whatsapp_channel_configuration import (
@@ -99,6 +100,7 @@ __all__ = [
     "ManagedAutomationEventReceiptModel",
     "ManagedAutomationExecutionModel",
     "OrganizationModel",
+    "OrganizationOnboardingModel",
     "OutboundMessageAttemptModel",
     "UserModel",
     "WhatsAppChannelConfigurationModel",

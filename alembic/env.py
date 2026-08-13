@@ -21,6 +21,7 @@ from app.infrastructure.models import (  # noqa: F401
     knowledge_source,
     message,
     organization,
+    onboarding,
     plan,
     user,
     whatsapp_channel_configuration,

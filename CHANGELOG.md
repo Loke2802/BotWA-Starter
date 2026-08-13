@@ -2,7 +2,11 @@
 
 ## PRD-019 Billing & Subscriptions v1 - 2026-08-12
 
-### IMPLEMENTED — PENDING CTO REVIEW
+### CLOSED after PR #30
+
+- Merged into `master` through a normal merge commit via PR #30 at
+  `5a87ffc32be4315ebb6f9e64826bdb96f36ada58`, with final approved implementation
+  head `2a15b7f022c2989d73bb97d9b964495dba961778`; no squash or rebase was used.
 
 - Added provider-agnostic Billing contracts and typed errors, Mercado Pago and
   deterministic fake adapters, explicit timeouts and environment-only secrets.
@@ -19,14 +23,21 @@
 - Added a bounded due-transition processor and one-shot external-job command so
   paid access expires and downgrades advance without user activity, webhook luck,
   or manual reconcile; each tenant has an independent locked transaction.
+- Closed the provider-agnostic, Organization-scoped Billing boundary with
+  `billing_account`, `billing_price`, `subscription`, and
+  `billing_provider_event`; Plan, BillingPrice, Subscription, and PlanAssignment
+  remain separate, and Plan enforcement reads only the effective assignment.
 - Validation: focused PRD-019 34 passed; due-transition processor 10 passed;
   scheduling/cancellation regression 17 passed; PRD-017/018/019 regression 95
   passed; PostgreSQL PRD-019 5 passed; full pytest 821 passed, 26 skipped,
   2 warnings; mypy PASS across 449 source files; Alembic cycle
   `0019 → 0020 → 0019 → 0020` PASS.
-- Billing remains disabled by default. No Plan/BillingPrice commercial data was
-  seeded. Real Mercado Pago sandbox smoke and commercial go-live remain blocked
-  pending approved credentials/configuration. PRD-020 remains NOT STARTED.
+- Billing remains disabled by default with `BOTWA_BILLING_ENABLED=false`. No
+  Plan/BillingPrice commercial data was seeded. Commercial go-live remains
+  BLOCKED pending approved credentials, commercial Plan/BillingPrice and
+  currency/price, explicit fallback/restricted plan, past_due/grace policy,
+  external due-transition scheduling, and the real Mercado Pago sandbox smoke.
+  This operational gate does not reopen PRD-019. PRD-020 remains NOT STARTED.
 
 ## PRD-018 Plans and Limits v1 - 2026-08-10
 

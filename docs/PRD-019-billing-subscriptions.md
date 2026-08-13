@@ -1,6 +1,6 @@
 # PRD-019 Billing & Subscriptions v1
 
-**Estado:** IMPLEMENTED — PENDING CTO REVIEW
+**Estado:** CLOSED
 
 **Fecha:** 2026-08-12
 
@@ -16,6 +16,16 @@ El dominio es agnóstico del proveedor. Mercado Pago es el adaptador real v1 y e
 adaptador fake determinista permite pruebas sin red. Ningún contrato de dominio o
 registro persistido contiene tipos de FastAPI, SDKs de Mercado Pago, PAN, CVV,
 métodos de pago ni payloads crudos del proveedor.
+
+La arquitectura cerrada implementa Billing SaaS provider-agnostic y
+Organization-scoped mediante BillingAccount, BillingPrice, Subscription y un
+ledger técnico de eventos del proveedor. Usa Mercado Pago como adapter real
+inicial, hosted checkout, webhook/reconciliation server-side, estado local
+last-known-good, transición temporal durable mediante due-transition processor y
+una operación interna transaccional de PRD-018 para actualizar el PlanAssignment
+efectivo. Plan, BillingPrice, Subscription y PlanAssignment permanecen separados,
+sin invoice/payment ledger, metered usage, overage, fiscalidad, frontend ni
+PRD-020.
 
 ## Límites v1 cerrados
 
@@ -47,6 +57,9 @@ exactamente cuatro tablas y deja un único head:
 4. `billing_provider_event`: receipt deduplicado por proveedor/evento con hash
    SHA-256, estado, intentos y error seguro. No guarda el payload crudo.
 
+No existen tablas de invoice, payment, usage ni `billing_operation`; tampoco se
+incorporaron outbox o saga.
+
 ## Contratos y adaptadores
 
 `BillingProviderPort` define:
@@ -65,6 +78,9 @@ Usa timeouts explícitos, token solo desde configuración de entorno, clave secr
 de webhook, HMAC SHA-256, timestamp con tolerancia y comparación constante. Las
 fallas de red/5xx se mapean a `PROVIDER_UNAVAILABLE`; rechazos seguros a
 `PROVIDER_REJECTED`.
+
+Los adapters implementados son `MercadoPagoBillingProvider` y el adapter fake
+determinista `FakeBillingProvider`. Stripe y Culqi quedan fuera de PRD-019.
 
 El email autenticado se transmite únicamente al proveedor durante la creación de
 checkout porque Mercado Pago lo exige; no se almacena en las tablas de Billing,
@@ -119,6 +135,9 @@ framework nuevo: `python -m app.operations.billing_due_transitions` es un comand
 one-shot e idempotente para un cron/platform job externo. Cadencia recomendada:
 cada minuto, con batch configurable y reejecución no solapada.
 
+El scheduler es externo al producto. `POST .../reconcile` permanece como recovery
+tool administrativo y nunca como mecanismo temporal principal.
+
 ## Transiciones, plan y consistencia
 
 - La activación o upgrade se aplica solo tras confirmación autoritativa.
@@ -160,6 +179,11 @@ cada minuto, con batch configurable y reejecución no solapada.
 - Una caída del proveedor no provoca transición destructiva, fallback ni cambio
   de plan.
 
+`PlanEnforcementService` sigue leyendo únicamente
+`organization_plan_assignment`; Billing no participa en cada request de
+enforcement. Plan representa capabilities, BillingPrice la oferta comercial,
+Subscription la relación comercial y PlanAssignment el entitlement efectivo.
+
 Para `suspended|canceled|expired`, el fallback solo puede usar
 `BOTWA_BILLING_FALLBACK_PLAN_CODE` si está configurado explícitamente. Nunca se
 asigna `default` implícitamente. Sin fallback, se conserva el estado comercial,
@@ -197,6 +221,14 @@ montos, IDs externos, PII ni secretos. Requests Owner/Admin usan actor user;
 confirmaciones del proveedor usan actor system. Audit es obligatorio/fail-closed
 y participa en la misma transacción que la mutación local.
 
+Las acciones comerciales/administrativas exitosas se registran en Audit; el
+procesamiento técnico del proveedor/webhook se registra en
+`billing_provider_event`. Las transiciones automáticas confirmadas usan
+`actor_type=system`, sin usuario o Platform Admin ficticio. Subscription,
+PlanAssignment, Audit y procesamiento del evento comparten la misma transacción
+local; la llamada al proveedor externo nunca forma parte de la transacción
+PostgreSQL.
+
 Métricas low-cardinality:
 
 - `billing_checkout_total`;
@@ -209,6 +241,12 @@ Métricas low-cardinality:
 
 Los logs del job contienen solo operación, conteos y safe error code; nunca tenant,
 subscription ID, identidad externa, monto, PII ni secretos.
+
+El checkout es hosted: Luri no recibe PAN, CVV ni métodos de pago y no almacena
+payloads crudos del proveedor. No hay secretos en DB, Audit o logs. Los webhooks
+son firmados, timestamp-bounded, deduplicados, provider-bound, resueltos al tenant
+interno, confirmados mediante fetch autoritativo y protegidos contra eventos fuera
+de orden.
 
 Errores públicos cerrados: `BILLING_DISABLED`, `BILLING_NOT_CONFIGURED`,
 `BILLING_ACCOUNT_NOT_FOUND`, `BILLING_PRICE_NOT_FOUND`, `BILLING_PRICE_UNAVAILABLE`,
@@ -254,13 +292,20 @@ ausencia de fallback implícito, transacción/Audit, API, restricciones PostgreS
 Los resultados finales de gates se registran en los documentos canónicos y en el
 Draft PR después de su ejecución completa.
 
-Resultado del hardening final: 34 pruebas PRD-019, 10 focalizadas del procesador y
-17 regresiones de scheduling/cancelación pasan; la regresión PRD-017/018/019
-cierra en 95 passed; PostgreSQL PRD-019 en 5 passed; full pytest en 821 passed,
-26 skipped y 2 warnings; mypy, Ruff, Black y `git diff --check` pasan sobre 449
-source files, y Alembic
-conserva un único head `20260812_0020` con ciclo
-`0019 → 0020 → 0019 → 0020` aprobado.
+Resultado del hardening final:
+
+- focused PRD-019: 34 passed, 2 warnings;
+- due-transition processor: 10 passed, 24 deselected, 2 warnings;
+- scheduling/cancellation regression: 17 passed, 17 deselected, 2 warnings;
+- PRD-017/018/019 regression: 95 passed, 2 warnings;
+- PostgreSQL PRD-019: 5 passed;
+- migration cycle `0019 → 0020 → 0019 → 0020`: PASS;
+- full pytest: 821 passed, 26 skipped, 2 warnings;
+- mypy: PASS — 449 source files;
+- Ruff: PASS;
+- Black: PASS — 449 files;
+- `git diff --check`: PASS;
+- Alembic: `20260812_0020`, one head.
 
 ## Exclusiones explícitas
 
@@ -277,14 +322,51 @@ conserva un único head `20260812_0020` con ciclo
 ## Gates operativos de go-live
 
 **COMMERCIAL GO-LIVE BLOCKED.** Antes de habilitar Billing en staging o
-producción se requieren credenciales productivas aprobadas, al menos un Plan
+producción se requieren credenciales Mercado Pago aprobadas, al menos un Plan
 comercial y un BillingPrice activo verificados, moneda/precio aprobados, plan de
-fallback o política restrictiva explícita, política de grace/past_due y smoke
-sandbox real.
+fallback o política restrictiva explícita, política de grace/past_due, scheduler
+externo configurado para due-transitions y smoke sandbox real. El código permanece
+deshabilitado por defecto con `BOTWA_BILLING_ENABLED=false`; el cierre técnico del
+PRD no equivale a commercial go-live.
 
 **Mercado Pago real sandbox smoke: PENDING — EXTERNAL CREDENTIALS REQUIRED.** Debe
-validar checkout hosted, firma webhook, activación, cambio, cancelación,
-idempotencia y reconcile antes del cutover. Es un gate operativo externo, no se
-simula como PASS.
+validar checkout hosted, signed webhook, activación, timing real del cambio de
+monto, cancelación inmediata del proveedor, acceso local durante el período
+pagado, due-transition processor, fallback, idempotencia y reconcile antes del
+cutover. Es un gate operativo externo, no se simula como PASS y no bloquea el
+estado técnico CLOSED.
 
 PRD-020 permanece `NOT STARTED`.
+
+## Implementation Closure
+
+PRD-019 quedó cerrado documentalmente después de que la implementación aprobada
+se integró mediante el PR #30 con merge commit normal
+`5a87ffc32be4315ebb6f9e64826bdb96f36ada58`. El head final aprobado e integrado
+fue `2a15b7f022c2989d73bb97d9b964495dba961778`; no se usó squash ni rebase.
+
+La revisión final conserva Alembic `20260812_0020` como único head y las cuatro
+tablas `billing_account`, `billing_price`, `subscription` y
+`billing_provider_event`. Mercado Pago queda como proveedor real inicial detrás
+de la frontera provider-agnostic. El comando operacional de transición temporal
+es `python -m app.operations.billing_due_transitions`, recomendado cada minuto
+mediante scheduler externo.
+
+La cancelación se confirma inmediatamente provider-side para garantizar
+no-renewal, mantiene el PlanAssignment durante el período pagado y finaliza el
+entitlement mediante `scheduled_change_at`/`current_period_end`; solo un fallback
+comercial explícito puede reemplazarlo. `default` es el bootstrap técnico unlimited
+de PRD-018 y nunca un fallback comercial. Sin fallback se conserva un estado
+seguro que requiere intervención del operador y jamás se concede unlimited.
+
+El downgrade se programa localmente, prepara anticipadamente el cambio de monto
+con `BOTWA_BILLING_PROVIDER_CHANGE_LEAD_SECONDS=3600`, preserva PlanAssignment
+hasta el boundary y promueve BillingPrice/PlanAssignment en
+`current_period_end`. Los retries son idempotentes y el timing real de Mercado
+Pago debe aprobarse en sandbox antes de habilitar Billing comercialmente.
+
+Los gates finales aprobados son los registrados en la sección anterior. Billing
+comercial continúa BLOCKED y el smoke real de Mercado Pago continúa
+`PENDING — EXTERNAL CREDENTIALS REQUIRED`; ambos son gates operativos posteriores,
+no blockers del cierre técnico. PRD-020 permanece `NOT STARTED` y no se inició
+discovery ni implementación.

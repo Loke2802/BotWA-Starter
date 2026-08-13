@@ -1,7 +1,7 @@
 # BotWA Starter - Context For AI Assistants
 
 **Last updated:** 2026-08-12
-**Project phase:** Phase 3 - PRD-019 IMPLEMENTED — PENDING CTO REVIEW
+**Project phase:** Phase 3 - PRD-001 through PRD-019 CLOSED
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
@@ -30,12 +30,17 @@ approved head `3f7808da24d0dc1e3b5d6f3d337ee4562f5398b6`. PRD-018 Plans and Limi
 CLOSED after PR #28 at merge commit
 `63f2fc79444e6b3f85b516b917860fb17fa8f779`, with final approved head
 `2776a1b2ca6082142f14862c4eac4cf889eea631`. PRD-019 Billing & Subscriptions is
-IMPLEMENTED — PENDING CTO REVIEW. It is provider-agnostic with Mercado Pago and
-fake adapters, hosted checkout, verified authoritative webhooks, transactional
-Plan/Audit application and revision `20260812_0020`. Billing remains disabled by
+CLOSED after normal merge PR #30 at
+`5a87ffc32be4315ebb6f9e64826bdb96f36ada58`, with final approved implementation
+head `2a15b7f022c2989d73bb97d9b964495dba961778`. Canonical master for this closure
+is `5a87ffc32be4315ebb6f9e64826bdb96f36ada58`. Billing is provider-agnostic and
+Organization-scoped, with Mercado Pago and deterministic fake adapters, hosted
+checkout, verified authoritative webhooks, transactional Plan/Audit application,
+the four PRD-019 tables, and revision `20260812_0020`. Billing remains disabled by
 default. A bounded one-shot due-transition job closes paid access and prepares
 downgrades under an external deployment scheduler; manual reconcile is recovery
-only. Commercial go-live is blocked. PRD-020 through PRD-023 remain NOT STARTED.
+only. Commercial enablement remains BLOCKED as a separate operational gate, not a
+code-closure blocker. PRD-020 through PRD-023 remain NOT STARTED.
 
 All five core engines are implemented and closed:
 
@@ -97,8 +102,7 @@ Current validated gates:
 
 ## Current Official Objective
 
-PRD-001 through PRD-018 are CLOSED. PRD-019 is IMPLEMENTED — PENDING CTO REVIEW.
-PRD-020 through PRD-023 remain NOT STARTED.
+PRD-001 through PRD-019 are CLOSED. PRD-020 through PRD-023 remain NOT STARTED.
 
 **Phase 3**
 
@@ -122,7 +126,7 @@ PRD-020 through PRD-023 remain NOT STARTED.
 | 16 | PRD-016 Analytics & Reports | CLOSED |
 | 17 | PRD-017 Audit Log | CLOSED |
 | 18 | PRD-018 Plans and Limits | CLOSED |
-| 19 | PRD-019 Billing & Subscriptions | IMPLEMENTED — PENDING CTO REVIEW |
+| 19 | PRD-019 Billing & Subscriptions | CLOSED |
 | 20-23 | Future approved product increments | NOT STARTED |
 
 The MVP milestone comprises PRD-001 through PRD-010.
@@ -239,5 +243,8 @@ merge commit `601499071f39aad85dc4d9595fc04425f40a3962`, final approved head
 merge commit `01c809c909360f4a31a6b26b1d4126a1c98e9c8b`, final approved head
 `3f7808da24d0dc1e3b5d6f3d337ee4562f5398b6`. PRD-018 is CLOSED after PR #28,
 merge commit `63f2fc79444e6b3f85b516b917860fb17fa8f779`, final approved head
-`2776a1b2ca6082142f14862c4eac4cf889eea631`. PRD-019 is IMPLEMENTED — PENDING
-CTO REVIEW; PRD-020 through PRD-023 are NOT STARTED.
+`2776a1b2ca6082142f14862c4eac4cf889eea631`. PRD-019 is CLOSED after normal merge
+PR #30, merge commit `5a87ffc32be4315ebb6f9e64826bdb96f36ada58`, final approved
+implementation head `2a15b7f022c2989d73bb97d9b964495dba961778`. PRD-020 through
+PRD-023 are NOT STARTED. Billing commercial enablement remains BLOCKED pending
+approved configuration and the real Mercado Pago sandbox smoke.

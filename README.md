@@ -1,6 +1,6 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-019 IMPLEMENTED — PENDING CTO REVIEW
+## Estado actual - Phase 3 / PRD-001 a PRD-019 CLOSED
 
 Quality Gates (validación técnica PRD-019):
 
@@ -31,8 +31,8 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial: **PRD-001 a PRD-018 CLOSED; PRD-019 IMPLEMENTED — PENDING CTO
-REVIEW; PRD-020 a PRD-023 permanecen NOT STARTED.**
+Estado oficial: **PRD-001 a PRD-019 CLOSED; PRD-020 a PRD-023 permanecen NOT
+STARTED.**
 
 PRD-019 añade Billing SaaS provider-agnostic, tenant-scoped y PostgreSQL-only.
 Incluye Mercado Pago detrás de un adaptador, fake determinista, checkout hosted,
@@ -43,6 +43,13 @@ y aplicación transaccional de Plan/Audit. Billing está deshabilitado por defec
 no contiene seeds comerciales y no captura PAN/CVV. El smoke sandbox real de
 Mercado Pago y el commercial go-live permanecen bloqueados hasta disponer de
 credenciales y configuración aprobadas. PRD-020 no fue iniciado.
+
+PRD-019 cerró después del merge normal aprobado vía PR #30, merge commit
+`5a87ffc32be4315ebb6f9e64826bdb96f36ada58`, con head final aprobado
+`2a15b7f022c2989d73bb97d9b964495dba961778`. El cierre técnico no habilita
+Billing comercial: `BOTWA_BILLING_ENABLED=false` sigue siendo el default y el
+cutover permanece bloqueado hasta completar configuración comercial, scheduler
+externo de due-transitions y smoke sandbox real de Mercado Pago.
 
 PRD-018 añade catálogo técnico de planes y assignment 1:1 tenant-scoped, features
 booleanas, límites duros calculados desde los Sources of Truth operacionales,
@@ -726,7 +733,7 @@ PRD-001 through PRD-012 are closed. PRD-010 adds a tenant-scoped handoff
 lifecycle, bot suppression, encrypted and attributed human replies through the
 generic channel sender, idempotency, archive protection, and safe transport
 errors. PRD-011 adds the Contact increment; Customer is deferred and CRM is not
-implemented. PRD-012 through PRD-018 are closed; PRD-019 is implemented and
-pending CTO review; PRD-020 through PRD-023 are not started. Real
+implemented. PRD-012 through PRD-019 are closed; PRD-020 through PRD-023 are not
+started. Real
 Meta and Google validation need explicit external credentials.
 

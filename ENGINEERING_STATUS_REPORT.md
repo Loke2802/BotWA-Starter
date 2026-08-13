@@ -2,8 +2,8 @@
 
 **Date:** 2026-08-12
 **Role:** Lead Engineer  
-**Project phase:** Phase 3 - PRD-019 IMPLEMENTED — PENDING CTO REVIEW
-**Status source:** local PRD-019 implementation branch pending Draft PR
+**Project phase:** Phase 3 - PRD-001 through PRD-019 CLOSED
+**Status source:** PRD-019 implementation merged via PR #30
 
 ## Executive Summary
 
@@ -63,8 +63,10 @@ same-transaction PRD-017 Audit. The default bootstrap is backward-compatible and
 unlimited. Downgrades are non-destructive and do not stop existing runtimes.
 Revision `20260810_0019` is PostgreSQL-only.
 
-PRD-019 is IMPLEMENTED — PENDING CTO REVIEW. It adds provider-agnostic
-tenant-scoped Billing, Mercado Pago/fake adapters, hosted checkout, a durable
+PRD-019 is CLOSED after normal merge PR #30 at
+`5a87ffc32be4315ebb6f9e64826bdb96f36ada58`, with final approved implementation
+head `2a15b7f022c2989d73bb97d9b964495dba961778`. It adds provider-agnostic,
+Organization-scoped Billing, Mercado Pago/fake adapters, hosted checkout, a durable
 provider-event ledger, authoritative webhook/reconcile transitions and
 same-transaction Plan/Audit application. Revision `20260812_0020` is
 PostgreSQL-only and contains no commercial seeds. Billing remains disabled by
@@ -72,8 +74,10 @@ default. Mercado Pago cancellation is immediate and provider-confirmed while Lur
 preserves paid access until period end; scheduled downgrades require both their
 effective time and authoritative target-price confirmation. A bounded one-shot
 processor supplies the production temporal trigger through an external scheduler;
-manual reconcile remains a recovery tool. Real Mercado Pago sandbox and commercial
-go-live gates remain pending.
+manual reconcile remains a recovery tool. Plan enforcement continues to read only
+`organization_plan_assignment`; Billing is not queried on each enforced request.
+Real Mercado Pago sandbox and commercial go-live gates remain pending operational
+enablement requirements and do not block the technical closure.
 
 ## Quality Gates
 
@@ -114,7 +118,7 @@ go-live gates remain pending.
 | PRD-016 Analytics & Reports | CLOSED |
 | PRD-017 Audit Log | CLOSED |
 | PRD-018 Plans and Limits | CLOSED |
-| PRD-019 Billing & Subscriptions | IMPLEMENTED — PENDING CTO REVIEW |
+| PRD-019 Billing & Subscriptions | CLOSED |
 | PRD-020 through PRD-023 | NOT STARTED |
 
 ## PRD-004 Bot Management
@@ -274,8 +278,8 @@ Only the following items remain pending:
 
 ## Next Official Objective
 
-**PRD-001 through PRD-018 are CLOSED. PRD-019 is IMPLEMENTED — PENDING CTO
-REVIEW. PRD-020 through PRD-023 remain NOT STARTED.**
+**PRD-001 through PRD-019 are CLOSED. PRD-020 through PRD-023 remain NOT
+STARTED.**
 
 ## PRD-010 through PRD-015 Status
 
@@ -296,10 +300,14 @@ merge commit `601499071f39aad85dc4d9595fc04425f40a3962`, final approved head
 merge commit `01c809c909360f4a31a6b26b1d4126a1c98e9c8b`, final approved head
 `3f7808da24d0dc1e3b5d6f3d337ee4562f5398b6`; PRD-018 is CLOSED after PR #28 at
 merge commit `63f2fc79444e6b3f85b516b917860fb17fa8f779`, final approved head
-`2776a1b2ca6082142f14862c4eac4cf889eea631`. PRD-019 is IMPLEMENTED — PENDING
-CTO REVIEW; PRD-020 through PRD-023 remain NOT STARTED.
+`2776a1b2ca6082142f14862c4eac4cf889eea631`. PRD-019 is CLOSED after normal merge
+PR #30 at `5a87ffc32be4315ebb6f9e64826bdb96f36ada58`, final approved
+implementation head `2a15b7f022c2989d73bb97d9b964495dba961778`; PRD-020 through
+PRD-023 remain NOT STARTED.
 
 ## CTO Review Status
+
+PRD-019 CLOSED - PR #30 MERGED
 
 PRD-018 CLOSED - PR #28 MERGED
 

@@ -1,7 +1,7 @@
 # BotWA Starter - Context For AI Assistants
 
 **Last updated:** 2026-08-13
-**Project phase:** Phase 3 - PRD-001 through PRD-019 CLOSED; PRD-020 IMPLEMENTED — PENDING CTO REVIEW
+**Project phase:** Phase 3 - PRD-001 through PRD-020 CLOSED
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
@@ -40,8 +40,10 @@ the four PRD-019 tables, and revision `20260812_0020`. Billing remains disabled 
 default. A bounded one-shot due-transition job closes paid access and prepares
 downgrades under an external deployment scheduler; manual reconcile is recovery
 only. Commercial enablement remains BLOCKED as a separate operational gate, not a
-code-closure blocker. PRD-020 Onboarding is IMPLEMENTED — PENDING CTO REVIEW. It
-adds one minimal tenant-scoped historical workflow row per Organization and
+code-closure blocker. PRD-020 Onboarding is CLOSED after merge via PR #32 at
+`47b589df54282145ddce7b745ef208bb80321143`, with final approved head
+`15564c245067952a74f19987370b6d5037de65a1`. It adds one minimal tenant-scoped
+historical workflow row per Organization and
 derives current readiness from operational Sources of Truth. It exposes
 read/start/complete, closed typed steps and blockers, deterministic Bot selection,
 Plan-driven applicability, same-transaction PRD-017 Audit, RBAC, concurrency
@@ -107,8 +109,7 @@ Current validated gates:
 
 ## Current Official Objective
 
-PRD-001 through PRD-019 are CLOSED. PRD-020 is IMPLEMENTED — PENDING CTO REVIEW.
-PRD-021 through PRD-023 remain NOT STARTED.
+PRD-001 through PRD-020 are CLOSED. PRD-021 through PRD-023 remain NOT STARTED.
 
 **Phase 3**
 
@@ -133,7 +134,7 @@ PRD-021 through PRD-023 remain NOT STARTED.
 | 17 | PRD-017 Audit Log | CLOSED |
 | 18 | PRD-018 Plans and Limits | CLOSED |
 | 19 | PRD-019 Billing & Subscriptions | CLOSED |
-| 20 | PRD-020 Onboarding | IMPLEMENTED — PENDING CTO REVIEW |
+| 20 | PRD-020 Onboarding | CLOSED |
 | 21-23 | Future approved product increments | NOT STARTED |
 
 The MVP milestone comprises PRD-001 through PRD-010.
@@ -253,6 +254,8 @@ merge commit `63f2fc79444e6b3f85b516b917860fb17fa8f779`, final approved head
 `2776a1b2ca6082142f14862c4eac4cf889eea631`. PRD-019 is CLOSED after normal merge
 PR #30, merge commit `5a87ffc32be4315ebb6f9e64826bdb96f36ada58`, final approved
 implementation head `2a15b7f022c2989d73bb97d9b964495dba961778`. PRD-020 is
-IMPLEMENTED — PENDING CTO REVIEW; PRD-021 through PRD-023 are NOT STARTED.
+CLOSED after PR #32 at `47b589df54282145ddce7b745ef208bb80321143`, final approved
+head `15564c245067952a74f19987370b6d5037de65a1`; PRD-021 through PRD-023 are
+NOT STARTED.
 Billing commercial enablement remains BLOCKED pending
 approved configuration and the real Mercado Pago sandbox smoke.

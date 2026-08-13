@@ -2,8 +2,8 @@
 
 **Date:** 2026-08-13
 **Role:** Lead Engineer  
-**Project phase:** Phase 3 - PRD-001 through PRD-019 CLOSED; PRD-020 IMPLEMENTED — PENDING CTO REVIEW
-**Status source:** PRD-020 implementation branch pending CTO review
+**Project phase:** Phase 3 - PRD-001 through PRD-020 CLOSED
+**Status source:** PRD-020 merged via PR #32
 
 ## Executive Summary
 
@@ -79,7 +79,9 @@ manual reconcile remains a recovery tool. Plan enforcement continues to read onl
 Real Mercado Pago sandbox and commercial go-live gates remain pending operational
 enablement requirements and do not block the technical closure.
 
-PRD-020 is IMPLEMENTED — PENDING CTO REVIEW. Its hybrid model persists only
+PRD-020 is CLOSED after merge via PR #32 at
+`47b589df54282145ddce7b745ef208bb80321143`, with final approved head
+`15564c245067952a74f19987370b6d5037de65a1`. Its hybrid model persists only
 historical start/completion in `organization_onboarding` and derives current
 readiness directly from Organization, Users, Plan, Bots, Business Configuration,
 WhatsApp, Knowledge and Integration Sources of Truth. It adds revision
@@ -127,7 +129,7 @@ NOT STARTED.
 | PRD-017 Audit Log | CLOSED |
 | PRD-018 Plans and Limits | CLOSED |
 | PRD-019 Billing & Subscriptions | CLOSED |
-| PRD-020 Onboarding | IMPLEMENTED — PENDING CTO REVIEW |
+| PRD-020 Onboarding | CLOSED |
 | PRD-021 through PRD-023 | NOT STARTED |
 
 ## PRD-004 Bot Management
@@ -287,8 +289,8 @@ Only the following items remain pending:
 
 ## Next Official Objective
 
-**PRD-001 through PRD-019 are CLOSED. PRD-020 is IMPLEMENTED — PENDING CTO
-REVIEW. PRD-021 through PRD-023 remain NOT STARTED.**
+**PRD-001 through PRD-020 are CLOSED. PRD-021 through PRD-023 remain NOT
+STARTED.**
 
 ## PRD-010 through PRD-015 Status
 
@@ -312,9 +314,13 @@ merge commit `63f2fc79444e6b3f85b516b917860fb17fa8f779`, final approved head
 `2776a1b2ca6082142f14862c4eac4cf889eea631`. PRD-019 is CLOSED after normal merge
 PR #30 at `5a87ffc32be4315ebb6f9e64826bdb96f36ada58`, final approved
 implementation head `2a15b7f022c2989d73bb97d9b964495dba961778`; PRD-020 is
-IMPLEMENTED — PENDING CTO REVIEW and PRD-021 through PRD-023 remain NOT STARTED.
+CLOSED after PR #32 at `47b589df54282145ddce7b745ef208bb80321143`, final approved
+head `15564c245067952a74f19987370b6d5037de65a1`, and PRD-021 through PRD-023
+remain NOT STARTED.
 
 ## CTO Review Status
+
+PRD-020 CLOSED - PR #32 MERGED
 
 PRD-019 CLOSED - PR #30 MERGED
 

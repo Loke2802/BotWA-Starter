@@ -1,6 +1,6 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-020 IMPLEMENTED — PENDING CTO REVIEW
+## Estado actual - Phase 3 / PRD-001 a PRD-020 CLOSED
 
 Quality Gates (validación técnica PRD-020):
 
@@ -29,8 +29,8 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial: **PRD-001 a PRD-019 CLOSED; PRD-020 IMPLEMENTED — PENDING CTO
-REVIEW; PRD-021 a PRD-023 permanecen NOT STARTED.**
+Estado oficial: **PRD-001 a PRD-020 CLOSED; PRD-021 a PRD-023 permanecen NOT
+STARTED.**
 
 PRD-020 implementa Onboarding v1 como workflow histórico mínimo tenant-scoped y
 readiness actual derivada desde los Sources of Truth. Expone GET/start/complete,
@@ -39,6 +39,10 @@ mantiene WhatsApp condicional, Knowledge/Integrations opcionales y
 BusinessCalendar no bloqueante. No duplica CRUD, no hace llamadas externas, no
 activa recursos ni bloquea runtimes. Alembic avanza a `20260813_0021`; PRD-021 no
 fue iniciado.
+
+PRD-020 cerró después del merge aprobado vía PR #32, merge commit
+`47b589df54282145ddce7b745ef208bb80321143`, con head final aprobado
+`15564c245067952a74f19987370b6d5037de65a1`.
 
 PRD-019 añade Billing SaaS provider-agnostic, tenant-scoped y PostgreSQL-only.
 Incluye Mercado Pago detrás de un adaptador, fake determinista, checkout hosted,
@@ -740,7 +744,7 @@ PRD-001 through PRD-012 are closed. PRD-010 adds a tenant-scoped handoff
 lifecycle, bot suppression, encrypted and attributed human replies through the
 generic channel sender, idempotency, archive protection, and safe transport
 errors. PRD-011 adds the Contact increment; Customer is deferred and CRM is not
-implemented. PRD-012 through PRD-019 are closed; PRD-020 is implemented pending
-CTO review; PRD-021 through PRD-023 are not started. Real
+implemented. PRD-012 through PRD-020 are closed; PRD-021 through PRD-023 are not
+started. Real
 Meta and Google validation need explicit external credentials.
 

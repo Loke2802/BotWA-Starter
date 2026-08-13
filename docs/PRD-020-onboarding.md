@@ -1,10 +1,14 @@
 # PRD-020 — Onboarding v1
 
-**Status:** IMPLEMENTED — PENDING CTO REVIEW
+**Status:** CLOSED
 
 **Date:** 2026-08-13
 
 **Alembic revision:** `20260813_0021`
+
+**Closure:** merged through PR #32 at
+`47b589df54282145ddce7b745ef208bb80321143`, with final approved head
+`15564c245067952a74f19987370b6d5037de65a1`.
 
 ## Scope and architecture
 

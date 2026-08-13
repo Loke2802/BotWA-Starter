@@ -2,7 +2,11 @@
 
 ## PRD-020 Onboarding v1 - 2026-08-13
 
-### IMPLEMENTED — PENDING CTO REVIEW
+### CLOSED after PR #32
+
+- Merged into `master` through PR #32 at
+  `47b589df54282145ddce7b745ef208bb80321143`, with final approved head
+  `15564c245067952a74f19987370b6d5037de65a1`.
 
 - Added a tenant-scoped hybrid onboarding model: minimal historical workflow in
   `organization_onboarding`, while current readiness is derived only from existing
@@ -27,8 +31,7 @@
   PASS; full pytest 843 passed, 29 skipped, 2 warnings; mypy PASS across 463
   source files; Ruff PASS; Black PASS across 463 files; `git diff --check` PASS;
   Alembic one head at `20260813_0021`.
-- PRD-001 through PRD-019 remain CLOSED. PRD-021 through PRD-023 remain NOT
-  STARTED.
+- PRD-001 through PRD-020 are CLOSED. PRD-021 through PRD-023 remain NOT STARTED.
 
 ## PRD-019 Billing & Subscriptions v1 - 2026-08-12
 

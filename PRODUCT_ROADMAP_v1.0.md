@@ -1,6 +1,6 @@
 # BotWA Product Roadmap v1.0
 
-**Status:** PRD-001 through PRD-018 CLOSED; PRD-019 IMPLEMENTED — PENDING CTO REVIEW; PRD-020 through PRD-023 NOT STARTED
+**Status:** PRD-001 through PRD-019 CLOSED; PRD-020 through PRD-023 NOT STARTED
 **Date:** 2026-08-12
 
 ## Current State
@@ -19,8 +19,11 @@ approved head `3f7808da24d0dc1e3b5d6f3d337ee4562f5398b6`. PRD-018 Plans and Limi
 closed after PR #28 at merge commit
 `63f2fc79444e6b3f85b516b917860fb17fa8f779`, with final approved head
 `2776a1b2ca6082142f14862c4eac4cf889eea631`. PRD-019 Billing & Subscriptions is
-implemented and pending CTO review with Billing disabled by default; PRD-020
-through PRD-023 are not started.
+closed after normal merge PR #30 at
+`5a87ffc32be4315ebb6f9e64826bdb96f36ada58`, with final approved implementation
+head `2a15b7f022c2989d73bb97d9b964495dba961778`. Billing remains disabled by
+default and commercial enablement remains blocked by configuration and real
+Mercado Pago sandbox gates. PRD-020 through PRD-023 are not started.
 
 **MVP milestone:** PRD-001 through PRD-010.
 
@@ -46,7 +49,7 @@ through PRD-023 are not started.
 | 16 | PRD-016 Analytics and Reports | CLOSED |
 | 17 | PRD-017 Audit Log | CLOSED |
 | 18 | PRD-018 Plans and Limits | CLOSED |
-| 19 | PRD-019 Billing and Subscriptions | IMPLEMENTED — PENDING CTO REVIEW |
+| 19 | PRD-019 Billing and Subscriptions | CLOSED |
 | 20 | PRD-020 Onboarding | NOT STARTED |
 | 21 | PRD-021 Security Hardening | NOT STARTED |
 | 22 | PRD-022 Observability | NOT STARTED |
@@ -103,8 +106,7 @@ post-merge validation.
 - Core architecture remains stable.
 - New functionality must be tied to PRDs.
 - Quality gates remain mandatory.
-- PRD-001 through PRD-018 are closed. PRD-019 is implemented and pending CTO
-  review. PRD-020 through PRD-023 are not started.
+- PRD-001 through PRD-019 are closed. PRD-020 through PRD-023 are not started.
 - PRD-010 documents lifecycle/RBAC, tenant isolation, suppression/resume,
   encrypted idempotent replies, archive protection, and migration chain
   `0010` → `0011` → `0012`.

@@ -16,12 +16,15 @@ def get_audit_metrics() -> AuditMetricsRegistry:
 
 
 def get_audit_query_service() -> Generator[AuditQueryService]:
+    settings = get_settings()
     session_generator = get_session()
     session = next(session_generator)
     try:
         yield AuditQueryService(
             SqlAlchemyAuditRepository(session),
-            cursor_codec=AuditCursorCodec(get_settings().auth_secret_key),
+            cursor_codec=AuditCursorCodec(
+                settings.audit_cursor_signing_key or settings.auth_secret_key
+            ),
             metrics=audit_metrics,
             plan_enforcement=PlanEnforcementService(SqlAlchemyPlanRepository(session)),
         )

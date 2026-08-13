@@ -244,7 +244,8 @@ def test_login_me_list_update_change_password_and_deactivate(
     assert deactivated.status_code == 200
     assert deactivated.json()["user"]["status"] == "inactive"
     assert second_deactivated.status_code == 200
-    assert inactive_agent_login.status_code == 403
+    assert inactive_agent_login.status_code == 401
+    assert inactive_agent_login.json()["detail"] == "invalid credentials"
 
 
 def test_invalid_and_tampered_tokens_return_401(client: TestClient) -> None:

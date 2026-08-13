@@ -119,6 +119,24 @@ def test_login_rejects_wrong_password(
         auth_service.login("owner@example.com", "wrong-password")
 
 
+def test_unknown_user_executes_precomputed_dummy_verification(
+    user_service: UserService,
+    auth_service: AuthService,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    monkeypatch.setattr(
+        user_service,
+        "verify_dummy_password",
+        lambda password: calls.append(password),
+    )
+
+    with pytest.raises(AuthInvalidCredentialsError):
+        auth_service.login("missing@example.com", "candidate-password")
+
+    assert calls == ["candidate-password"]
+
+
 def test_login_rejects_inactive_user(
     organization_service: OrganizationService,
     user_service: UserService,
@@ -144,7 +162,7 @@ def test_login_rejects_inactive_user(
     )
     user_service.deactivate(inactive_user.id, actor=user)
 
-    with pytest.raises(AuthInactiveUserError):
+    with pytest.raises(AuthInvalidCredentialsError):
         auth_service.login("agent@example.com", "valid-password-123")
 
 
@@ -184,3 +202,27 @@ def test_token_valid_altered_expired_and_invalidated_after_password_change(
     with pytest.raises(AuthInvalidCredentialsError):
         auth_service.login("owner@example.com", "valid-password-123")
     assert auth_service.login("owner@example.com", "new-valid-password-123")
+
+
+def test_inactive_organization_invalidates_login_and_existing_token(
+    organization_service: OrganizationService,
+    user_service: UserService,
+    auth_service: AuthService,
+) -> None:
+    organization = organization_service.create(
+        OrganizationCreate(name="Acme", slug="acme")
+    )
+    owner = user_service.create(
+        UserCreate(
+            organization_id=organization.id,
+            email="owner@example.com",
+            password="valid-password-123",
+        )
+    )
+    token = auth_service.login("owner@example.com", "valid-password-123")
+    organization_service.deactivate(organization.id, owner)
+
+    with pytest.raises(AuthInvalidCredentialsError):
+        auth_service.login("owner@example.com", "valid-password-123")
+    with pytest.raises(AuthInactiveUserError):
+        auth_service.authenticate_token(token.access_token)

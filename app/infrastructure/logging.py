@@ -6,7 +6,16 @@ import structlog
 
 
 class SensitiveQueryParameterFilter(logging.Filter):
-    _sensitive_parameters = frozenset({"hub.verify_token"})
+    _sensitive_parameters = frozenset(
+        {
+            "hub.verify_token",
+            "code",
+            "state",
+            "access_token",
+            "token",
+            "secret",
+        }
+    )
 
     def filter(self, record: logging.LogRecord) -> bool:
         if not isinstance(record.args, tuple) or len(record.args) < 3:
@@ -18,7 +27,10 @@ class SensitiveQueryParameterFilter(logging.Filter):
 
         parsed = urlsplit(path)
         query = [
-            (key, "[REDACTED]" if key in self._sensitive_parameters else value)
+            (
+                key,
+                "[REDACTED]" if key.lower() in self._sensitive_parameters else value,
+            )
             for key, value in parse_qsl(parsed.query, keep_blank_values=True)
         ]
         redacted_path = urlunsplit(

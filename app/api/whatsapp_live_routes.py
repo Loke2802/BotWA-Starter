@@ -5,6 +5,7 @@ import structlog
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from fastapi.responses import PlainTextResponse
 
+from app.api.security_dependencies import enforce_rate_limit, get_rate_limit_service
 from app.api.whatsapp_configuration_dependencies import (
     get_whatsapp_webhook_validation_service,
 )
@@ -24,6 +25,7 @@ from app.channels.whatsapp.live_mapper import (
     WhatsAppWebhookPayloadError,
 )
 from app.infrastructure.settings import Settings, get_settings
+from app.security.rate_limit import RateLimitService
 
 router = APIRouter(tags=["whatsapp-live-messaging"])
 logger = structlog.get_logger(__name__)
@@ -45,11 +47,18 @@ async def receive_configured_whatsapp_webhook(
         Depends(get_whatsapp_live_message_processor),
     ],
     settings: Annotated[Settings, Depends(get_settings)],
+    rate_limiter: Annotated[RateLimitService, Depends(get_rate_limit_service)],
     signature: Annotated[
         str | None,
         Header(alias="X-Hub-Signature-256"),
     ] = None,
 ) -> PlainTextResponse:
+    enforce_rate_limit(
+        request=request,
+        service=rate_limiter,
+        scope="whatsapp_webhook",
+        subject=str(public_webhook_id),
+    )
     correlation_id = uuid4()
     content_length = request.headers.get("content-length")
     if content_length is not None:
@@ -123,8 +132,13 @@ def _log_rejected(
     public_webhook_id: UUID,
     error_code: str,
 ) -> None:
+    event = (
+        "invalid_webhook_signature"
+        if error_code == "SIGNATURE_INVALID"
+        else "whatsapp.webhook.rejected"
+    )
     logger.warning(
-        "whatsapp.webhook.rejected",
+        event,
         correlation_id=str(correlation_id),
         configuration_id=str(public_webhook_id),
         error_code=error_code,

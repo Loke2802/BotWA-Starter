@@ -43,6 +43,7 @@ def test_integrity_error_rolls_back_without_leaking_database_details() -> None:
         cipher,
         session,
         allow_all_plan_enforcement(),
+        Mock(),
     )
 
     with pytest.raises(

@@ -27,12 +27,11 @@ class WhatsAppSender:
             logger.error(
                 "whatsapp_api_error",
                 status_code=exc.response.status_code,
-                body=exc.response.text,
             )
             return SendResult(
                 success=False,
-                error=f"HTTP {exc.response.status_code}: {exc.response.text}",
+                error=f"HTTP {exc.response.status_code}",
             )
-        except RequestError as exc:
-            logger.error("whatsapp_request_error", error=str(exc))
-            return SendResult(success=False, error=str(exc))
+        except RequestError:
+            logger.error("whatsapp_request_error", error_code="PROVIDER_UNAVAILABLE")
+            return SendResult(success=False, error="provider unavailable")

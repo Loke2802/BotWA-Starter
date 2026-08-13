@@ -5,6 +5,7 @@ from app.application.contacts.administration import ContactAdministrationService
 from app.application.contacts.identity import ContactIdentityHasher
 from app.domain.contacts.contracts import ContactIdentityNormalizer
 from app.infrastructure.database import get_session
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.contact_repository import (
     SqlAlchemyContactRepository,
 )
@@ -23,6 +24,7 @@ def get_contact_administration_service() -> Generator[ContactAdministrationServi
             ),
             get_whatsapp_secret_cipher(),
             session,
+            SqlAlchemyAuditRepository(session),
         )
     finally:
         session_generator.close()

@@ -5,11 +5,17 @@ from uuid import UUID, uuid4
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.application.audit.writer import append_user_audit
 from app.application.plans.service import PlanEnforcementService
 from app.application.whatsapp_configuration.repository import (
     WhatsAppConfigurationRepository,
 )
 from app.domain.access.contracts import Permission
+from app.domain.audit.contracts import (
+    CredentialRotationMetadata,
+    StatusTransitionMetadata,
+)
+from app.domain.audit.ports import AuditWriter
 from app.domain.user.contracts import User
 from app.domain.whatsapp_configuration.contracts import (
     WhatsAppChannelConfiguration,
@@ -58,6 +64,7 @@ class WhatsAppConfigurationService:
         secret_cipher: SecretCipher,
         session: Session,
         plan_enforcement: PlanEnforcementService,
+        audit_writer: AuditWriter,
     ) -> None:
         self._repository = repository
         self._bot_repository = bot_repository
@@ -65,6 +72,7 @@ class WhatsAppConfigurationService:
         self._secret_cipher = secret_cipher
         self._session = session
         self._plan_enforcement = plan_enforcement
+        self._audit_writer = audit_writer
 
     def create(
         self,
@@ -117,6 +125,15 @@ class WhatsAppConfigurationService:
             updated_at=now,
         )
         self._repository.add(model)
+        append_user_audit(
+            self._audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action="whatsapp_configuration.created",
+            resource_type="whatsapp_configuration",
+            resource_id=model.id,
+            occurred_at=now,
+        )
         self._commit()
         self._session.refresh(model)
         return self._to_domain(model)
@@ -214,6 +231,15 @@ class WhatsAppConfigurationService:
             )
         model.updated_by_user_id = actor.id
         model.updated_at = datetime.now(UTC)
+        append_user_audit(
+            self._audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action="whatsapp_configuration.updated",
+            resource_type="whatsapp_configuration",
+            resource_id=model.id,
+            occurred_at=model.updated_at,
+        )
         self._commit()
         self._session.refresh(model)
         return self._to_domain(model)
@@ -253,9 +279,22 @@ class WhatsAppConfigurationService:
             raise WhatsAppConfigurationConflictError(
                 "app secret must be configured before webhook activation",
             )
+        previous_status = model.status
         model.status = "active"
         model.updated_by_user_id = actor.id
         model.updated_at = datetime.now(UTC)
+        append_user_audit(
+            self._audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action="whatsapp_configuration.activated",
+            resource_type="whatsapp_configuration",
+            resource_id=model.id,
+            metadata=StatusTransitionMetadata(
+                from_status=previous_status, to_status="active"
+            ),
+            occurred_at=model.updated_at,
+        )
         self._commit()
         self._session.refresh(model)
         return self._to_domain(model)
@@ -283,9 +322,22 @@ class WhatsAppConfigurationService:
             raise WhatsAppConfigurationConflictError(
                 f"cannot deactivate configuration from {model.status}",
             )
+        previous_status = model.status
         model.status = "inactive"
         model.updated_by_user_id = actor.id
         model.updated_at = datetime.now(UTC)
+        append_user_audit(
+            self._audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action="whatsapp_configuration.deactivated",
+            resource_type="whatsapp_configuration",
+            resource_id=model.id,
+            metadata=StatusTransitionMetadata(
+                from_status=previous_status, to_status="inactive"
+            ),
+            occurred_at=model.updated_at,
+        )
         self._commit()
         self._session.refresh(model)
         return self._to_domain(model)
@@ -319,6 +371,16 @@ class WhatsAppConfigurationService:
             model.app_secret_ciphertext = self._encrypt(request.app_secret)
         model.updated_by_user_id = actor.id
         model.updated_at = datetime.now(UTC)
+        append_user_audit(
+            self._audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action="whatsapp_configuration.credentials_rotated",
+            resource_type="whatsapp_configuration",
+            resource_id=model.id,
+            metadata=CredentialRotationMetadata(),
+            occurred_at=model.updated_at,
+        )
         self._commit()
         self._session.refresh(model)
         return self._to_domain(model)
@@ -341,6 +403,14 @@ class WhatsAppConfigurationService:
             organization_id,
             bot_id,
             for_update=True,
+        )
+        append_user_audit(
+            self._audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action="whatsapp_configuration.deleted",
+            resource_type="whatsapp_configuration",
+            resource_id=model.id,
         )
         self._repository.delete(model)
         self._commit()

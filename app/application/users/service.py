@@ -74,7 +74,9 @@ class UserService:
         self._plan_enforcement = plan_enforcement
 
     def create(self, request: UserCreate, actor: User | None = None) -> User:
-        organization = self._organization_repository.get(request.organization_id)
+        organization = self._organization_repository.get_for_update(
+            request.organization_id
+        )
         if organization is None:
             raise UserNotFoundError("organization not found")
         if organization.status != "active":
@@ -206,6 +208,7 @@ class UserService:
         except AuthorizationError as exc:
             raise UserForbiddenError("permission denied") from exc
         model = self._get_visible_model(user_id, actor)
+        self._lock_organization(model.organization_id)
         if self._is_last_active_owner(model):
             raise LastOwnerProtectionError("last organization owner cannot be changed")
         if model.status != "inactive":
@@ -239,6 +242,7 @@ class UserService:
             raise UserForbiddenError("permission denied") from exc
 
         model = self._get_visible_model(user_id, actor)
+        self._lock_organization(model.organization_id)
         if actor.id == user_id and role != actor.role:
             raise UserForbiddenError("users cannot change their own role")
         if self._is_last_active_owner(model) and role != "organization_owner":
@@ -271,6 +275,13 @@ class UserService:
 
     def verify_password(self, password: str, password_hash: str) -> bool:
         return self._password_service.verify(password, password_hash)
+
+    def verify_dummy_password(self, password: str) -> None:
+        self._password_service.verify_dummy(password)
+
+    def organization_is_active(self, organization_id: UUID) -> bool:
+        organization = self._organization_repository.get(organization_id)
+        return organization is not None and organization.status == "active"
 
     def record_login(self, model: UserModel) -> User:
         model.last_login_at = datetime.now(UTC)
@@ -352,6 +363,10 @@ class UserService:
             self._repository.count_active_owners_by_organization(model.organization_id)
             <= 1
         )
+
+    def _lock_organization(self, organization_id: UUID) -> None:
+        if self._organization_repository.get_for_update(organization_id) is None:
+            raise UserNotFoundError("organization not found")
 
     @staticmethod
     def _organization_to_domain(model: OrganizationModel) -> Organization:

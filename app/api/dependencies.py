@@ -263,7 +263,7 @@ def get_organization_service() -> Generator[OrganizationService]:
 
 
 def get_password_service() -> PasswordService:
-    return PasswordService()
+    return PasswordService(max_length=get_settings().auth_password_max_length)
 
 
 def get_access_token_service() -> AccessTokenService:
@@ -322,6 +322,7 @@ def get_business_configuration_service() -> Generator[BusinessConfigurationServi
             bot_repository=bot_repository,
             organization_repository=organization_repository,
             session=session,
+            audit_writer=SqlAlchemyAuditRepository(session),
         )
     finally:
         session_generator.close()
@@ -355,7 +356,7 @@ def get_current_user(
     except AuthInactiveUserError as exc:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="user is inactive",
+            detail="account is unavailable",
         ) from exc
     except AuthInvalidTokenError as exc:
         raise HTTPException(

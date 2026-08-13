@@ -15,6 +15,14 @@ class OrganizationRepository(BaseRepository[OrganizationModel]):
         stmt = select(OrganizationModel).where(OrganizationModel.slug == slug)
         return self._session.scalars(stmt).first()
 
+    def get_for_update(self, organization_id: UUID) -> OrganizationModel | None:
+        stmt = (
+            select(OrganizationModel)
+            .where(OrganizationModel.id == organization_id)
+            .with_for_update()
+        )
+        return self._session.scalars(stmt).first()
+
     def list_ordered(self) -> list[OrganizationModel]:
         stmt = select(OrganizationModel).order_by(OrganizationModel.created_at)
         return list(self._session.scalars(stmt).all())

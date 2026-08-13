@@ -157,8 +157,8 @@ def test_get_list_update_deactivate_endpoints(client: TestClient) -> None:
     assert update_response.json()["organization"]["slug"] == "acme-updated"
     assert deactivate_response.status_code == 200
     assert deactivate_response.json()["organization"]["status"] == "inactive"
-    assert second_deactivate_response.status_code == 200
-    assert second_deactivate_response.json()["organization"]["status"] == "inactive"
+    assert second_deactivate_response.status_code == 403
+    assert second_deactivate_response.json()["detail"] == "account is unavailable"
 
 
 def test_get_missing_organization_endpoint(client: TestClient) -> None:

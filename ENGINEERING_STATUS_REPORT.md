@@ -2,8 +2,8 @@
 
 **Date:** 2026-08-13
 **Role:** Lead Engineer  
-**Project phase:** Phase 3 - PRD-001 through PRD-020 CLOSED
-**Status source:** PRD-020 merged via PR #32
+**Project phase:** Phase 3 - PRD-021 IMPLEMENTED — PENDING CTO REVIEW
+**Status source:** PRD-021 implementation branch
 
 ## Executive Summary
 
@@ -91,20 +91,30 @@ Audit, optimistic versioning and Organization-first locking. It creates no runti
 gate, performs no external checks or resource mutation, and leaves PRD-021 onward
 NOT STARTED.
 
+PRD-021 Security Hardening is IMPLEMENTED — PENDING CTO REVIEW. It closes
+SEC-021-H01 through H06 with an explicit fail-closed production profile, closed
+JWT configuration, normalized Argon2 authentication, PostgreSQL multi-worker
+rate limiting, disabled production bootstrap/legacy routers, inactive tenant
+enforcement, streaming body limits, secure middleware/logging, concurrency-safe
+Owner invariants, default 48-hour/200-row bounded rate-limit retention and
+same-transaction Audit expansion. Revision
+`20260813_0022` contains only the HMAC rate-limit persistence. PRD-022 and
+PRD-023 remain NOT STARTED.
+
 ## Quality Gates
 
 | Gate | Current result |
 |---|---|
-| `pytest` | 843 passed, 29 skipped, 2 warnings |
-| Focused PRD-020 | 22 passed |
-| Affected-domain regression | 123 passed |
-| PostgreSQL PRD-020 | 3 passed |
-| PostgreSQL migration cycle | `0020 → 0021 → 0020 → 0021` PASS |
+| `pytest` | 864 passed, 35 skipped, 2 warnings |
+| Focused PRD-021 | 19 passed |
+| Affected security regression | 129 passed |
+| PostgreSQL PRD-021 | 6 passed |
+| PostgreSQL migration cycle | `0021 → 0022 → 0021 → 0022` PASS |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 463 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 463 source files |
+| `black --check app tests` | 473 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 473 source files |
 | `git diff --check` | PASS |
-| Alembic | `20260813_0021 (head)` |
+| Alembic | `20260813_0022 (head)` |
 
 ## Phase 3 Product Status
 
@@ -130,7 +140,8 @@ NOT STARTED.
 | PRD-018 Plans and Limits | CLOSED |
 | PRD-019 Billing & Subscriptions | CLOSED |
 | PRD-020 Onboarding | CLOSED |
-| PRD-021 through PRD-023 | NOT STARTED |
+| PRD-021 Security Hardening | IMPLEMENTED — PENDING CTO REVIEW |
+| PRD-022 through PRD-023 | NOT STARTED |
 
 ## PRD-004 Bot Management
 
@@ -289,8 +300,8 @@ Only the following items remain pending:
 
 ## Next Official Objective
 
-**PRD-001 through PRD-020 are CLOSED. PRD-021 through PRD-023 remain NOT
-STARTED.**
+**PRD-001 through PRD-020 are CLOSED. PRD-021 is IMPLEMENTED — PENDING CTO
+REVIEW. PRD-022 and PRD-023 remain NOT STARTED.**
 
 ## PRD-010 through PRD-015 Status
 
@@ -315,10 +326,12 @@ merge commit `63f2fc79444e6b3f85b516b917860fb17fa8f779`, final approved head
 PR #30 at `5a87ffc32be4315ebb6f9e64826bdb96f36ada58`, final approved
 implementation head `2a15b7f022c2989d73bb97d9b964495dba961778`; PRD-020 is
 CLOSED after PR #32 at `47b589df54282145ddce7b745ef208bb80321143`, final approved
-head `15564c245067952a74f19987370b6d5037de65a1`, and PRD-021 through PRD-023
-remain NOT STARTED.
+head `15564c245067952a74f19987370b6d5037de65a1`. PRD-021 is IMPLEMENTED —
+PENDING CTO REVIEW; PRD-022 and PRD-023 remain NOT STARTED.
 
 ## CTO Review Status
+
+PRD-021 IMPLEMENTED — PENDING CTO REVIEW
 
 PRD-020 CLOSED - PR #32 MERGED
 

@@ -64,6 +64,8 @@ class UserCreate(BaseModel):
     def validate_password(cls, value: str) -> str:
         if len(value) < 12:
             raise ValueError("password must be at least 12 characters")
+        if len(value) > 256:
+            raise ValueError("password must be at most 256 characters")
         return value
 
 
@@ -99,6 +101,13 @@ class LoginRequest(BaseModel):
     def normalize_and_validate_email(cls, value: str) -> str:
         return validate_email(value)
 
+    @field_validator("password")
+    @classmethod
+    def validate_password_bound(cls, value: str) -> str:
+        if len(value) > 256:
+            raise ValueError("password must be at most 256 characters")
+        return value
+
 
 class TokenResponse(BaseModel):
     model_config = ConfigDict(frozen=True)
@@ -119,6 +128,15 @@ class ChangePasswordRequest(BaseModel):
     def validate_new_password(cls, value: str) -> str:
         if len(value) < 12:
             raise ValueError("password must be at least 12 characters")
+        if len(value) > 256:
+            raise ValueError("password must be at most 256 characters")
+        return value
+
+    @field_validator("current_password")
+    @classmethod
+    def validate_current_password_bound(cls, value: str) -> str:
+        if len(value) > 256:
+            raise ValueError("password must be at most 256 characters")
         return value
 
 

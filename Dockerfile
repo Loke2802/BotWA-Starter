@@ -11,6 +11,10 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 COPY . .
 
+RUN useradd --create-home --uid 10001 botwa \
+    && chown -R botwa:botwa /app
+USER botwa
+
 EXPOSE 8000
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

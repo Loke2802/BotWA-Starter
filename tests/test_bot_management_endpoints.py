@@ -246,8 +246,8 @@ def test_missing_and_inactive_organization(runtime: Runtime) -> None:
         headers=auth_header(token),
     )
 
-    assert create_response.status_code == 409
-    assert activate_missing.status_code == 404
+    assert create_response.status_code == 403
+    assert activate_missing.status_code == 403
 
 
 def test_multi_tenancy_and_platform_admin(runtime: Runtime) -> None:

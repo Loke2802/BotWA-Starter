@@ -1,8 +1,11 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
+from app.application.audit.writer import append_user_audit
 from app.application.contacts.identity import ContactIdentityHasher
 from app.application.contacts.repository import ContactRepository
+from app.domain.audit.contracts import StatusTransitionMetadata
+from app.domain.audit.ports import AuditWriter
 from app.domain.contacts.api_contracts import ContactDetailResponse, ContactResponse
 from app.domain.user.contracts import User
 from app.infrastructure.models.contact import ContactModel
@@ -31,11 +34,13 @@ class ContactAdministrationService:
         identity_hasher: ContactIdentityHasher,
         cipher: SecretCipher,
         session: Session,
+        audit_writer: AuditWriter,
     ) -> None:
         self._repository = repository
         self._identity_hasher = identity_hasher
         self._cipher = cipher
         self._session = session
+        self._audit_writer = audit_writer
 
     def list(
         self,
@@ -94,6 +99,15 @@ class ContactAdministrationService:
             contact.notes_ciphertext = self._cipher.encrypt(notes)
         contact.updated_by_user_id = actor.id
         contact.updated_at = datetime.now(UTC)
+        append_user_audit(
+            self._audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action="contact.updated",
+            resource_type="contact",
+            resource_id=contact.id,
+            occurred_at=contact.updated_at,
+        )
         self._commit()
         return _response(contact, self._cipher)
 
@@ -107,9 +121,26 @@ class ContactAdministrationService:
         self._authorize(actor, "contacts.archive", organization_id)
         contact = self._contact(contact_id, organization_id)
         if contact.status != target:
+            previous_status = contact.status
             contact.status = target
             contact.updated_by_user_id = actor.id
             contact.updated_at = datetime.now(UTC)
+            append_user_audit(
+                self._audit_writer,
+                organization_id=organization_id,
+                actor=actor,
+                action=(
+                    "contact.archived"
+                    if target == "archived"
+                    else "contact.reactivated"
+                ),
+                resource_type="contact",
+                resource_id=contact.id,
+                metadata=StatusTransitionMetadata(
+                    from_status=previous_status, to_status=target
+                ),
+                occurred_at=contact.updated_at,
+            )
             self._commit()
         return _response(contact, self._cipher)
 

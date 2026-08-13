@@ -16,6 +16,7 @@ from app.application.whatsapp_configuration.webhook import (
     WhatsAppWebhookValidationService,
 )
 from app.infrastructure.database import get_session
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.bot_repository import BotRepository
 from app.infrastructure.repositories.organization_repository import (
     OrganizationRepository,
@@ -53,6 +54,7 @@ def get_whatsapp_configuration_service() -> Generator[WhatsAppConfigurationServi
             secret_cipher=get_whatsapp_secret_cipher(),
             session=session,
             plan_enforcement=PlanEnforcementService(SqlAlchemyPlanRepository(session)),
+            audit_writer=SqlAlchemyAuditRepository(session),
         )
     finally:
         session_generator.close()

@@ -1,3 +1,5 @@
+import structlog
+
 from app.application.users.service import (
     UserAuthenticationRequiredError,
     UserNotFoundError,
@@ -5,6 +7,8 @@ from app.application.users.service import (
 )
 from app.domain.user.contracts import TokenResponse, User
 from app.security.tokens import AccessTokenService, TokenError
+
+logger = structlog.get_logger(__name__)
 
 
 class AuthInvalidCredentialsError(ValueError):
@@ -31,10 +35,18 @@ class AuthService:
     def login(self, email: str, password: str) -> TokenResponse:
         model = self._user_service.find_by_email(email)
         if model is None:
+            self._user_service.verify_dummy_password(password)
+            logger.info("authentication_failed", reason_code="credentials")
             raise AuthInvalidCredentialsError("invalid credentials")
-        if model.status != "active":
-            raise AuthInactiveUserError("user is inactive")
-        if not self._user_service.verify_password(password, model.password_hash):
+        password_valid = self._user_service.verify_password(
+            password, model.password_hash
+        )
+        account_active = model.status == "active" and (
+            model.role == "platform_admin"
+            or self._user_service.organization_is_active(model.organization_id)
+        )
+        if not password_valid or not account_active:
+            logger.info("authentication_failed", reason_code="credentials")
             raise AuthInvalidCredentialsError("invalid credentials")
 
         self._user_service.record_login(model)
@@ -55,6 +67,11 @@ class AuthService:
             raise AuthInvalidTokenError("invalid token")
         if model.status != "active":
             raise AuthInactiveUserError("user is inactive")
+        if (
+            model.role != "platform_admin"
+            and not self._user_service.organization_is_active(model.organization_id)
+        ):
+            raise AuthInactiveUserError("account is unavailable")
         if model.auth_version != payload.auth_version:
             raise AuthInvalidTokenError("invalid token")
         return self._user_service._to_domain(model)

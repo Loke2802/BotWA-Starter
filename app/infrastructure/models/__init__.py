@@ -54,6 +54,7 @@ from app.infrastructure.models.managed_automation import (
 from app.infrastructure.models.message import MessageModel
 from app.infrastructure.models.onboarding import OrganizationOnboardingModel
 from app.infrastructure.models.organization import OrganizationModel
+from app.infrastructure.models.security_rate_limit import SecurityRateLimitBucketModel
 from app.infrastructure.models.user import UserModel
 from app.infrastructure.models.whatsapp_channel_configuration import (
     WhatsAppChannelConfigurationModel,
@@ -101,6 +102,7 @@ __all__ = [
     "ManagedAutomationExecutionModel",
     "OrganizationModel",
     "OrganizationOnboardingModel",
+    "SecurityRateLimitBucketModel",
     "OutboundMessageAttemptModel",
     "UserModel",
     "WhatsAppChannelConfigurationModel",

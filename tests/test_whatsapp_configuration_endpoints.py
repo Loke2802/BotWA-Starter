@@ -115,6 +115,7 @@ def runtime() -> Generator[Runtime]:
             cipher,
             session,
             allow_all_plan_enforcement(),
+            SqlAlchemyAuditRepository(session),
         )
 
     def webhook_service() -> WhatsAppWebhookValidationService:

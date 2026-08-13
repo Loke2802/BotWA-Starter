@@ -1,5 +1,40 @@
 # Changelog
 
+## PRD-021 Security Hardening v1 - 2026-08-13
+
+### IMPLEMENTED — PENDING CTO REVIEW
+
+- Closed SEC-021-H01 through H06 with a typed production security profile,
+  fail-closed startup validation, closed JWT algorithm, dedicated signing keys,
+  inactive-Organization enforcement and normalized Argon2-backed authentication.
+- Disabled public bootstrap and unauthenticated legacy core/WhatsApp routers in
+  production; made first/last Owner invariants concurrency-safe with Organization
+  row locks.
+- Added PostgreSQL multi-worker HMAC rate limiting for login, bootstrap and
+  provider webhooks plus safe `429`/`Retry-After` semantics.
+- Added bounded rate-limit retention: the safe defaults are a 48-hour cutoff and
+  200-row batch (typed hard bounds: >24 hours through 30 days, 1 through 1,000
+  rows). Every consume uses the `updated_at` index and PostgreSQL `FOR UPDATE SKIP
+  LOCKED`; cleanup is multi-worker safe, requires no scheduler, preserves active
+  buckets and keeps HMAC-only persistence.
+- Added ASGI streaming request limits, lower Billing body limits, TrustedHost,
+  explicit CORS, security/no-store headers, production OpenAPI control, safe
+  `/version`, OAuth query redaction and provider-error sanitization.
+- Expanded same-transaction fail-closed Audit to WhatsApp configuration, OAuth
+  completion, Business Configuration, Knowledge and Contact mutations.
+- Added Alembic `20260813_0022` for `security_rate_limit_bucket`; no speculative
+  tenant FKs, RLS, KMS, security event ledger or provider-specific schema.
+- Hardened Docker context against `.env*` and `respaldos/`, and run the image as a
+  dedicated non-root user without reading or tracking `respaldos/`.
+- Validation: focused PRD-021 19 passed; affected auth/security/webhook/Audit
+  regression 129 passed; PostgreSQL PRD-021 6 passed; migration cycle
+  `0021 → 0022 → 0021 → 0022` PASS; full pytest 864 passed, 35 skipped,
+  2 warnings;
+  mypy/Ruff/Black/diff check PASS; Alembic one head at `20260813_0022`.
+- External Meta, Mercado Pago, DB TLS/least-privilege, reverse-proxy/TLS and
+  provider credential gates remain deployment-only. PRD-022 and PRD-023 remain
+  NOT STARTED.
+
 ## PRD-020 Onboarding v1 - 2026-08-13
 
 ### CLOSED after PR #32

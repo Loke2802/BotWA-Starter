@@ -2,9 +2,12 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from pydantic import TypeAdapter
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.application.audit.writer import append_user_audit
 from app.domain.access.contracts import Permission
+from app.domain.audit.ports import AuditWriter
 from app.domain.business_configuration.contracts import (
     BusinessConfiguration,
     BusinessConfigurationCreate,
@@ -58,11 +61,13 @@ class BusinessConfigurationService:
         bot_repository: BotRepository,
         organization_repository: OrganizationRepository,
         session: Session,
+        audit_writer: AuditWriter,
     ) -> None:
         self._repository = repository
         self._bot_repository = bot_repository
         self._organization_repository = organization_repository
         self._session = session
+        self._audit_writer = audit_writer
 
     def create(
         self,
@@ -102,7 +107,16 @@ class BusinessConfigurationService:
             updated_at=now,
         )
         self._repository.add(model)
-        self._session.commit()
+        append_user_audit(
+            self._audit_writer,
+            organization_id=bot.organization_id,
+            actor=actor,
+            action="business_configuration.created",
+            resource_type="business_configuration",
+            resource_id=model.id,
+            occurred_at=now,
+        )
+        self._commit()
         self._session.refresh(model)
         return self._to_domain(model)
 
@@ -173,7 +187,16 @@ class BusinessConfigurationService:
 
         model.updated_at = datetime.now(UTC)
         self._repository.update(model)
-        self._session.commit()
+        append_user_audit(
+            self._audit_writer,
+            organization_id=bot.organization_id,
+            actor=actor,
+            action="business_configuration.updated",
+            resource_type="business_configuration",
+            resource_id=model.id,
+            occurred_at=model.updated_at,
+        )
+        self._commit()
         self._session.refresh(model)
         return self._to_domain(model)
 
@@ -198,6 +221,15 @@ class BusinessConfigurationService:
             raise BusinessConfigurationOrganizationInactiveError(
                 "organization is inactive",
             )
+
+    def _commit(self) -> None:
+        try:
+            self._session.commit()
+        except SQLAlchemyError as exc:
+            self._session.rollback()
+            raise BusinessConfigurationConflictError(
+                "business configuration persistence failed"
+            ) from exc
 
     @staticmethod
     def _to_domain(model: BusinessConfigurationModel) -> BusinessConfiguration:

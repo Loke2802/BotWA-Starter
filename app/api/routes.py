@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.api.dependencies import (
     get_access_service,
@@ -16,9 +16,9 @@ from app.api.dependencies import (
     require_permission,
 )
 from app.api.schemas import HealthResponse, VersionResponse
+from app.api.security_dependencies import enforce_rate_limit, get_rate_limit_service
 from app.application.access.service import AccessService
 from app.application.auth.service import (
-    AuthInactiveUserError,
     AuthInvalidCredentialsError,
     AuthService,
 )
@@ -89,8 +89,11 @@ from app.domain.user.contracts import (
 )
 from app.infrastructure.settings import get_settings
 from app.security.authorization import AuthorizationError, require_organization_access
+from app.security.rate_limit import RateLimitService
 
 router = APIRouter()
+legacy_router = APIRouter()
+bootstrap_router = APIRouter()
 
 
 def _raise_bot_error(exc: ValueError) -> None:
@@ -158,11 +161,10 @@ def version() -> VersionResponse:
     return VersionResponse(
         app_name=settings.app_name,
         api_version=settings.api_version,
-        environment=settings.environment,
     )
 
 
-@router.post(
+@legacy_router.post(
     "/conversation/message",
     response_model=ChannelResponse,
     tags=["conversation"],
@@ -174,7 +176,7 @@ def receive_conversation_message(
     return service.handle_message(message)
 
 
-@router.post(
+@legacy_router.post(
     "/messages",
     response_model=ChannelResponse,
     tags=["vs1"],
@@ -186,7 +188,7 @@ def receive_vs1_message(
     return service.handle_message(message)
 
 
-@router.post(
+@bootstrap_router.post(
     "/organizations",
     response_model=OrganizationResponse,
     status_code=status.HTTP_201_CREATED,
@@ -195,7 +197,15 @@ def receive_vs1_message(
 def create_organization(
     request: OrganizationCreate,
     service: Annotated[OrganizationService, Depends(get_organization_service)],
+    http_request: Request,
+    rate_limiter: Annotated[RateLimitService, Depends(get_rate_limit_service)],
 ) -> OrganizationResponse:
+    enforce_rate_limit(
+        request=http_request,
+        service=rate_limiter,
+        scope="public_bootstrap",
+        subject="organization",
+    )
     try:
         organization = service.create(request)
     except OrganizationConflictError as exc:
@@ -334,7 +344,18 @@ def create_user(
     request: UserCreate,
     service: Annotated[UserService, Depends(get_user_service)],
     actor: Annotated[User | None, Depends(get_optional_current_user)],
+    http_request: Request,
+    rate_limiter: Annotated[RateLimitService, Depends(get_rate_limit_service)],
 ) -> UserResponse:
+    if actor is None:
+        if not get_settings().public_bootstrap_enabled:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        enforce_rate_limit(
+            request=http_request,
+            service=rate_limiter,
+            scope="public_bootstrap",
+            subject=str(request.organization_id),
+        )
     try:
         user = service.create(request, actor=actor)
     except UserConflictError as exc:
@@ -703,14 +724,17 @@ def assign_user_role(
 def login(
     request: LoginRequest,
     service: Annotated[AuthService, Depends(get_auth_service)],
+    http_request: Request,
+    rate_limiter: Annotated[RateLimitService, Depends(get_rate_limit_service)],
 ) -> TokenResponse:
+    enforce_rate_limit(
+        request=http_request,
+        service=rate_limiter,
+        scope="auth_login",
+        subject=request.email,
+    )
     try:
         return service.login(email=request.email, password=request.password)
-    except AuthInactiveUserError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="user is inactive",
-        ) from exc
     except AuthInvalidCredentialsError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

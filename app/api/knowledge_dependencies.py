@@ -4,6 +4,7 @@ from app.application.knowledge_management.provider import BotKnowledgeProvider
 from app.application.knowledge_management.service import KnowledgeManagementService
 from app.application.plans.service import PlanEnforcementService
 from app.infrastructure.database import get_session
+from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.bot_repository import BotRepository
 from app.infrastructure.repositories.knowledge_entry_repository import (
     SqlAlchemyKnowledgeEntryRepository,
@@ -24,6 +25,7 @@ def get_knowledge_management_service() -> Generator[KnowledgeManagementService]:
             organization_repository=OrganizationRepository(session),
             session=session,
             plan_enforcement=PlanEnforcementService(SqlAlchemyPlanRepository(session)),
+            audit_writer=SqlAlchemyAuditRepository(session),
         )
     finally:
         session_generator.close()

@@ -68,6 +68,7 @@ class SqlAlchemyAuditRepository:
                 result="accepted_by_unit_of_work",
             )
         except SQLAlchemyError as exc:
+            self.session.rollback()
             self.metrics.record(
                 "audit_append_attempts_total",
                 operation="append",

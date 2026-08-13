@@ -12,4 +12,3 @@ class VersionResponse(BaseModel):
 
     app_name: str
     api_version: str
-    environment: str

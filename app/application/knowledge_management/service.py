@@ -4,10 +4,12 @@ from uuid import UUID, uuid4
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.application.audit.writer import append_user_audit
 from app.application.knowledge_management.provider import knowledge_entry_from_model
 from app.application.knowledge_management.repository import KnowledgeEntryRepository
 from app.application.plans.service import PlanEnforcementService
 from app.domain.access.contracts import Permission
+from app.domain.audit.ports import AuditWriter
 from app.domain.knowledge_management.contracts import (
     KnowledgeEntry,
     KnowledgeEntryCreate,
@@ -51,12 +53,14 @@ class KnowledgeManagementService:
         organization_repository: OrganizationRepository,
         session: Session,
         plan_enforcement: PlanEnforcementService,
+        audit_writer: AuditWriter,
     ) -> None:
         self._repository = repository
         self._bot_repository = bot_repository
         self._organization_repository = organization_repository
         self._session = session
         self._plan_enforcement = plan_enforcement
+        self._audit_writer = audit_writer
 
     def create(
         self,
@@ -87,6 +91,15 @@ class KnowledgeManagementService:
             updated_at=now,
         )
         self._repository.add(model)
+        append_user_audit(
+            self._audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action="knowledge.created",
+            resource_type="knowledge",
+            resource_id=model.id,
+            occurred_at=now,
+        )
         self._commit()
         self._session.refresh(model)
         return knowledge_entry_from_model(model)
@@ -153,6 +166,15 @@ class KnowledgeManagementService:
             model.metadata_data = request.metadata
         model.updated_by_user_id = actor.id
         model.updated_at = datetime.now(UTC)
+        append_user_audit(
+            self._audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action="knowledge.updated",
+            resource_type="knowledge",
+            resource_id=model.id,
+            occurred_at=model.updated_at,
+        )
         self._commit()
         self._session.refresh(model)
         return knowledge_entry_from_model(model)
@@ -201,6 +223,14 @@ class KnowledgeManagementService:
         self._validate_scope(organization_id, bot_id, actor, "knowledge.delete")
         self._require_active_organization(organization_id)
         model = self._get_entry(entry_id, organization_id, bot_id)
+        append_user_audit(
+            self._audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action="knowledge.deleted",
+            resource_type="knowledge",
+            resource_id=model.id,
+        )
         self._repository.delete(model)
         self._commit()
 
@@ -229,6 +259,17 @@ class KnowledgeManagementService:
         model.status = target
         model.updated_by_user_id = actor.id
         model.updated_at = datetime.now(UTC)
+        append_user_audit(
+            self._audit_writer,
+            organization_id=organization_id,
+            actor=actor,
+            action=(
+                "knowledge.published" if target == "published" else "knowledge.archived"
+            ),
+            resource_type="knowledge",
+            resource_id=model.id,
+            occurred_at=model.updated_at,
+        )
         self._commit()
         self._session.refresh(model)
         return knowledge_entry_from_model(model)

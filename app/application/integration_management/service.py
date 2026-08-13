@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.application.audit.writer import append_user_audit
+from app.application.audit.writer import append_non_user_audit, append_user_audit
 from app.application.integration_management.oauth_state import (
     OAuthStateExpiredError,
     OAuthStateInvalidError,
@@ -607,6 +607,16 @@ class IntegrationManagementService:
             self._record_oauth_health(row, adapter, tokens.access_token)
         except SQLAlchemyError as exc:
             raise self._persistence_error(exc) from exc
+        append_non_user_audit(
+            self.audit_writer,
+            organization_id=row.organization_id,
+            actor_type="system",
+            action="integration.oauth_completed",
+            resource_type="integration",
+            resource_id=row.id,
+            metadata=CredentialRotationMetadata(),
+            occurred_at=datetime.now(UTC),
+        )
         self._commit_transaction()
         return OAuthCallbackResponse()
 

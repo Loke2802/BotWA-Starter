@@ -1,7 +1,15 @@
+from enum import StrEnum
 from functools import lru_cache
+from typing import Annotated, Literal
 
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+
+class Environment(StrEnum):
+    DEVELOPMENT = "development"
+    TEST = "test"
+    PRODUCTION = "production"
 
 
 class Settings(BaseSettings):
@@ -13,7 +21,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "BotWA Starter"
-    environment: str = "local"
+    environment: Environment = Environment.DEVELOPMENT
     log_level: str = "INFO"
     api_version: str = "v1"
     database_url: str = Field(
@@ -60,9 +68,34 @@ class Settings(BaseSettings):
     )
     whatsapp_meta_timeout_seconds: float = Field(default=10.0, gt=0, le=120)
     auth_secret_key: str = "local-development-secret-change-me"
-    auth_algorithm: str = "HS256"
+    auth_algorithm: Literal["HS256"] = "HS256"
     auth_access_token_expire_minutes: int = 30
     auth_password_min_length: int = 12
+    auth_password_max_length: int = Field(default=256, ge=64, le=4_096)
+    public_bootstrap_enabled: bool = True
+    legacy_core_api_enabled: bool = True
+    legacy_whatsapp_enabled: bool = True
+    global_max_body_bytes: int = Field(default=1_048_576, ge=1_024, le=10_485_760)
+    allowed_hosts: Annotated[tuple[str, ...], NoDecode] = (
+        "localhost",
+        "127.0.0.1",
+        "testserver",
+    )
+    cors_origins: Annotated[tuple[str, ...], NoDecode] = ()
+    cors_allow_credentials: bool = False
+    trusted_proxy_hosts: Annotated[tuple[str, ...], NoDecode] = ()
+    openapi_enabled: bool | None = None
+    https_enabled: bool = False
+    rate_limit_hmac_key: str = ""
+    audit_cursor_signing_key: str = ""
+    auth_login_rate_limit_attempts: int = Field(default=10, ge=1, le=1_000)
+    auth_login_rate_limit_window_seconds: int = Field(default=60, ge=1, le=86_400)
+    public_bootstrap_rate_limit_attempts: int = Field(default=5, ge=1, le=1_000)
+    public_bootstrap_rate_limit_window_seconds: int = Field(
+        default=300, ge=1, le=86_400
+    )
+    webhook_rate_limit_attempts: int = Field(default=300, ge=1, le=100_000)
+    webhook_rate_limit_window_seconds: int = Field(default=60, ge=1, le=86_400)
     billing_enabled: bool = False
     billing_provider: str = "mercado_pago"
     billing_mercado_pago_access_token: str = ""
@@ -79,6 +112,26 @@ class Settings(BaseSettings):
     billing_freshness_seconds: int = Field(default=900, ge=60, le=86_400)
     billing_due_batch_size: int = Field(default=100, ge=1, le=1_000)
     billing_provider_change_lead_seconds: int = Field(default=3_600, ge=300, le=86_400)
+
+    @field_validator("environment", mode="before")
+    @classmethod
+    def normalize_environment(cls, value: object) -> object:
+        return Environment.DEVELOPMENT if value == "local" else value
+
+    @field_validator(
+        "allowed_hosts", "cors_origins", "trusted_proxy_hosts", mode="before"
+    )
+    @classmethod
+    def parse_csv_tuple(cls, value: object) -> object:
+        if isinstance(value, str) and not value.lstrip().startswith("["):
+            return tuple(item.strip() for item in value.split(",") if item.strip())
+        return value
+
+    @property
+    def effective_openapi_enabled(self) -> bool:
+        if self.openapi_enabled is not None:
+            return self.openapi_enabled
+        return self.environment != Environment.PRODUCTION
 
 
 @lru_cache

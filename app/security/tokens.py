@@ -3,6 +3,8 @@ from uuid import UUID
 
 import jwt
 
+_ALLOWED_ALGORITHMS = frozenset({"HS256"})
+
 
 class TokenError(ValueError):
     pass
@@ -27,6 +29,8 @@ class AccessTokenService:
         algorithm: str,
         expires_minutes: int,
     ) -> None:
+        if algorithm not in _ALLOWED_ALGORITHMS:
+            raise ValueError("unsupported token algorithm")
         self._secret_key = secret_key
         self._algorithm = algorithm
         self._expires_minutes = expires_minutes

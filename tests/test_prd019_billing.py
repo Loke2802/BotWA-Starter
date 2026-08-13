@@ -11,6 +11,8 @@ import pytest
 from app.api.billing_dependencies import get_billing_service
 from app.api.billing_routes import router
 from app.api.dependencies import require_authenticated_user
+from app.application.billing.due_transitions import BillingDueTransitionProcessor
+from app.application.billing.metrics import BillingMetricsRegistry
 from app.application.billing.service import BillingService
 from app.application.plans.service import InternalPlanAssignmentService
 from app.domain.audit.contracts import AuditEventDraft
@@ -197,6 +199,54 @@ def _seed(session: Session) -> tuple[UUID, User, BillingPriceModel, BillingPrice
     )
 
 
+def _seed_additional_organization(
+    session: Session, initial_plan: BillingPriceModel
+) -> tuple[UUID, User]:
+    organization_id = uuid4()
+    user_id = uuid4()
+    session.add(
+        OrganizationModel(
+            id=organization_id,
+            name="Second Tenant",
+            slug=f"second-{organization_id.hex[:8]}",
+            status="active",
+            settings={},
+            created_at=NOW,
+            updated_at=NOW,
+        )
+    )
+    session.flush()
+    session.add_all(
+        [
+            UserModel(
+                id=user_id,
+                organization_id=organization_id,
+                email="second-owner@example.com",
+                password_hash="hash",
+                role="organization_owner",
+                status="active",
+                auth_version=1,
+                created_at=NOW,
+                updated_at=NOW,
+            ),
+            OrganizationPlanAssignmentModel(
+                organization_id=organization_id,
+                plan_definition_id=initial_plan.plan_definition_id,
+                version=1,
+                created_at=NOW,
+                updated_at=NOW,
+            ),
+        ]
+    )
+    session.commit()
+    return organization_id, User(
+        id=user_id,
+        organization_id=organization_id,
+        email="second-owner@example.com",
+        role="organization_owner",
+    )
+
+
 def _service(
     session: Session,
     provider: FakeBillingProvider,
@@ -204,6 +254,8 @@ def _service(
     *,
     enabled: bool = True,
     fallback: str = "",
+    lead_seconds: int = 3600,
+    metrics: BillingMetricsRegistry | None = None,
 ) -> BillingService:
     plans = SqlAlchemyPlanRepository(session)
     return BillingService(
@@ -219,6 +271,18 @@ def _service(
         cancel_url="https://app.example.com/billing/cancel",
         fallback_plan_code=fallback,
         freshness_seconds=900,
+        provider_change_lead_seconds=lead_seconds,
+        metrics=metrics,
+    )
+
+
+def _due_processor(
+    session: Session,
+    service: BillingService,
+    metrics: BillingMetricsRegistry | None = None,
+) -> BillingDueTransitionProcessor:
+    return BillingDueTransitionProcessor(
+        service.repository, service, session, metrics=metrics
     )
 
 
@@ -677,7 +741,12 @@ def test_due_downgrade_requires_provider_confirmation_and_applies_once(
         ChangePlanRequest(billing_price_id=basic.id, expected_version=row.version),
         actor,
     )
-    row.scheduled_change_at = datetime.now(UTC) - timedelta(seconds=1)
+    due = datetime.now(UTC) - timedelta(seconds=1)
+    row.scheduled_change_at = due
+    row.current_period_end = due
+    provider.subscriptions[row.provider_subscription_id] = provider.fetch_subscription(
+        row.provider_subscription_id
+    ).model_copy(update={"current_period_end": due})
     session.commit()
     version_before_confirmation = row.version
 
@@ -720,7 +789,12 @@ def test_due_downgrade_can_be_confirmed_by_authoritative_webhook(
         ChangePlanRequest(billing_price_id=basic.id, expected_version=row.version),
         actor,
     )
-    row.scheduled_change_at = datetime.now(UTC) - timedelta(seconds=1)
+    effective_at = datetime.now(UTC) - timedelta(seconds=1)
+    row.current_period_end = effective_at
+    row.scheduled_change_at = effective_at
+    provider.subscriptions[row.provider_subscription_id] = provider.fetch_subscription(
+        row.provider_subscription_id
+    ).model_copy(update={"current_period_end": effective_at})
     session.commit()
     unconfirmed = _signed_event(
         service, row.provider_subscription_id, "downgrade-due-but-unconfirmed"
@@ -751,6 +825,370 @@ def test_due_downgrade_can_be_confirmed_by_authoritative_webhook(
     assert [event.action for event in writer.events].count(
         "subscription.plan_changed"
     ) == 1
+
+
+def test_due_processor_ignores_cancellation_before_paid_period_end(
+    session: Session,
+) -> None:
+    organization_id, actor, _, pro = _seed(session)
+    provider = FakeBillingProvider()
+    service = _service(session, provider, RecordingAuditWriter(), fallback="basic")
+    subscription_id = _checkout(service, organization_id, actor, pro)
+    row = session.get(SubscriptionModel, subscription_id)
+    assert row is not None and row.provider_subscription_id is not None
+    provider.activate(row.provider_subscription_id)
+    service.reconcile(
+        organization_id, actor.model_copy(update={"role": "platform_admin"})
+    )
+    service.request_cancellation(organization_id, row.version, actor)
+
+    result = _due_processor(session, service).process_due(
+        now=datetime.now(UTC), batch_size=10
+    )
+    assignment = SqlAlchemyPlanRepository(session).get_assignment(organization_id)
+    assert result.examined == 0
+    assert row.status == "active"
+    assert assignment is not None
+    assert assignment.plan_definition_id == pro.plan_definition_id
+
+
+def test_due_processor_closes_canceled_access_and_is_exactly_once(
+    session: Session,
+) -> None:
+    organization_id, actor, basic, pro = _seed(session)
+    provider = FakeBillingProvider()
+    writer = RecordingAuditWriter()
+    metrics = BillingMetricsRegistry()
+    service = _service(session, provider, writer, fallback="basic", metrics=metrics)
+    subscription_id = _checkout(service, organization_id, actor, pro)
+    row = session.get(SubscriptionModel, subscription_id)
+    assert row is not None and row.provider_subscription_id is not None
+    provider.activate(row.provider_subscription_id)
+    service.reconcile(
+        organization_id, actor.model_copy(update={"role": "platform_admin"})
+    )
+    service.request_cancellation(organization_id, row.version, actor)
+    due = datetime.now(UTC) - timedelta(seconds=1)
+    row.current_period_end = due
+    row.scheduled_change_at = due
+    provider.subscriptions[row.provider_subscription_id] = provider.fetch_subscription(
+        row.provider_subscription_id
+    ).model_copy(update={"current_period_end": due})
+    session.commit()
+    processor = _due_processor(session, service, metrics)
+
+    first = processor.process_due(now=datetime.now(UTC), batch_size=10)
+    second = processor.process_due(now=datetime.now(UTC), batch_size=10)
+    assignment = SqlAlchemyPlanRepository(session).get_assignment(organization_id)
+    assert first.succeeded == 1
+    assert second.examined == 0
+    assert row.status == "canceled"
+    assert row.scheduled_change_at is None
+    assert assignment is not None
+    assert assignment.plan_definition_id == basic.plan_definition_id
+    assert [event.action for event in writer.events].count("subscription.canceled") == 1
+    assert (
+        metrics.snapshot()[("billing_due_transitions_total", "cancellation", "success")]
+        == 1
+    )
+
+
+def test_due_cancellation_without_fallback_never_assigns_default(
+    session: Session,
+) -> None:
+    organization_id, actor, _, pro = _seed(session)
+    provider = FakeBillingProvider()
+    service = _service(session, provider, RecordingAuditWriter())
+    subscription_id = _checkout(service, organization_id, actor, pro)
+    row = session.get(SubscriptionModel, subscription_id)
+    assert row is not None and row.provider_subscription_id is not None
+    provider.activate(row.provider_subscription_id)
+    service.reconcile(
+        organization_id, actor.model_copy(update={"role": "platform_admin"})
+    )
+    service.request_cancellation(organization_id, row.version, actor)
+    due = datetime.now(UTC) - timedelta(seconds=1)
+    row.current_period_end = due
+    row.scheduled_change_at = due
+    provider.subscriptions[row.provider_subscription_id] = provider.fetch_subscription(
+        row.provider_subscription_id
+    ).model_copy(update={"current_period_end": due})
+    session.commit()
+
+    result = _due_processor(session, service).process_due(
+        now=datetime.now(UTC), batch_size=10
+    )
+    assignment = SqlAlchemyPlanRepository(session).get_assignment(organization_id)
+    assert result.succeeded == 1
+    assert row.safe_error_code == "BILLING_FALLBACK_NOT_CONFIGURED"
+    assert assignment is not None
+    assert assignment.plan_definition_id == pro.plan_definition_id
+
+
+def test_due_downgrade_prepares_provider_then_promotes_at_period_end(
+    session: Session,
+) -> None:
+    organization_id, actor, basic, pro = _seed(session)
+    provider = FakeBillingProvider()
+    writer = RecordingAuditWriter()
+    service = _service(session, provider, writer)
+    subscription_id = _checkout(service, organization_id, actor, pro)
+    row = session.get(SubscriptionModel, subscription_id)
+    assert row is not None and row.provider_subscription_id is not None
+    provider.activate(row.provider_subscription_id)
+    admin = actor.model_copy(update={"role": "platform_admin"})
+    service.reconcile(organization_id, admin)
+    service.request_plan_change(
+        organization_id,
+        ChangePlanRequest(billing_price_id=basic.id, expected_version=row.version),
+        actor,
+    )
+    period_end = row.current_period_end
+    assert period_end is not None
+    row.scheduled_change_at = datetime.now(UTC) - timedelta(seconds=1)
+    session.commit()
+    processor = _due_processor(session, service)
+
+    prepared = processor.process_due(now=datetime.now(UTC), batch_size=10)
+    assignment = SqlAlchemyPlanRepository(session).get_assignment(organization_id)
+    assert prepared.succeeded == 1
+    assert provider.plan_change_calls == 1
+    assert row.billing_price_id == pro.id
+    assert row.pending_billing_price_id == basic.id
+    assert row.scheduled_change_at == period_end
+    assert assignment is not None
+    assert assignment.plan_definition_id == pro.plan_definition_id
+    assert [event.action for event in writer.events].count(
+        "subscription.plan_changed"
+    ) == 0
+
+    completed = processor.process_due(
+        now=period_end + timedelta(seconds=1), batch_size=10
+    )
+    assignment = SqlAlchemyPlanRepository(session).get_assignment(organization_id)
+    assert completed.succeeded == 1
+    assert provider.plan_change_calls == 1
+    assert row.billing_price_id == basic.id
+    assert row.pending_billing_price_id is None
+    assert row.scheduled_change_at is None
+    assert assignment is not None
+    assert assignment.plan_definition_id == basic.plan_definition_id
+    assert [event.action for event in writer.events].count(
+        "subscription.plan_changed"
+    ) == 1
+
+
+def test_due_downgrade_retries_after_provider_outage(session: Session) -> None:
+    organization_id, actor, basic, pro = _seed(session)
+    provider = FakeBillingProvider()
+    metrics = BillingMetricsRegistry()
+    service = _service(session, provider, RecordingAuditWriter(), metrics=metrics)
+    subscription_id = _checkout(service, organization_id, actor, pro)
+    row = session.get(SubscriptionModel, subscription_id)
+    assert row is not None and row.provider_subscription_id is not None
+    provider.activate(row.provider_subscription_id)
+    service.reconcile(
+        organization_id, actor.model_copy(update={"role": "platform_admin"})
+    )
+    service.request_plan_change(
+        organization_id,
+        ChangePlanRequest(billing_price_id=basic.id, expected_version=row.version),
+        actor,
+    )
+    due = datetime.now(UTC)
+    row.scheduled_change_at = due - timedelta(seconds=1)
+    session.commit()
+    processor = _due_processor(session, service, metrics)
+    provider.available = False
+
+    failed = processor.process_due(now=due, batch_size=10)
+    session.refresh(row)
+    assert failed.retryable_failures == 1
+    assert row.pending_billing_price_id == basic.id
+    assert row.scheduled_change_at is not None
+
+    provider.available = True
+    retried = processor.process_due(now=due, batch_size=10)
+    assert retried.succeeded == 1
+    assert provider.plan_change_calls == 1
+    assert (
+        metrics.snapshot()[
+            ("billing_due_transitions_total", "downgrade", "retryable_failure")
+        ]
+        == 1
+    )
+
+
+def test_due_processor_continues_after_one_tenant_failure(session: Session) -> None:
+    organization_id, actor, basic, pro = _seed(session)
+    second_id, second_actor = _seed_additional_organization(session, pro)
+
+    class SelectiveOutageProvider(FakeBillingProvider):
+        failing_subscription_id: str | None = None
+
+        def request_plan_change(
+            self,
+            provider_subscription_id: str,
+            provider_price_id: str,
+            *,
+            unit_amount_minor: int,
+            currency: str,
+            current_interval: str,
+            target_interval: str,
+            idempotency_key: str,
+        ) -> ProviderSubscriptionSnapshot:
+            if provider_subscription_id == self.failing_subscription_id:
+                raise BillingProviderUnavailable("billing provider unavailable")
+            return super().request_plan_change(
+                provider_subscription_id,
+                provider_price_id,
+                unit_amount_minor=unit_amount_minor,
+                currency=currency,
+                current_interval=current_interval,
+                target_interval=target_interval,
+                idempotency_key=idempotency_key,
+            )
+
+    provider = SelectiveOutageProvider()
+    service = _service(session, provider, RecordingAuditWriter())
+    first_subscription_id = _checkout(service, organization_id, actor, pro)
+    second_subscription_id = _checkout(service, second_id, second_actor, pro)
+    first = session.get(SubscriptionModel, first_subscription_id)
+    second = session.get(SubscriptionModel, second_subscription_id)
+    assert first is not None and first.provider_subscription_id is not None
+    assert second is not None and second.provider_subscription_id is not None
+    provider.activate(first.provider_subscription_id)
+    provider.activate(second.provider_subscription_id)
+    admin = actor.model_copy(update={"role": "platform_admin"})
+    service.reconcile(organization_id, admin)
+    service.reconcile(second_id, admin)
+    service.request_plan_change(
+        organization_id,
+        ChangePlanRequest(billing_price_id=basic.id, expected_version=first.version),
+        actor,
+    )
+    service.request_plan_change(
+        second_id,
+        ChangePlanRequest(billing_price_id=basic.id, expected_version=second.version),
+        second_actor,
+    )
+    due = datetime.now(UTC)
+    first.scheduled_change_at = due - timedelta(seconds=1)
+    second.scheduled_change_at = due - timedelta(seconds=1)
+    provider.failing_subscription_id = first.provider_subscription_id
+    session.commit()
+
+    result = _due_processor(session, service).process_due(now=due, batch_size=10)
+    assert result.succeeded == 1
+    assert result.retryable_failures == 1
+    session.refresh(first)
+    session.refresh(second)
+    assert first.scheduled_change_at is not None
+    assert second.scheduled_change_at == second.current_period_end
+
+
+def test_manual_reconcile_reuses_due_transition_logic(session: Session) -> None:
+    organization_id, actor, basic, pro = _seed(session)
+    provider = FakeBillingProvider()
+    service = _service(session, provider, RecordingAuditWriter())
+    subscription_id = _checkout(service, organization_id, actor, pro)
+    row = session.get(SubscriptionModel, subscription_id)
+    assert row is not None and row.provider_subscription_id is not None
+    provider.activate(row.provider_subscription_id)
+    admin = actor.model_copy(update={"role": "platform_admin"})
+    service.reconcile(organization_id, admin)
+    service.request_plan_change(
+        organization_id,
+        ChangePlanRequest(billing_price_id=basic.id, expected_version=row.version),
+        actor,
+    )
+    row.scheduled_change_at = datetime.now(UTC) - timedelta(seconds=1)
+    session.commit()
+
+    service.reconcile(organization_id, admin)
+    assert provider.plan_change_calls == 1
+    assert row.billing_price_id == pro.id
+    assert row.pending_billing_price_id == basic.id
+    assert row.scheduled_change_at == row.current_period_end
+
+
+def test_due_processor_ignores_future_downgrade(session: Session) -> None:
+    organization_id, actor, basic, pro = _seed(session)
+    provider = FakeBillingProvider()
+    service = _service(session, provider, RecordingAuditWriter())
+    subscription_id = _checkout(service, organization_id, actor, pro)
+    row = session.get(SubscriptionModel, subscription_id)
+    assert row is not None and row.provider_subscription_id is not None
+    provider.activate(row.provider_subscription_id)
+    service.reconcile(
+        organization_id, actor.model_copy(update={"role": "platform_admin"})
+    )
+    service.request_plan_change(
+        organization_id,
+        ChangePlanRequest(billing_price_id=basic.id, expected_version=row.version),
+        actor,
+    )
+
+    result = _due_processor(session, service).process_due(
+        now=datetime.now(UTC), batch_size=10
+    )
+    assert result.examined == 0
+    assert provider.plan_change_calls == 0
+    assert row.billing_price_id == pro.id
+    assert row.pending_billing_price_id == basic.id
+
+
+def test_due_processor_preserves_organization_then_subscription_lock_order(
+    session: Session,
+) -> None:
+    organization_id, actor, _, pro = _seed(session)
+    provider = FakeBillingProvider()
+    service = _service(session, provider, RecordingAuditWriter(), fallback="basic")
+    subscription_id = _checkout(service, organization_id, actor, pro)
+    row = session.get(SubscriptionModel, subscription_id)
+    assert row is not None and row.provider_subscription_id is not None
+    provider.activate(row.provider_subscription_id)
+    service.reconcile(
+        organization_id, actor.model_copy(update={"role": "platform_admin"})
+    )
+    service.request_cancellation(organization_id, row.version, actor)
+    due = datetime.now(UTC) - timedelta(seconds=1)
+    row.current_period_end = due
+    row.scheduled_change_at = due
+    provider.subscriptions[row.provider_subscription_id] = provider.fetch_subscription(
+        row.provider_subscription_id
+    ).model_copy(update={"current_period_end": due})
+    session.commit()
+
+    class TrackingBillingRepository(BillingRepository):
+        def __init__(self, tracked_session: Session) -> None:
+            super().__init__(tracked_session)
+            self.lock_events: list[str] = []
+
+        def lock_organization(self, tracked_organization_id: UUID) -> bool:
+            self.lock_events.append("organization")
+            return super().lock_organization(tracked_organization_id)
+
+        def subscription_model(
+            self,
+            tracked_subscription_id: UUID,
+            tracked_organization_id: UUID,
+            *,
+            lock: bool = False,
+        ) -> SubscriptionModel | None:
+            if lock:
+                self.lock_events.append("subscription")
+            return super().subscription_model(
+                tracked_subscription_id, tracked_organization_id, lock=lock
+            )
+
+    tracking = TrackingBillingRepository(session)
+    service.repository = tracking
+    result = BillingDueTransitionProcessor(tracking, service, session).process_due(
+        now=datetime.now(UTC), batch_size=10
+    )
+    assert result.succeeded == 1
+    assert tracking.lock_events == ["organization", "subscription"]
 
 
 def test_billing_api_uses_typed_contracts(session: Session) -> None:

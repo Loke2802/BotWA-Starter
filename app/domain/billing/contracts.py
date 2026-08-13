@@ -14,6 +14,7 @@ SubscriptionStatus = Literal[
 PaymentState = Literal["unknown", "pending", "paid", "failed"]
 ProviderEventStatus = Literal["received", "processed", "ignored", "failed"]
 BillingFreshness = Literal["fresh", "stale", "unknown"]
+BillingDueOperation = Literal["cancellation", "downgrade"]
 
 
 class BillingAccount(BaseModel):
@@ -181,3 +182,20 @@ class ProviderEventReceipt(BaseModel):
 
     duplicate: bool
     status: ProviderEventStatus
+
+
+class BillingDueTransitionCandidate(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    subscription_id: UUID
+    organization_id: UUID
+    operation: BillingDueOperation
+
+
+class BillingDueTransitionResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    examined: Annotated[int, Field(ge=0)]
+    succeeded: Annotated[int, Field(ge=0)]
+    retryable_failures: Annotated[int, Field(ge=0)]
+    skipped: Annotated[int, Field(ge=0)]

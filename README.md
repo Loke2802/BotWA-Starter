@@ -6,15 +6,16 @@ Quality Gates (validación técnica PRD-019):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **812 passed, 25 skipped, 2 warnings** |
-| PRD-019 focalizadas | **25 passed, 2 warnings** |
-| Regresión scheduling/cancelación | **9 passed, 2 warnings** |
-| Regresión PRD-017/018/019 | **86 passed, 2 warnings** |
-| PostgreSQL PRD-019 | **4 passed** |
+| `pytest` | **821 passed, 26 skipped, 2 warnings** |
+| PRD-019 focalizadas | **34 passed, 2 warnings** |
+| Procesador de vencimientos | **10 passed, 2 warnings** |
+| Regresión scheduling/cancelación | **17 passed, 2 warnings** |
+| Regresión PRD-017/018/019 | **95 passed, 2 warnings** |
+| PostgreSQL PRD-019 | **5 passed** |
 | Ciclo PostgreSQL | **0019 → 0020 → 0019 → 0020 PASS** |
 | `ruff check app tests` | **All checks passed** |
-| `black --check app tests` | **446 files would be left unchanged** |
-| `mypy app tests` | **Success: no issues found in 446 source files** |
+| `black --check app tests` | **449 files would be left unchanged** |
+| `mypy app tests` | **Success: no issues found in 449 source files** |
 | `git diff --check` | **PASS** |
 | Alembic | **20260812_0020 (head)** |
 
@@ -37,8 +38,8 @@ PRD-019 añade Billing SaaS provider-agnostic, tenant-scoped y PostgreSQL-only.
 Incluye Mercado Pago detrás de un adaptador, fake determinista, checkout hosted,
 webhook firmado/deduplicado, reconcile autoritativo, cancelación al fin de período
 con no-renovación inmediata confirmada por el proveedor, downgrade con guard de
-fecha y confirmación de precio, y aplicación transaccional de Plan/Audit. Billing
-está deshabilitado por defecto,
+fecha y confirmación de precio, due-transition processor one-shot para cron externo,
+y aplicación transaccional de Plan/Audit. Billing está deshabilitado por defecto,
 no contiene seeds comerciales y no captura PAN/CVV. El smoke sandbox real de
 Mercado Pago y el commercial go-live permanecen bloqueados hasta disponer de
 credenciales y configuración aprobadas. PRD-020 no fue iniciado.

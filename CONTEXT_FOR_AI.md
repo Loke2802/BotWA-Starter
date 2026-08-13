@@ -33,8 +33,9 @@ CLOSED after PR #28 at merge commit
 IMPLEMENTED — PENDING CTO REVIEW. It is provider-agnostic with Mercado Pago and
 fake adapters, hosted checkout, verified authoritative webhooks, transactional
 Plan/Audit application and revision `20260812_0020`. Billing remains disabled by
-default and commercial go-live is blocked. PRD-020 through PRD-023 remain NOT
-STARTED.
+default. A bounded one-shot due-transition job closes paid access and prepares
+downgrades under an external deployment scheduler; manual reconcile is recovery
+only. Commercial go-live is blocked. PRD-020 through PRD-023 remain NOT STARTED.
 
 All five core engines are implemented and closed:
 
@@ -52,15 +53,16 @@ Current validated gates:
 
 | Gate | Result |
 |---|---|
-| `pytest` | 812 passed, 25 skipped, 2 warnings |
-| Focused PRD-019 | 25 passed, 2 warnings |
-| Scheduling/cancellation regression | 9 passed, 2 warnings |
-| Expanded PRD-017/018/019 regression | 86 passed, 2 warnings |
-| PostgreSQL PRD-019 | 4 passed |
+| `pytest` | 821 passed, 26 skipped, 2 warnings |
+| Focused PRD-019 | 34 passed, 2 warnings |
+| Due-transition processor | 10 passed, 2 warnings |
+| Scheduling/cancellation regression | 17 passed, 2 warnings |
+| Expanded PRD-017/018/019 regression | 95 passed, 2 warnings |
+| PostgreSQL PRD-019 | 5 passed |
 | PostgreSQL migration cycle | `0019 → 0020 → 0019 → 0020` PASS |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 446 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 446 source files |
+| `black --check app tests` | 449 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 449 source files |
 | `git diff --check` | PASS |
 
 ## Infrastructure Validation

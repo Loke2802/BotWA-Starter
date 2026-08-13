@@ -1,12 +1,21 @@
+import hashlib
+import hmac
+import json
 import os
 from concurrent.futures import ThreadPoolExecutor
-from datetime import UTC, datetime
-from threading import Barrier
+from datetime import UTC, datetime, timedelta
+from threading import Barrier, Lock
 from uuid import uuid4
 
 import pytest
 from alembic import command
 from alembic.config import Config
+from app.application.billing.due_transitions import BillingDueTransitionProcessor
+from app.application.billing.service import BillingService
+from app.application.plans.service import InternalPlanAssignmentService
+from app.domain.audit.contracts import AuditEventDraft
+from app.domain.billing.contracts import ProviderSubscriptionSnapshot
+from app.infrastructure.billing.fake import FakeBillingProvider
 from app.infrastructure.models.billing import (
     BillingAccountModel,
     BillingPriceModel,
@@ -14,11 +23,16 @@ from app.infrastructure.models.billing import (
     SubscriptionModel,
 )
 from app.infrastructure.models.organization import OrganizationModel
-from app.infrastructure.models.plan import PlanDefinitionModel
+from app.infrastructure.models.plan import (
+    OrganizationPlanAssignmentModel,
+    PlanDefinitionModel,
+)
+from app.infrastructure.repositories.billing_repository import BillingRepository
+from app.infrastructure.repositories.plan_repository import SqlAlchemyPlanRepository
 from app.infrastructure.settings import get_settings
 from sqlalchemy import create_engine, inspect, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 DATABASE_URL = os.getenv("BOTWA_PRD019_POSTGRES_URL")
 pytestmark = pytest.mark.skipif(
@@ -36,6 +50,31 @@ def _alembic(revision: str) -> None:
     os.environ["BOTWA_DATABASE_URL"] = _url()
     get_settings.cache_clear()
     command.upgrade(Config("alembic.ini"), revision)
+
+
+def _plan_configuration() -> dict[str, object]:
+    return {
+        "features": {
+            "analytics": True,
+            "analytics_export": True,
+            "audit": True,
+            "integrations": True,
+            "automations": True,
+            "human_handoff": True,
+            "business_calendar": True,
+            "knowledge": True,
+            "whatsapp_configuration": True,
+        },
+        "limits": {
+            "max_active_bots": {"kind": "unlimited"},
+            "max_active_users": {"kind": "unlimited"},
+            "max_integrations": {"kind": "unlimited"},
+            "max_automations": {"kind": "unlimited"},
+            "max_business_calendars": {"kind": "unlimited"},
+            "max_whatsapp_configurations": {"kind": "unlimited"},
+            "max_knowledge_entries": {"kind": "unlimited"},
+        },
+    }
 
 
 def test_prd019_postgresql_schema_is_empty_and_constrained() -> None:
@@ -204,6 +243,172 @@ def test_prd019_postgresql_concurrent_webhook_receipt_deduplication() -> None:
             )
             == 1
         )
+    engine.dispose()
+
+
+def test_prd019_postgresql_webhook_and_due_processor_transition_once() -> None:
+    _alembic("20260812_0020")
+    engine = create_engine(_url())
+    factory = sessionmaker(bind=engine, expire_on_commit=False)
+    now = datetime.now(UTC)
+    due = now - timedelta(seconds=1)
+    organization_id = uuid4()
+    subscription_id = uuid4()
+    provider_subscription_id = f"race-{uuid4()}"
+    provider = FakeBillingProvider(webhook_secret="race-secret")
+    provider.subscriptions[provider_subscription_id] = ProviderSubscriptionSnapshot(
+        provider_subscription_id=provider_subscription_id,
+        external_reference=str(subscription_id),
+        status="canceled",
+        current_period_end=due,
+        payment_state="failed",
+        provider_price_id="race-pro-price",
+        provider_amount_minor=2000,
+        provider_currency="PEN",
+    )
+    with factory() as session:
+        basic = PlanDefinitionModel(
+            plan_code=f"race-basic-{uuid4().hex[:8]}",
+            display_name="Race Basic",
+            status="active",
+            configuration=_plan_configuration(),
+            created_at=now,
+            updated_at=now,
+        )
+        pro = PlanDefinitionModel(
+            plan_code=f"race-pro-{uuid4().hex[:8]}",
+            display_name="Race Pro",
+            status="active",
+            configuration=_plan_configuration(),
+            created_at=now,
+            updated_at=now,
+        )
+        organization = OrganizationModel(
+            id=organization_id,
+            name="PRD019 Race",
+            slug=f"prd019-race-{uuid4().hex[:8]}",
+            status="active",
+            settings={},
+        )
+        session.add_all([basic, pro, organization])
+        session.flush()
+        account = BillingAccountModel(
+            organization_id=organization_id,
+            provider="fake",
+            status="active",
+            version=1,
+            created_at=now,
+            updated_at=now,
+        )
+        price = BillingPriceModel(
+            plan_definition_id=pro.id,
+            provider="fake",
+            provider_price_id="race-pro-price",
+            amount_minor=2000,
+            currency="PEN",
+            interval="monthly",
+            status="active",
+            created_at=now,
+            updated_at=now,
+        )
+        session.add_all([account, price])
+        session.flush()
+        session.add_all(
+            [
+                OrganizationPlanAssignmentModel(
+                    organization_id=organization_id,
+                    plan_definition_id=pro.id,
+                    version=1,
+                    created_at=now,
+                    updated_at=now,
+                ),
+                SubscriptionModel(
+                    id=subscription_id,
+                    organization_id=organization_id,
+                    billing_account_id=account.id,
+                    billing_price_id=price.id,
+                    provider="fake",
+                    provider_subscription_id=provider_subscription_id,
+                    status="active",
+                    provider_status="canceled",
+                    current_period_end=due,
+                    cancel_at_period_end=True,
+                    scheduled_change_at=due,
+                    payment_state="paid",
+                    version=2,
+                    created_at=now,
+                    updated_at=now,
+                ),
+            ]
+        )
+        session.commit()
+        fallback_plan_code = basic.plan_code
+
+    class ThreadSafeAuditWriter:
+        def __init__(self) -> None:
+            self.events: list[AuditEventDraft] = []
+            self.lock = Lock()
+
+        def append(self, draft: AuditEventDraft) -> None:
+            with self.lock:
+                self.events.append(draft)
+
+    writer = ThreadSafeAuditWriter()
+    barrier = Barrier(2)
+
+    def service_for(session: Session) -> BillingService:
+        plans = SqlAlchemyPlanRepository(session)
+        return BillingService(
+            BillingRepository(session),
+            plans,
+            InternalPlanAssignmentService(plans),
+            provider,
+            session,
+            writer,
+            enabled=True,
+            provider_name="fake",
+            success_url="https://app.example.com/success",
+            cancel_url="https://app.example.com/cancel",
+            fallback_plan_code=fallback_plan_code,
+            freshness_seconds=900,
+        )
+
+    event_body = json.dumps(
+        {
+            "id": "race-event",
+            "type": "subscription_preapproval",
+            "data": {"id": provider_subscription_id},
+        }
+    ).encode()
+    signature = hmac.new(b"race-secret", event_body, hashlib.sha256).hexdigest()
+
+    def run_processor() -> None:
+        with factory() as session:
+            service = service_for(session)
+            barrier.wait(timeout=10)
+            BillingDueTransitionProcessor(
+                service.repository, service, session
+            ).process_due(now=now, batch_size=10)
+
+    def run_webhook() -> None:
+        with factory() as session:
+            service = service_for(session)
+            barrier.wait(timeout=10)
+            service.process_webhook(event_body, {"x-signature": signature}, {})
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        processor_future = executor.submit(run_processor)
+        webhook_future = executor.submit(run_webhook)
+        processor_future.result(timeout=20)
+        webhook_future.result(timeout=20)
+
+    with factory() as session:
+        subscription = session.get(SubscriptionModel, subscription_id)
+        assignment = session.get(OrganizationPlanAssignmentModel, organization_id)
+        assert subscription is not None and subscription.status == "canceled"
+        assert subscription.scheduled_change_at is None
+        assert assignment is not None and assignment.plan_definition_id == basic.id
+    assert [event.action for event in writer.events].count("subscription.canceled") == 1
     engine.dispose()
 
 

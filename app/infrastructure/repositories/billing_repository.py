@@ -2,12 +2,13 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from pydantic import TypeAdapter
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.domain.billing.contracts import (
     BillingAccount,
     BillingAccountStatus,
+    BillingDueTransitionCandidate,
     BillingInterval,
     BillingPrice,
     BillingPriceStatus,
@@ -92,6 +93,46 @@ class BillingRepository:
         if lock:
             statement = statement.with_for_update()
         return self.session.scalars(statement).first()
+
+    def subscription_model(
+        self, subscription_id: UUID, organization_id: UUID, *, lock: bool = False
+    ) -> SubscriptionModel | None:
+        statement = select(SubscriptionModel).where(
+            SubscriptionModel.id == subscription_id,
+            SubscriptionModel.organization_id == organization_id,
+        )
+        if lock:
+            statement = statement.with_for_update()
+        return self.session.scalars(statement).first()
+
+    def due_transition_candidates(
+        self, now: datetime, *, limit: int
+    ) -> list[BillingDueTransitionCandidate]:
+        rows = self.session.execute(
+            select(
+                SubscriptionModel.id,
+                SubscriptionModel.organization_id,
+                SubscriptionModel.cancel_at_period_end,
+            )
+            .where(
+                SubscriptionModel.scheduled_change_at.is_not(None),
+                SubscriptionModel.scheduled_change_at <= now,
+                or_(
+                    SubscriptionModel.cancel_at_period_end.is_(True),
+                    SubscriptionModel.pending_billing_price_id.is_not(None),
+                ),
+            )
+            .order_by(SubscriptionModel.scheduled_change_at, SubscriptionModel.id)
+            .limit(limit)
+        ).all()
+        return [
+            BillingDueTransitionCandidate(
+                subscription_id=row.id,
+                organization_id=row.organization_id,
+                operation="cancellation" if row.cancel_at_period_end else "downgrade",
+            )
+            for row in rows
+        ]
 
     def latest_subscription_model(
         self, organization_id: UUID

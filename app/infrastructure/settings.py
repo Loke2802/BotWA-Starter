@@ -77,6 +77,8 @@ class Settings(BaseSettings):
     )
     billing_fallback_plan_code: str = ""
     billing_freshness_seconds: int = Field(default=900, ge=60, le=86_400)
+    billing_due_batch_size: int = Field(default=100, ge=1, le=1_000)
+    billing_provider_change_lead_seconds: int = Field(default=3_600, ge=300, le=86_400)
 
 
 @lru_cache

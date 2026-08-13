@@ -104,8 +104,20 @@ y reintentables, con código seguro. Cuando Billing está deshabilitado el webho
 no procesa transiciones.
 
 `POST /organizations/{organization_id}/billing/reconcile` es exclusivo de
-Platform Admin y reutiliza el mismo pipeline de transición. Solo audita cambios
-materiales. No existe scheduler en PRD-019.
+Platform Admin y reutiliza la misma función interna de transición. Es una
+herramienta de recovery/administración, no el mecanismo temporal principal.
+
+`BillingDueTransitionProcessor.process_due(now, batch_size)` consulta de forma
+acotada y determinista las suscripciones con `scheduled_change_at <= now`, en
+orden `scheduled_change_at, id`. Procesa cada Organization en una Unit of Work
+independiente con locks `Organization FOR UPDATE → Subscription FOR UPDATE →
+PlanAssignment`, por lo que un fallo no detiene el resto del batch.
+
+El repositorio no contiene una primitive genérica de scheduler apropiada fuera del
+worker del dominio Automation. PRD-019 no se acopla a ese dominio ni crea un
+framework nuevo: `python -m app.operations.billing_due_transitions` es un comando
+one-shot e idempotente para un cron/platform job externo. Cadencia recomendada:
+cada minuto, con batch configurable y reejecución no solapada.
 
 ## Transiciones, plan y consistencia
 
@@ -114,14 +126,15 @@ materiales. No existe scheduler en PRD-019.
   transacción, mediante `InternalPlanAssignmentService` sin RBAC ni commit propio.
 - El endpoint público de PRD-018 conserva su RBAC, versionado y Audit y reutiliza
   esa misma operación interna.
-- Un downgrade se programa para `current_period_end`; no elimina recursos.
-  `scheduled_change_at` es una guard obligatoria: antes de esa fecha, webhook y
-  reconciliación pueden refrescar el estado autoritativo, pero no promueven el
-  precio pendiente ni cambian el PlanAssignment.
-- Al vencimiento, una reconciliación solicita el cambio y exige confirmación
-  autoritativa del precio objetivo antes de promoverlo. Un webhook también puede
-  completar la transición si ya observa el monto/moneda o identidad normalizada
-  del target. `pending + active` nunca constituye confirmación suficiente.
+- Un downgrade conserva `current_period_end` como fecha efectiva del entitlement.
+  `scheduled_change_at` comienza como due-at operativo anterior al siguiente cobro
+  (`current_period_end - BOTWA_BILLING_PROVIDER_CHANGE_LEAD_SECONDS`). El processor
+  solicita y confirma anticipadamente el monto objetivo, preserva el PlanAssignment
+  actual y reprograma `scheduled_change_at` al boundary efectivo.
+- En `current_period_end`, el processor verifica nuevamente el snapshot
+  autoritativo, promueve el BillingPrice, cambia PlanAssignment, limpia pending y
+  scheduling, y emite exactamente un `subscription.plan_changed` system Audit.
+  Webhook y reconcile reutilizan las mismas guards; `pending + active` nunca basta.
 - Mercado Pago v1 permite cambios de precio dentro del mismo intervalo. Un cambio
   mensual↔anual se rechaza fail-closed porque la API de suscripción no documenta
   cambio de frecuencia; requiere una estrategia comercial posterior.
@@ -136,9 +149,9 @@ materiales. No existe scheduler en PRD-019.
 - La cancelación confirmada en Mercado Pago es la garantía durable de no-renovación
   y no depende de ejecutar reconcile exactamente al cierre. Luri conserva el
   PlanAssignment durante el período ya pagado; un webhook previo actualiza estado
-  del proveedor sin revocar acceso ni ejecutar fallback. En
-  `scheduled_change_at`, webhook o reconcile completan el estado local y aplican
-  únicamente el fallback configurado. `default` nunca es fallback implícito.
+  del proveedor sin revocar acceso ni ejecutar fallback. En `scheduled_change_at`,
+  el due processor cierra el estado local incluso sin webhook ni actividad, y
+  aplica únicamente el fallback configurado. `default` nunca es fallback implícito.
 - Si Mercado Pago rechaza o no confirma `canceled`, la petición falla, la mutación
   local y `subscription.cancel_requested` se revierten, y no se comunica éxito.
 - `past_due` conserva el assignment actual y no suspende por sí solo.
@@ -191,6 +204,11 @@ Métricas low-cardinality:
 - `billing_plan_changes_total`;
 - `billing_cancellations_total`;
 - `billing_reconciliations_total`.
+- `billing_due_transitions_total{operation=cancellation|downgrade,
+  result=success|retryable_failure|skipped}`.
+
+Los logs del job contienen solo operación, conteos y safe error code; nunca tenant,
+subscription ID, identidad externa, monto, PII ni secretos.
 
 Errores públicos cerrados: `BILLING_DISABLED`, `BILLING_NOT_CONFIGURED`,
 `BILLING_ACCOUNT_NOT_FOUND`, `BILLING_PRICE_NOT_FOUND`, `BILLING_PRICE_UNAVAILABLE`,
@@ -211,7 +229,16 @@ Errores públicos cerrados: `BILLING_DISABLED`, `BILLING_NOT_CONFIGURED`,
 - URLs HTTPS de success/cancel;
 - máximo de body y tolerancia de firma;
 - freshness local;
-- fallback plan code vacío por defecto.
+- fallback plan code vacío por defecto;
+- `BOTWA_BILLING_DUE_BATCH_SIZE=100`;
+- `BOTWA_BILLING_PROVIDER_CHANGE_LEAD_SECONDS=3600`.
+
+La documentación oficial de Mercado Pago confirma que el PUT cambia
+`auto_recurring.transaction_amount` y expone `next_payment_date`, pero no promete
+qué ocurre con un cobro ya generado ni garantiza una llamada posterior al boundary.
+Por ello el cambio se prepara antes del próximo cobro. El lead de una hora y la
+cadencia de un minuto son defaults operativos conservadores, no una garantía del
+proveedor; deben verificarse con el sandbox real antes del go-live comercial.
 
 ## Pruebas y gates
 
@@ -219,17 +246,19 @@ La suite cubre contratos/modelos, checkout hosted e idempotente, modo disabled,
 RBAC y aislamiento tenant, firma/replay/deduplicación, binding interno, estado
 autoritativo, orden de eventos, upgrades, guard temporal y confirmación de
 downgrades, cancelación inmediata del proveedor con acceso local hasta el cierre,
-rechazo e idempotencia de cancelación, ausencia de fallback implícito,
-transacción/Audit, API, restricciones PostgreSQL y ciclo
+rechazo e idempotencia de cancelación, processor sin webhook, batch/retry,
+aislamiento de fallo por tenant, lock order, carrera webhook/processor,
+ausencia de fallback implícito, transacción/Audit, API, restricciones PostgreSQL y ciclo
 `0019 → 0020 → 0019 → 0020`.
 
 Los resultados finales de gates se registran en los documentos canónicos y en el
 Draft PR después de su ejecución completa.
 
-Resultado del hardening final: 25 pruebas PRD-019 y 9 regresiones focalizadas de
-scheduling/cancelación pasan; la regresión PRD-017/018/019 cierra en 86 passed;
-PostgreSQL PRD-019 en 4 passed; full pytest en 812 passed, 25 skipped y 2 warnings;
-mypy, Ruff, Black y `git diff --check` pasan sobre 446 source files, y Alembic
+Resultado del hardening final: 34 pruebas PRD-019, 10 focalizadas del procesador y
+17 regresiones de scheduling/cancelación pasan; la regresión PRD-017/018/019
+cierra en 95 passed; PostgreSQL PRD-019 en 5 passed; full pytest en 821 passed,
+26 skipped y 2 warnings; mypy, Ruff, Black y `git diff --check` pasan sobre 449
+source files, y Alembic
 conserva un único head `20260812_0020` con ciclo
 `0019 → 0020 → 0019 → 0020` aprobado.
 
@@ -241,7 +270,7 @@ conserva un único head `20260812_0020` con ciclo
 - message quota/metering y usage aggregation;
 - checkout propio, PAN/CVV o almacenamiento de métodos de pago;
 - multi-provider activo simultáneo, Stripe y Culqi;
-- frontend, scheduler, emails, dunning automático y collections;
+- frontend, scheduler interno, emails, dunning automático y collections;
 - cambios en Analytics, Dashboard o PRD-020;
 - saga, outbox y `billing_operation`.
 

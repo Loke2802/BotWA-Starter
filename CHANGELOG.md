@@ -16,10 +16,13 @@
   PRD-018 assignment and PRD-017 Audit commit in one local transaction.
 - Added least-privilege Billing RBAC, tenant-scoped APIs, allowlisted audit metadata,
   low-cardinality metrics and responses without external identifiers or PII.
-- Validation: focused PRD-019 25 passed; scheduling/cancellation regression 9
-  passed; PRD-017/018/019 regression 86 passed; PostgreSQL PRD-019 4 passed;
-  full pytest 812 passed, 25 skipped, 2 warnings;
-  mypy PASS across 446 source files; Alembic cycle
+- Added a bounded due-transition processor and one-shot external-job command so
+  paid access expires and downgrades advance without user activity, webhook luck,
+  or manual reconcile; each tenant has an independent locked transaction.
+- Validation: focused PRD-019 34 passed; due-transition processor 10 passed;
+  scheduling/cancellation regression 17 passed; PRD-017/018/019 regression 95
+  passed; PostgreSQL PRD-019 5 passed; full pytest 821 passed, 26 skipped,
+  2 warnings; mypy PASS across 449 source files; Alembic cycle
   `0019 → 0020 → 0019 → 0020` PASS.
 - Billing remains disabled by default. No Plan/BillingPrice commercial data was
   seeded. Real Mercado Pago sandbox smoke and commercial go-live remain blocked

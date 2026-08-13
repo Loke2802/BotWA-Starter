@@ -1,21 +1,21 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-001 a PRD-020 CLOSED
+## Estado actual - Phase 3 / PRD-021 IMPLEMENTED — PENDING CTO REVIEW
 
-Quality Gates (validación técnica PRD-020):
+Quality Gates (validación técnica PRD-021):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **843 passed, 29 skipped, 2 warnings** |
-| PRD-020 focalizadas | **22 passed** |
-| Regresión de dominios afectados | **123 passed** |
-| PostgreSQL PRD-020 | **3 passed** |
-| Ciclo PostgreSQL | **0020 → 0021 → 0020 → 0021 PASS** |
+| `pytest` | **863 passed, 33 skipped, 2 warnings** |
+| PRD-021 focalizadas | **18 passed** |
+| Regresión de seguridad afectada | **154 passed** |
+| PostgreSQL PRD-021 | **4 passed** |
+| Ciclo PostgreSQL | **0021 → 0022 → 0021 → 0022 PASS** |
 | `ruff check app tests` | **All checks passed** |
-| `black --check app tests` | **463 files would be left unchanged** |
-| `mypy app tests` | **Success: no issues found in 463 source files** |
+| `black --check app tests` | **473 files would be left unchanged** |
+| `mypy app tests` | **Success: no issues found in 473 source files** |
 | `git diff --check` | **PASS** |
-| Alembic | **20260813_0021 (head)** |
+| Alembic | **20260813_0022 (head)** |
 
 La base actual incluye 5 Engines:
 
@@ -29,16 +29,23 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial: **PRD-001 a PRD-020 CLOSED; PRD-021 a PRD-023 permanecen NOT
-STARTED.**
+Estado oficial: **PRD-001 a PRD-020 CLOSED; PRD-021 IMPLEMENTED — PENDING CTO
+REVIEW; PRD-022 y PRD-023 permanecen NOT STARTED.**
+
+PRD-021 cierra los seis findings HIGH con startup de producción fail-closed,
+algoritmo JWT cerrado, claves dedicadas, autenticación normalizada y limitada,
+apagado de APIs legacy/bootstrap, bloqueo de Organization inactiva, rate limiter
+PostgreSQL multi-worker, límites ASGI streaming, TrustedHost/CORS/headers,
+redacción OAuth, invariantes Owner concurrentes y Audit sensible en la misma
+transacción. Alembic avanza a `20260813_0022`. Los smokes reales Meta/Mercado
+Pago y los controles operativos de despliegue permanecen gates externos.
 
 PRD-020 implementa Onboarding v1 como workflow histórico mínimo tenant-scoped y
 readiness actual derivada desde los Sources of Truth. Expone GET/start/complete,
 usa RBAC y Audit transaccional, selecciona el Bot inicial de forma determinista y
 mantiene WhatsApp condicional, Knowledge/Integrations opcionales y
 BusinessCalendar no bloqueante. No duplica CRUD, no hace llamadas externas, no
-activa recursos ni bloquea runtimes. Alembic avanza a `20260813_0021`; PRD-021 no
-fue iniciado.
+activa recursos ni bloquea runtimes. Su migración es `20260813_0021`.
 
 PRD-020 cerró después del merge aprobado vía PR #32, merge commit
 `47b589df54282145ddce7b745ef208bb80321143`, con head final aprobado
@@ -744,7 +751,7 @@ PRD-001 through PRD-012 are closed. PRD-010 adds a tenant-scoped handoff
 lifecycle, bot suppression, encrypted and attributed human replies through the
 generic channel sender, idempotency, archive protection, and safe transport
 errors. PRD-011 adds the Contact increment; Customer is deferred and CRM is not
-implemented. PRD-012 through PRD-020 are closed; PRD-021 through PRD-023 are not
-started. Real
+implemented. PRD-012 through PRD-020 are closed; PRD-021 is implemented pending
+CTO review; PRD-022 and PRD-023 are not started. Real
 Meta and Google validation need explicit external credentials.
 

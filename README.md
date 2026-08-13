@@ -1,21 +1,23 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-001 a PRD-018 CLOSED
+## Estado actual - Phase 3 / PRD-019 IMPLEMENTED — PENDING CTO REVIEW
 
-Quality Gates (validación técnica PRD-018):
+Quality Gates (validación técnica PRD-019):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **787 passed, 21 skipped, 2 warnings** |
-| PRD-018 focalizadas + fail-closed | **36 passed, 2 warnings** |
-| Regresión de dominios afectados | **159 passed, 2 warnings** |
-| PostgreSQL PRD-018 | **3 passed** |
-| Ciclo PostgreSQL | **0018 → 0019 → 0018 → 0019 PASS** |
+| `pytest` | **821 passed, 26 skipped, 2 warnings** |
+| PRD-019 focalizadas | **34 passed, 2 warnings** |
+| Procesador de vencimientos | **10 passed, 2 warnings** |
+| Regresión scheduling/cancelación | **17 passed, 2 warnings** |
+| Regresión PRD-017/018/019 | **95 passed, 2 warnings** |
+| PostgreSQL PRD-019 | **5 passed** |
+| Ciclo PostgreSQL | **0019 → 0020 → 0019 → 0020 PASS** |
 | `ruff check app tests` | **All checks passed** |
-| `black --check app tests` | **430 files would be left unchanged** |
-| `mypy app tests` | **Success: no issues found in 430 source files** |
+| `black --check app tests` | **449 files would be left unchanged** |
+| `mypy app tests` | **Success: no issues found in 449 source files** |
 | `git diff --check` | **PASS** |
-| Alembic | **20260810_0019 (head)** |
+| Alembic | **20260812_0020 (head)** |
 
 La base actual incluye 5 Engines:
 
@@ -29,8 +31,18 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial: **PRD-001 a PRD-018 CLOSED; PRD-019 a PRD-023 permanecen NOT
-STARTED.**
+Estado oficial: **PRD-001 a PRD-018 CLOSED; PRD-019 IMPLEMENTED — PENDING CTO
+REVIEW; PRD-020 a PRD-023 permanecen NOT STARTED.**
+
+PRD-019 añade Billing SaaS provider-agnostic, tenant-scoped y PostgreSQL-only.
+Incluye Mercado Pago detrás de un adaptador, fake determinista, checkout hosted,
+webhook firmado/deduplicado, reconcile autoritativo, cancelación al fin de período
+con no-renovación inmediata confirmada por el proveedor, downgrade con guard de
+fecha y confirmación de precio, due-transition processor one-shot para cron externo,
+y aplicación transaccional de Plan/Audit. Billing está deshabilitado por defecto,
+no contiene seeds comerciales y no captura PAN/CVV. El smoke sandbox real de
+Mercado Pago y el commercial go-live permanecen bloqueados hasta disponer de
+credenciales y configuración aprobadas. PRD-020 no fue iniciado.
 
 PRD-018 añade catálogo técnico de planes y assignment 1:1 tenant-scoped, features
 booleanas, límites duros calculados desde los Sources of Truth operacionales,
@@ -714,7 +726,7 @@ PRD-001 through PRD-012 are closed. PRD-010 adds a tenant-scoped handoff
 lifecycle, bot suppression, encrypted and attributed human replies through the
 generic channel sender, idempotency, archive protection, and safe transport
 errors. PRD-011 adds the Contact increment; Customer is deferred and CRM is not
-implemented. PRD-012 through PRD-018 are closed; PRD-019 through PRD-023 are not
-started. Real
+implemented. PRD-012 through PRD-018 are closed; PRD-019 is implemented and
+pending CTO review; PRD-020 through PRD-023 are not started. Real
 Meta and Google validation need explicit external credentials.
 

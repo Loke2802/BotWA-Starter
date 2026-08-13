@@ -49,6 +49,14 @@ AuditAction = Literal[
     "business_calendar.archived",
     "plan.assigned",
     "plan.changed",
+    "billing.checkout_created",
+    "subscription.created",
+    "subscription.activated",
+    "subscription.plan_change_requested",
+    "subscription.plan_changed",
+    "subscription.cancel_requested",
+    "subscription.canceled",
+    "subscription.reconciled",
 ]
 AuditResourceType = Literal[
     "organization",
@@ -60,6 +68,8 @@ AuditResourceType = Literal[
     "integration",
     "business_calendar",
     "plan_assignment",
+    "billing_account",
+    "subscription",
 ]
 AuditStatus = Literal[
     "draft",
@@ -135,6 +145,15 @@ class PlanAssignmentMetadata(BaseModel):
     to_plan_code: str
 
 
+class BillingMetadata(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    from_plan_code: str | None = None
+    to_plan_code: str | None = None
+    interval: Literal["monthly", "annual"] | None = None
+    cancel_at_period_end: bool | None = None
+
+
 AuditMetadata = (
     EmptyMetadata
     | ChangedFieldsMetadata
@@ -142,6 +161,7 @@ AuditMetadata = (
     | RoleAssignmentMetadata
     | CredentialRotationMetadata
     | PlanAssignmentMetadata
+    | BillingMetadata
 )
 AUDIT_METADATA_ADAPTER: TypeAdapter[AuditMetadata] = TypeAdapter(AuditMetadata)
 

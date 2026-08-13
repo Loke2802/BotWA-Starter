@@ -88,6 +88,11 @@ Permission = Literal[
     "audit.read",
     "plan.read",
     "plan.assign",
+    "billing.read",
+    "billing.checkout",
+    "billing.change_plan",
+    "billing.cancel",
+    "billing.manage",
     "platform.organizations.read",
     "platform.organizations.manage",
 ]
@@ -177,6 +182,11 @@ ALL_PERMISSIONS: tuple[Permission, ...] = (
     "audit.read",
     "plan.read",
     "plan.assign",
+    "billing.read",
+    "billing.checkout",
+    "billing.change_plan",
+    "billing.cancel",
+    "billing.manage",
     "platform.organizations.read",
     "platform.organizations.manage",
 )
@@ -260,6 +270,10 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "analytics.export",
             "audit.read",
             "plan.read",
+            "billing.read",
+            "billing.checkout",
+            "billing.change_plan",
+            "billing.cancel",
         )
     ),
     "organization_admin": frozenset(
@@ -338,6 +352,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             "analytics.export",
             "audit.read",
             "plan.read",
+            "billing.read",
         )
     ),
     "operator": frozenset(

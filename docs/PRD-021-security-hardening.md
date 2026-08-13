@@ -1,8 +1,23 @@
 # PRD-021 — Security Hardening v1
 
-**Status:** IMPLEMENTED — PENDING CTO REVIEW
+**Status:** CLOSED
 **Date:** 2026-08-13
 **Alembic head:** `20260813_0022`
+
+## Closure record
+
+- Implementation PR: #34.
+- Implementation merge: `b4a9c3d682f88526f3fc9eef7ceb3d42c0d48981`.
+- Final approved implementation head:
+  `0eb2b6de48f3c86f0308c8d4933dcc4c2e382cc5`.
+- Merge method: normal merge commit.
+- Migration: `20260813_0022_security_hardening.py`; Alembic has one head at
+  `20260813_0022`.
+
+PRD-021 Security Hardening v1 is closed as a fail-closed backend production
+security profile. Deployment-only provider, credential, TLS, proxy, MFA-decision,
+dependency-scanning and release gates remain operational prerequisites and do
+not reopen this code closure.
 
 ## Objective and threat model
 
@@ -117,6 +132,8 @@ No new composite tenant foreign key was added: the reviewed PRD-021 paths alread
 load resources through tenant-scoped repositories, and no safe/data-loss-free
 schema correction was demonstrated. Application invariants and tenant regression
 tests remain authoritative; full PostgreSQL RLS is out of scope.
+The Handoff cross-tenant regression is part of the approved security set, and
+Platform Admin retains explicit organization scope when operating on tenant data.
 
 No tenant-controlled outbound URL exists in the touched paths, so a speculative
 SSRF framework was not added. Provider endpoints remain fixed, TLS verification
@@ -125,11 +142,12 @@ must precede any future tenant-configurable outbound URL.
 
 ## Container and dependency decisions
 
-`.dockerignore` excludes `respaldos/`, `.env`, `.env.*`, Git metadata, caches and
-local build artifacts without inspecting `respaldos/`. The image runs as a
-dedicated non-root `botwa` user. The repository's current dependency constraints
-remain unchanged; adopting a deterministic lock and automated vulnerability scan
-belongs to PRD-023 because the current toolchain has no native lock workflow.
+`.dockerignore` excludes `respaldos/`, `.env`, `.env.*`, `.git`, caches and local
+build artifacts without inspecting `respaldos/`. The image runs as the dedicated
+non-root `uid=10001(botwa)` user. No broader container/network production
+hardening is claimed. The repository's current dependency constraints remain
+unchanged; adopting a deterministic lock and automated vulnerability scan belongs
+to PRD-023 because the current toolchain has no native lock workflow.
 
 ## Validation strategy
 
@@ -143,12 +161,27 @@ initial Owner and last-Owner protection. Existing webhook, Billing, Audit,
 Handoff and tenant-isolation regressions preserve signed raw-body, dedupe,
 provider binding and cross-tenant denial behavior.
 
-Final gate counts are recorded in the canonical status documents and Draft PR.
+Final approved validation:
+
+| Gate | Result |
+|---|---|
+| Focused PRD-021 | 19 passed |
+| Affected security regression | 129 passed |
+| PostgreSQL PRD-021 | 6 passed |
+| Migration cycle | `0021 → 0022 → 0021 → 0022` PASS |
+| Ten-worker limiter | exactly 5/10 allowed; count 10; active bucket preserved; cleanup concurrency safe |
+| Full pytest | 864 passed, 35 skipped, 2 warnings |
+| mypy | PASS — 473 source files |
+| Ruff | PASS |
+| Black | PASS — 473 files |
+| `git diff --check` | PASS |
+| Alembic | `20260813_0022`, one head |
+| Docker build/non-root | PASS |
 
 ## Deployment-only gates
 
 These remain required before the corresponding production cutover but do not
-block code review:
+reopen PRD-021 code closure:
 
 - real Meta live smoke with approved credentials;
 - real Mercado Pago sandbox plus commercial Billing configuration;
@@ -158,12 +191,17 @@ block code review:
 - Platform Admin MFA decision;
 - dependency lock/vulnerability scanning and release automation in PRD-023.
 
+Real Meta validation remains blocked/pending approved external credentials; the
+security hardening does not substitute the provider smoke. Billing commercial
+enablement remains blocked by its existing Mercado Pago sandbox, provider and
+commercial configuration gates; PRD-021 does not activate Billing.
+
 ## Non-goals
 
-No PRD-022 observability platform, Prometheus redesign, alert manager, tracing or
-SIEM; no PRD-023 CI/CD/deployment workflow; no KMS migration; no RLS; no MFA,
-password reset or email verification; no refresh-token/session redesign; no
-security event ledger; no automatic Audit retention/export; no provider smoke
+No WAF, SIEM, IDS, KMS migration, RLS, MFA implementation, refresh-session
+subsystem, password reset, Observability platform, CI/CD pipeline,
+dependency-lock workflow, pentest automation, Kubernetes or compliance program;
+no security event ledger, automatic Audit retention/export or provider smoke
 using unavailable credentials.
 
 PRD-022 and PRD-023 remain **NOT STARTED**.

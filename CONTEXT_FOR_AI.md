@@ -1,7 +1,7 @@
 # BotWA Starter - Context For AI Assistants
 
 **Last updated:** 2026-08-13
-**Project phase:** Phase 3 - PRD-021 IMPLEMENTED — PENDING CTO REVIEW
+**Project phase:** Phase 3 - PRD-021 CLOSED
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
@@ -48,8 +48,11 @@ derives current readiness from operational Sources of Truth. It exposes
 read/start/complete, closed typed steps and blockers, deterministic Bot selection,
 Plan-driven applicability, same-transaction PRD-017 Audit, RBAC, concurrency
 protection and revision `20260813_0021`. It does not duplicate CRUD, call external
-providers, gate runtime or activate Billing. PRD-021 Security Hardening is now
-IMPLEMENTED — PENDING CTO REVIEW. It closes the six HIGH findings with a
+providers, gate runtime or activate Billing. PRD-021 Security Hardening is CLOSED
+after normal merge PR #34 at
+`b4a9c3d682f88526f3fc9eef7ceb3d42c0d48981`, with final approved implementation
+head `0eb2b6de48f3c86f0308c8d4933dcc4c2e382cc5`. It closes SEC-021-H01 through H06
+with a
 fail-closed production profile, legacy shutdown, normalized/rate-limited auth,
 streaming body limits, inactive-Organization enforcement, concurrency-safe Owner
 invariants, default 48-hour/200-row bounded rate-limit retention, sensitive Audit
@@ -114,8 +117,7 @@ Current validated gates:
 
 ## Current Official Objective
 
-PRD-001 through PRD-020 are CLOSED. PRD-021 is IMPLEMENTED — PENDING CTO REVIEW.
-PRD-022 and PRD-023 remain NOT STARTED.
+PRD-001 through PRD-021 are CLOSED. PRD-022 and PRD-023 remain NOT STARTED.
 
 **Phase 3**
 
@@ -141,8 +143,9 @@ PRD-022 and PRD-023 remain NOT STARTED.
 | 18 | PRD-018 Plans and Limits | CLOSED |
 | 19 | PRD-019 Billing & Subscriptions | CLOSED |
 | 20 | PRD-020 Onboarding | CLOSED |
-| 21 | PRD-021 Security Hardening | IMPLEMENTED — PENDING CTO REVIEW |
-| 22-23 | Future approved product increments | NOT STARTED |
+| 21 | PRD-021 Security Hardening | CLOSED |
+| 22 | PRD-022 Observability | NOT STARTED |
+| 23 | PRD-023 CI/CD and Deployments | NOT STARTED |
 
 The MVP milestone comprises PRD-001 through PRD-010.
 
@@ -262,7 +265,7 @@ merge commit `63f2fc79444e6b3f85b516b917860fb17fa8f779`, final approved head
 PR #30, merge commit `5a87ffc32be4315ebb6f9e64826bdb96f36ada58`, final approved
 implementation head `2a15b7f022c2989d73bb97d9b964495dba961778`. PRD-020 is
 CLOSED after PR #32 at `47b589df54282145ddce7b745ef208bb80321143`, final approved
-head `15564c245067952a74f19987370b6d5037de65a1`. PRD-021 is IMPLEMENTED —
-PENDING CTO REVIEW; PRD-022 and PRD-023 are NOT STARTED.
+head `15564c245067952a74f19987370b6d5037de65a1`. PRD-021 is CLOSED after PR #34;
+PRD-022 and PRD-023 are NOT STARTED.
 Billing commercial enablement remains BLOCKED pending
 approved configuration and the real Mercado Pago sandbox smoke.

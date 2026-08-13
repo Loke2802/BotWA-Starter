@@ -67,8 +67,12 @@ class OnboardingService:
                 raise OnboardingOrganizationNotFound("organization not found")
             existing = self.repository.get_for_update(organization_id)
             if existing is not None:
+                response = self.readiness.derive(organization_id, existing).response
+                # End the read-only transaction before returning so row locks do not
+                # survive until request dependency teardown.
+                self.session.commit()
                 self.metrics.record("onboarding_started_total", "noop")
-                return self.readiness.derive(organization_id, existing).response
+                return response
             now = datetime.now(UTC)
             workflow = OrganizationOnboardingModel(
                 organization_id=organization_id,
@@ -130,8 +134,12 @@ class OnboardingService:
             if workflow is None:
                 raise OnboardingNotStarted("onboarding has not started")
             if workflow.status == "completed":
+                response = self.readiness.derive(organization_id, workflow).response
+                # Completed is an idempotent no-op even for a stale expected version;
+                # release both locks before the response leaves the service boundary.
+                self.session.commit()
                 self.metrics.record("onboarding_completion_attempts_total", "noop")
-                return self.readiness.derive(organization_id, workflow).response
+                return response
             if workflow.version != expected_version:
                 self.metrics.record("onboarding_completion_attempts_total", "conflict")
                 raise OnboardingVersionConflict("onboarding version conflict")

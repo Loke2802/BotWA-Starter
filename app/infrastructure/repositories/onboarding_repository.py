@@ -117,7 +117,7 @@ class SqlAlchemyOnboardingRepository:
                 select(exists().where(BotModel.organization_id == organization_id))
             )
         )
-        row = self.session.execute(
+        rows = self.session.execute(
             select(BotModel, BusinessConfigurationModel)
             .outerjoin(
                 BusinessConfigurationModel,
@@ -127,14 +127,9 @@ class SqlAlchemyOnboardingRepository:
                 BotModel.organization_id == organization_id,
                 BotModel.status == "active",
             )
-            .order_by(
-                case((BusinessConfigurationModel.id.is_not(None), 0), else_=1),
-                BotModel.created_at,
-                BotModel.id,
-            )
-            .limit(1)
-        ).first()
-        if row is None:
+            .order_by(BotModel.created_at, BotModel.id)
+        ).all()
+        if not rows:
             if not any_bot:
                 return None
             inactive_bot_id = self.session.scalar(
@@ -153,8 +148,44 @@ class SqlAlchemyOnboardingRepository:
                 business_configuration_valid=False,
                 any_bot_exists=True,
             )
-        bot, configuration = row
-        configuration_valid = False
+        selected_bot, selected_configuration = rows[0]
+        selected_configuration_valid = self._business_configuration_valid(
+            selected_configuration
+        )
+        for candidate_bot, candidate_configuration in rows:
+            candidate_valid = self._business_configuration_valid(
+                candidate_configuration
+            )
+            if (
+                candidate_configuration is not None
+                and candidate_configuration.status == "configured"
+                and candidate_valid
+            ):
+                selected_bot = candidate_bot
+                selected_configuration = candidate_configuration
+                selected_configuration_valid = True
+                break
+        return BotSnapshot(
+            id=selected_bot.id,
+            status=selected_bot.status,
+            business_configuration_id=(
+                selected_configuration.id
+                if selected_configuration is not None
+                else None
+            ),
+            business_configuration_status=(
+                selected_configuration.status
+                if selected_configuration is not None
+                else None
+            ),
+            business_configuration_valid=selected_configuration_valid,
+            any_bot_exists=any_bot,
+        )
+
+    @staticmethod
+    def _business_configuration_valid(
+        configuration: BusinessConfigurationModel | None,
+    ) -> bool:
         if configuration is not None:
             try:
                 BusinessConfiguration.model_validate(
@@ -184,21 +215,10 @@ class SqlAlchemyOnboardingRepository:
                         "updated_at": configuration.updated_at,
                     }
                 )
-                configuration_valid = True
+                return True
             except ValidationError:
-                configuration_valid = False
-        return BotSnapshot(
-            id=bot.id,
-            status=bot.status,
-            business_configuration_id=(
-                configuration.id if configuration is not None else None
-            ),
-            business_configuration_status=(
-                configuration.status if configuration is not None else None
-            ),
-            business_configuration_valid=configuration_valid,
-            any_bot_exists=any_bot,
-        )
+                return False
+        return False
 
     def whatsapp(
         self, organization_id: UUID, bot_id: UUID | None

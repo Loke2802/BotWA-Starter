@@ -6,8 +6,8 @@ Quality Gates (validación técnica PRD-020):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **839 passed, 29 skipped, 2 warnings** |
-| PRD-020 focalizadas | **18 passed** |
+| `pytest` | **843 passed, 29 skipped, 2 warnings** |
+| PRD-020 focalizadas | **22 passed** |
 | Regresión de dominios afectados | **123 passed** |
 | PostgreSQL PRD-020 | **3 passed** |
 | Ciclo PostgreSQL | **0020 → 0021 → 0020 → 0021 PASS** |

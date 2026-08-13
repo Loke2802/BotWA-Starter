@@ -70,8 +70,8 @@ as a minimal historical workflow with derived current readiness and revision
 
 | Gate | Result |
 |---|---|
-| `pytest` | 839 passed, 29 skipped, 2 warnings |
-| Focused PRD-020 | 18 passed |
+| `pytest` | 843 passed, 29 skipped, 2 warnings |
+| Focused PRD-020 | 22 passed |
 | Affected-domain regression | 123 passed |
 | PostgreSQL PRD-020 | 3 passed |
 | PostgreSQL migration cycle | `0020 → 0021 → 0020 → 0021` PASS |

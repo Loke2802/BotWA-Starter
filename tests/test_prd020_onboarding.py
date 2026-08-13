@@ -1,5 +1,5 @@
 from collections.abc import Generator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
@@ -244,6 +244,56 @@ def _make_ready(session: Session, organization_id: UUID, actor: User) -> UUID:
     return bot_id
 
 
+def _add_bot_candidate(
+    session: Session,
+    organization_id: UUID,
+    *,
+    bot_id: UUID | None = None,
+    created_at: datetime = NOW,
+    status: str = "active",
+    configuration_status: str | None = None,
+    valid_configuration: bool = True,
+) -> UUID:
+    candidate_id = bot_id or uuid4()
+    session.add(
+        BotModel(
+            id=candidate_id,
+            organization_id=organization_id,
+            name=f"Candidate {candidate_id}",
+            slug=f"candidate-{candidate_id.hex}",
+            status=status,
+            settings={},
+            created_at=created_at,
+            updated_at=created_at,
+        )
+    )
+    session.flush()
+    if configuration_status is not None:
+        session.add(
+            BusinessConfigurationModel(
+                bot_id=candidate_id,
+                business_name="Luri",
+                description="Configured business",
+                timezone="America/Lima",
+                business_hours=_business_hours() if valid_configuration else {},
+                services=(
+                    [{"name": "Support", "active": True}] if valid_configuration else []
+                ),
+                payment_methods=["cash"] if valid_configuration else [],
+                policies=[],
+                service_instructions=("Answer safely" if valid_configuration else ""),
+                handoff_enabled=False,
+                handoff_keywords=[],
+                handoff_outside_business_hours=False,
+                status=configuration_status,
+                created_at=created_at,
+                updated_at=created_at,
+            )
+        )
+    session.commit()
+    return candidate_id
+
+
 def _steps(response: OnboardingResponse) -> dict[str, OnboardingStepResponse]:
     return {step.code: step for step in response.steps}
 
@@ -386,25 +436,108 @@ def test_retired_plan_is_unavailable(session: Session) -> None:
     assert _steps(response)["review"].blocking_reason_code == "PLAN_UNAVAILABLE"
 
 
-def test_multi_bot_selector_prefers_active_configured_then_created_at(
+def test_multi_bot_selector_prefers_newer_valid_configured_over_older_invalid(
     session: Session,
 ) -> None:
     organization_id, actor = _seed(session, whatsapp_feature=False)
-    first = BotModel(
-        organization_id=organization_id,
-        name="First",
-        slug="first",
-        status="active",
-        settings={},
-        created_at=NOW,
-        updated_at=NOW,
+    _add_bot_candidate(
+        session,
+        organization_id,
+        created_at=NOW - timedelta(days=1),
+        configuration_status="draft",
     )
-    session.add(first)
-    session.commit()
-    configured_id = _make_ready(session, organization_id, actor)
+    configured_id = _add_bot_candidate(
+        session,
+        organization_id,
+        created_at=NOW,
+        configuration_status="configured",
+    )
     response = _service(session).get(organization_id, actor)
-    assert response.steps[2].resource_reference is not None
-    assert response.steps[2].resource_reference.resource_id == configured_id
+    steps = _steps(response)
+    assert steps["initial_bot"].resource_reference is not None
+    assert steps["initial_bot"].resource_reference.resource_id == configured_id
+    assert steps["initial_bot"].status == "ready"
+    assert steps["business_configuration"].status == "ready"
+
+
+def test_multi_bot_selector_orders_ready_candidates_by_created_at_and_id(
+    session: Session,
+) -> None:
+    organization_id, actor = _seed(session, whatsapp_feature=False)
+    expected_id = UUID(int=101)
+    _add_bot_candidate(
+        session,
+        organization_id,
+        bot_id=UUID(int=102),
+        configuration_status="configured",
+    )
+    _add_bot_candidate(
+        session,
+        organization_id,
+        bot_id=expected_id,
+        configuration_status="configured",
+    )
+    response = _service(session).get(organization_id, actor)
+    reference = _steps(response)["initial_bot"].resource_reference
+    assert reference is not None and reference.resource_id == expected_id
+
+
+def test_multi_bot_selector_uses_first_active_when_none_are_ready_configured(
+    session: Session,
+) -> None:
+    organization_id, actor = _seed(session, whatsapp_feature=False)
+    expected_id = _add_bot_candidate(
+        session,
+        organization_id,
+        created_at=NOW - timedelta(days=1),
+    )
+    _add_bot_candidate(
+        session,
+        organization_id,
+        configuration_status="configured",
+        valid_configuration=False,
+    )
+    response = _service(session).get(organization_id, actor)
+    steps = _steps(response)
+    reference = steps["initial_bot"].resource_reference
+    assert reference is not None and reference.resource_id == expected_id
+    assert steps["business_configuration"].status == "incomplete"
+
+
+def test_multi_bot_selector_never_prefers_inactive_ready_candidate(
+    session: Session,
+) -> None:
+    organization_id, actor = _seed(session, whatsapp_feature=False)
+    _add_bot_candidate(
+        session,
+        organization_id,
+        created_at=NOW - timedelta(days=1),
+        status="inactive",
+        configuration_status="configured",
+    )
+    active_id = _add_bot_candidate(session, organization_id)
+    response = _service(session).get(organization_id, actor)
+    steps = _steps(response)
+    reference = steps["initial_bot"].resource_reference
+    assert reference is not None and reference.resource_id == active_id
+    assert steps["business_configuration"].status == "incomplete"
+
+
+def test_multi_bot_selector_excludes_cross_tenant_candidates(session: Session) -> None:
+    organization_id, actor = _seed(session, whatsapp_feature=False)
+    expected_id = _add_bot_candidate(session, organization_id)
+    other_id, _ = _seed(session, whatsapp_feature=False)
+    _add_bot_candidate(
+        session,
+        other_id,
+        created_at=NOW - timedelta(days=1),
+        configuration_status="configured",
+    )
+    response = _service(session).get(organization_id, actor)
+    steps = _steps(response)
+    reference = steps["initial_bot"].resource_reference
+    assert reference is not None and reference.resource_id == expected_id
+    assert steps["business_configuration"].status == "incomplete"
 
 
 def test_start_complete_noops_versioning_audit_and_degradation(
@@ -416,9 +549,11 @@ def test_start_complete_noops_versioning_audit_and_degradation(
     started = service.start(organization_id, actor)
     assert (started.workflow_status, started.version) == ("in_progress", 1)
     assert service.start(organization_id, actor).version == 1
+    assert session.in_transaction() is False
     completed = service.complete(organization_id, 1, actor)
     assert (completed.workflow_status, completed.version) == ("completed", 2)
     assert service.complete(organization_id, 999, actor).version == 2
+    assert session.in_transaction() is False
     actions = session.scalars(
         select(AuditEventModel.action).where(
             AuditEventModel.organization_id == organization_id

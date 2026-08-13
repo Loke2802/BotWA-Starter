@@ -59,10 +59,12 @@ BusinessCalendar is not a separate step and never blocks v1. Human Handoff,
 Automations, Contacts, Analytics, Dashboard, Billing, and Business Hours are not
 added to the catalog.
 
-The initial Bot selector is deterministic: active Bots with a valid configured
-BusinessConfiguration first, then other active Bots, ordered by `created_at` and
-`id`; an inactive Bot is used only to return a safe activation hint when no active
-Bot exists. No resource is mutated by onboarding.
+The initial Bot selector is deterministic: it loads active candidates ordered by
+`created_at` and `id`, validates each BusinessConfiguration with the existing
+domain contract, and selects the first valid `configured` candidate. If none is
+ready-configured, it selects the first active candidate in the same deterministic
+order. A merely existing, invalid, or non-configured row has no priority; inactive
+and cross-tenant Bots cannot participate. No resource is mutated by onboarding.
 
 Before historical completion, readiness is `ready` only when completion
 requirements are met, otherwise `not_ready`. After completion, the historical
@@ -79,7 +81,9 @@ GET is read-only and returns workflow plus freshly derived readiness. Start is a
 lazy idempotent transition to `in_progress` at version 1. Complete requires a
 positive `expected_version`, recomputes readiness under locks, and advances once
 to `completed` at version 2. Repeated start/completed requests are safe no-ops and
-do not emit duplicate Audit events.
+do not emit duplicate Audit events. Each no-op computes its response while the
+Session state is valid and then commits the read-only transaction before returning,
+releasing Organization/workflow locks without changing version or timestamps.
 
 `onboarding.read` and `onboarding.manage` are granted to Organization Owner and
 Organization Admin; Operator and Viewer have neither. Platform Admin remains
@@ -119,11 +123,11 @@ not retroactively changed or fabricated by PRD-020.
 
 ## Validation
 
-- Focused PRD-020 unit/API: 18 passed.
+- Focused PRD-020 unit/API: 22 passed.
 - Real PostgreSQL PRD-020: 3 passed.
 - Affected-domain regression: 123 passed.
 - PostgreSQL migration cycle `0020 → 0021 → 0020 → 0021`: PASS.
-- Full pytest: 839 passed, 29 skipped, 2 warnings.
+- Full pytest: 843 passed, 29 skipped, 2 warnings.
 - mypy: PASS — 463 source files.
 - Ruff: PASS.
 - Black: PASS — 463 files.

@@ -246,6 +246,21 @@ def test_prd020_concurrent_start_and_complete_are_single_effects() -> None:
             )
             == 1
         )
+    with factory() as session:
+        repeated = _service(session).start(organization_id, actor)
+        assert (repeated.workflow_status, repeated.version) == ("in_progress", 1)
+        assert session.in_transaction() is False
+    with factory() as lock_session:
+        assert (
+            lock_session.scalar(
+                select(OrganizationModel.id)
+                .where(OrganizationModel.id == organization_id)
+                .with_for_update(nowait=True)
+            )
+            == organization_id
+        )
+        lock_session.rollback()
+    with factory() as session:
         assert (
             session.scalar(
                 select(func.count(AuditEventModel.id)).where(
@@ -278,6 +293,32 @@ def test_prd020_concurrent_start_and_complete_are_single_effects() -> None:
                 )
             )
             == 1
+        )
+    with factory() as session:
+        repeated = _service(session).complete(organization_id, 999, actor)
+        assert (repeated.workflow_status, repeated.version) == ("completed", 2)
+        assert session.in_transaction() is False
+    with factory() as lock_session:
+        assert (
+            lock_session.scalar(
+                select(OrganizationModel.id)
+                .where(OrganizationModel.id == organization_id)
+                .with_for_update(nowait=True)
+            )
+            == organization_id
+        )
+        lock_session.rollback()
+    with factory() as session:
+        assert (
+            session.scalar(
+                select(func.count(AuditEventModel.id)).where(
+                    AuditEventModel.organization_id == organization_id,
+                    AuditEventModel.action.in_(
+                        ("onboarding.started", "onboarding.completed")
+                    ),
+                )
+            )
+            == 2
         )
     engine.dispose()
 

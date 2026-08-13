@@ -18,9 +18,13 @@
 - WhatsApp setup readiness is local and conditional; Knowledge and Integrations
   remain optional; BusinessCalendar is non-blocking. There are no external calls,
   resource mutations, Billing changes, provider provisioning or runtime gates.
-- Validation: focused PRD-020 18 passed; affected-domain regression 123 passed;
+- Final hardening validates BusinessConfiguration through the domain contract
+  before assigning the ready-configured Bot tier, preserves deterministic
+  `created_at`/`id` ordering, and explicitly commits read-only no-op transactions
+  before returning so PostgreSQL row locks are released at the service boundary.
+- Validation: focused PRD-020 22 passed; affected-domain regression 123 passed;
   PostgreSQL PRD-020 3 passed; migration cycle `0020 → 0021 → 0020 → 0021`
-  PASS; full pytest 839 passed, 29 skipped, 2 warnings; mypy PASS across 463
+  PASS; full pytest 843 passed, 29 skipped, 2 warnings; mypy PASS across 463
   source files; Ruff PASS; Black PASS across 463 files; `git diff --check` PASS;
   Alembic one head at `20260813_0021`.
 - PRD-001 through PRD-019 remain CLOSED. PRD-021 through PRD-023 remain NOT

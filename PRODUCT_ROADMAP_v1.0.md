@@ -1,6 +1,6 @@
 # BotWA Product Roadmap v1.0
 
-**Status:** PRD-001 through PRD-020 CLOSED; PRD-021 IMPLEMENTED — PENDING CTO REVIEW; PRD-022 through PRD-023 NOT STARTED
+**Status:** PRD-001 through PRD-021 CLOSED; PRD-022 through PRD-023 NOT STARTED
 **Date:** 2026-08-13
 
 ## Current State
@@ -27,8 +27,10 @@ Mercado Pago sandbox gates. PRD-020 Onboarding is closed after merge via PR #32 
 `47b589df54282145ddce7b745ef208bb80321143`, with final approved head
 `15564c245067952a74f19987370b6d5037de65a1`. It provides a minimal historical
 workflow with derived current readiness and revision `20260813_0021`. PRD-021
-Security Hardening is implemented pending CTO review at Alembic
-`20260813_0022`; PRD-022 and PRD-023 are not started.
+Security Hardening is CLOSED after normal merge PR #34 at
+`b4a9c3d682f88526f3fc9eef7ceb3d42c0d48981`, with final approved head
+`0eb2b6de48f3c86f0308c8d4933dcc4c2e382cc5` and Alembic `20260813_0022`.
+PRD-022 and PRD-023 are not started.
 
 **MVP milestone:** PRD-001 through PRD-010.
 
@@ -56,7 +58,7 @@ Security Hardening is implemented pending CTO review at Alembic
 | 18 | PRD-018 Plans and Limits | CLOSED |
 | 19 | PRD-019 Billing and Subscriptions | CLOSED |
 | 20 | PRD-020 Onboarding | CLOSED |
-| 21 | PRD-021 Security Hardening | IMPLEMENTED — PENDING CTO REVIEW |
+| 21 | PRD-021 Security Hardening | CLOSED |
 | 22 | PRD-022 Observability | NOT STARTED |
 | 23 | PRD-023 CI/CD and Deployments | NOT STARTED |
 
@@ -109,8 +111,7 @@ post-merge validation.
 - Core architecture remains stable.
 - New functionality must be tied to PRDs.
 - Quality gates remain mandatory.
-- PRD-001 through PRD-020 are closed. PRD-021 is implemented pending CTO review;
-  PRD-022 and PRD-023 are not started.
+- PRD-001 through PRD-021 are closed. PRD-022 and PRD-023 are not started.
 - PRD-010 documents lifecycle/RBAC, tenant isolation, suppression/resume,
   encrypted idempotent replies, archive protection, and migration chain
   `0010` → `0011` → `0012`.

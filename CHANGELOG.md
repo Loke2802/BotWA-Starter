@@ -2,7 +2,11 @@
 
 ## PRD-021 Security Hardening v1 - 2026-08-13
 
-### IMPLEMENTED — PENDING CTO REVIEW
+### CLOSED after PR #34
+
+- Merged into `master` by normal merge commit through PR #34 at
+  `b4a9c3d682f88526f3fc9eef7ceb3d42c0d48981`, with final approved implementation
+  head `0eb2b6de48f3c86f0308c8d4933dcc4c2e382cc5`.
 
 - Closed SEC-021-H01 through H06 with a typed production security profile,
   fail-closed startup validation, closed JWT algorithm, dedicated signing keys,
@@ -34,6 +38,8 @@
 - External Meta, Mercado Pago, DB TLS/least-privilege, reverse-proxy/TLS and
   provider credential gates remain deployment-only. PRD-022 and PRD-023 remain
   NOT STARTED.
+- PRD-001 through PRD-021 are CLOSED. This documentation closure changes no
+  application code, test, migration, schema or runtime behavior.
 
 ## PRD-020 Onboarding v1 - 2026-08-13
 

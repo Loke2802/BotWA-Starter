@@ -57,6 +57,8 @@ AuditAction = Literal[
     "subscription.cancel_requested",
     "subscription.canceled",
     "subscription.reconciled",
+    "onboarding.started",
+    "onboarding.completed",
 ]
 AuditResourceType = Literal[
     "organization",
@@ -70,6 +72,7 @@ AuditResourceType = Literal[
     "plan_assignment",
     "billing_account",
     "subscription",
+    "onboarding",
 ]
 AuditStatus = Literal[
     "draft",
@@ -154,6 +157,14 @@ class BillingMetadata(BaseModel):
     cancel_at_period_end: bool | None = None
 
 
+class OnboardingMetadata(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    workflow_version: Annotated[int, Field(gt=0)]
+    required_steps_ready: Annotated[int, Field(ge=0)] | None = None
+    required_steps_total: Annotated[int, Field(ge=0)] | None = None
+
+
 AuditMetadata = (
     EmptyMetadata
     | ChangedFieldsMetadata
@@ -162,6 +173,7 @@ AuditMetadata = (
     | CredentialRotationMetadata
     | PlanAssignmentMetadata
     | BillingMetadata
+    | OnboardingMetadata
 )
 AUDIT_METADATA_ADAPTER: TypeAdapter[AuditMetadata] = TypeAdapter(AuditMetadata)
 

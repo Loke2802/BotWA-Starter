@@ -24,6 +24,7 @@ from app.api.integration_management_routes import (
     router as integration_management_router,
 )
 from app.api.knowledge_routes import router as knowledge_management_router
+from app.api.onboarding_routes import router as onboarding_router
 from app.api.plan_routes import router as plan_router
 from app.api.routes import router
 from app.api.whatsapp_configuration_routes import (
@@ -96,6 +97,7 @@ def create_app() -> FastAPI:
     app.include_router(integration_management_router)
     app.include_router(integration_oauth_router)
     app.include_router(knowledge_management_router)
+    app.include_router(onboarding_router)
     app.include_router(plan_router)
     app.include_router(whatsapp_configuration_router)
     app.include_router(configured_whatsapp_webhook_router)

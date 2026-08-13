@@ -6,10 +6,10 @@ Quality Gates (validación técnica PRD-021):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **863 passed, 33 skipped, 2 warnings** |
-| PRD-021 focalizadas | **18 passed** |
-| Regresión de seguridad afectada | **154 passed** |
-| PostgreSQL PRD-021 | **4 passed** |
+| `pytest` | **864 passed, 35 skipped, 2 warnings** |
+| PRD-021 focalizadas | **19 passed** |
+| Regresión de seguridad afectada | **129 passed** |
+| PostgreSQL PRD-021 | **6 passed** |
 | Ciclo PostgreSQL | **0021 → 0022 → 0021 → 0022 PASS** |
 | `ruff check app tests` | **All checks passed** |
 | `black --check app tests` | **473 files would be left unchanged** |
@@ -35,9 +35,10 @@ REVIEW; PRD-022 y PRD-023 permanecen NOT STARTED.**
 PRD-021 cierra los seis findings HIGH con startup de producción fail-closed,
 algoritmo JWT cerrado, claves dedicadas, autenticación normalizada y limitada,
 apagado de APIs legacy/bootstrap, bloqueo de Organization inactiva, rate limiter
-PostgreSQL multi-worker, límites ASGI streaming, TrustedHost/CORS/headers,
-redacción OAuth, invariantes Owner concurrentes y Audit sensible en la misma
-transacción. Alembic avanza a `20260813_0022`. Los smokes reales Meta/Mercado
+PostgreSQL multi-worker con retención acotada (defaults 48 horas/200 filas),
+límites ASGI streaming, TrustedHost/CORS/headers, redacción OAuth, invariantes
+Owner concurrentes y Audit sensible en la misma transacción. Alembic avanza a
+`20260813_0022`. Los smokes reales Meta/Mercado
 Pago y los controles operativos de despliegue permanecen gates externos.
 
 PRD-020 implementa Onboarding v1 como workflow histórico mínimo tenant-scoped y

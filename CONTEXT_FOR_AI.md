@@ -52,7 +52,8 @@ providers, gate runtime or activate Billing. PRD-021 Security Hardening is now
 IMPLEMENTED — PENDING CTO REVIEW. It closes the six HIGH findings with a
 fail-closed production profile, legacy shutdown, normalized/rate-limited auth,
 streaming body limits, inactive-Organization enforcement, concurrency-safe Owner
-invariants, sensitive Audit expansion and Alembic `20260813_0022`. PRD-022 and
+invariants, default 48-hour/200-row bounded rate-limit retention, sensitive Audit
+expansion and Alembic `20260813_0022`. PRD-022 and
 PRD-023 remain NOT STARTED.
 
 All five core engines are implemented and closed:
@@ -71,10 +72,10 @@ Current validated gates:
 
 | Gate | Result |
 |---|---|
-| `pytest` | 863 passed, 33 skipped, 2 warnings |
-| Focused PRD-021 | 18 passed |
-| Affected security regression | 154 passed |
-| PostgreSQL PRD-021 | 4 passed |
+| `pytest` | 864 passed, 35 skipped, 2 warnings |
+| Focused PRD-021 | 19 passed |
+| Affected security regression | 129 passed |
+| PostgreSQL PRD-021 | 6 passed |
 | PostgreSQL migration cycle | `0021 → 0022 → 0021 → 0022` PASS |
 | `ruff check app tests` | All checks passed |
 | `black --check app tests` | 473 files would be left unchanged |

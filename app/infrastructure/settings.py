@@ -87,6 +87,12 @@ class Settings(BaseSettings):
     openapi_enabled: bool | None = None
     https_enabled: bool = False
     rate_limit_hmac_key: str = ""
+    security_rate_limit_retention_seconds: int = Field(
+        default=172_800,
+        ge=86_401,
+        le=2_592_000,
+    )
+    security_rate_limit_cleanup_batch_size: int = Field(default=200, ge=1, le=1_000)
     audit_cursor_signing_key: str = ""
     auth_login_rate_limit_attempts: int = Field(default=10, ge=1, le=1_000)
     auth_login_rate_limit_window_seconds: int = Field(default=60, ge=1, le=86_400)

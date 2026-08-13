@@ -96,7 +96,8 @@ SEC-021-H01 through H06 with an explicit fail-closed production profile, closed
 JWT configuration, normalized Argon2 authentication, PostgreSQL multi-worker
 rate limiting, disabled production bootstrap/legacy routers, inactive tenant
 enforcement, streaming body limits, secure middleware/logging, concurrency-safe
-Owner invariants and same-transaction Audit expansion. Revision
+Owner invariants, default 48-hour/200-row bounded rate-limit retention and
+same-transaction Audit expansion. Revision
 `20260813_0022` contains only the HMAC rate-limit persistence. PRD-022 and
 PRD-023 remain NOT STARTED.
 
@@ -104,10 +105,10 @@ PRD-023 remain NOT STARTED.
 
 | Gate | Current result |
 |---|---|
-| `pytest` | 863 passed, 33 skipped, 2 warnings |
-| Focused PRD-021 | 18 passed |
-| Affected security regression | 154 passed |
-| PostgreSQL PRD-021 | 4 passed |
+| `pytest` | 864 passed, 35 skipped, 2 warnings |
+| Focused PRD-021 | 19 passed |
+| Affected security regression | 129 passed |
+| PostgreSQL PRD-021 | 6 passed |
 | PostgreSQL migration cycle | `0021 → 0022 → 0021 → 0022` PASS |
 | `ruff check app tests` | All checks passed |
 | `black --check app tests` | 473 files would be left unchanged |

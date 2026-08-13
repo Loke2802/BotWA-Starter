@@ -73,10 +73,10 @@ Security Hardening is implemented pending CTO review at Alembic
 
 | Gate | Result |
 |---|---|
-| `pytest` | 863 passed, 33 skipped, 2 warnings |
-| Focused PRD-021 | 18 passed |
-| Affected security regression | 154 passed |
-| PostgreSQL PRD-021 | 4 passed |
+| `pytest` | 864 passed, 35 skipped, 2 warnings |
+| Focused PRD-021 | 19 passed |
+| Affected security regression | 129 passed |
+| PostgreSQL PRD-021 | 6 passed |
 | PostgreSQL migration cycle | `0021 → 0022 → 0021 → 0022` PASS |
 | `ruff check app tests` | All checks passed |
 | `black --check app tests` | 473 files would be left unchanged |

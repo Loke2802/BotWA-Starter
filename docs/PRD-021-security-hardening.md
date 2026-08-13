@@ -68,6 +68,20 @@ atomically increments a bucket across workers. Initial scopes are `auth_login`,
 logs but not an Audit row per hit. Forwarded addresses are honored only when the
 visible peer is in the explicit trusted-proxy allowlist.
 
+Every SQL consume also performs bounded opportunistic retention in the same
+transaction. The default stale cutoff is 48 hours; the typed retention setting
+is bounded from 24 hours plus one second to 30 days, always greater than the
+maximum configurable 24-hour window, so current and potentially enforceable
+buckets are never eligible. The cleanup selects the oldest rows through
+`ix_security_rate_limit_bucket_updated_at`; its typed batch defaults to 200 and
+is hard-bounded from 1 to 1,000. PostgreSQL uses `FOR UPDATE SKIP LOCKED`, while
+SQLite retains a compatible bounded path.
+Concurrent workers may claim disjoint cleanup batches safely. Repeated consumes
+therefore progressively reclaim expired identity spray without an in-process
+counter, background scheduler or PRD-023 job. Cleanup and atomic consume commit
+together; any SQL failure rolls back and propagates instead of failing open.
+Persistence remains HMAC-only.
+
 Development/test may use the explicit in-process repository for isolation and
 fast tests. Production composition always selects PostgreSQL persistence.
 
@@ -123,7 +137,8 @@ Focused tests cover startup rejection, JWT allowlisting, inactive Organization,
 normalized authentication, dummy verification, password bounds, legacy shutdown,
 429 semantics, HMAC-only buckets, streaming body limits, security headers,
 OAuth redaction and sensitive Audit paths. Real PostgreSQL coverage validates the
-`0021 → 0022 → 0021 → 0022` cycle, atomic multi-worker rate limiting, single
+`0021 → 0022 → 0021 → 0022` cycle, atomic multi-worker rate limiting, bounded
+retention, expired identity-spray reclamation, active-bucket preservation, single
 initial Owner and last-Owner protection. Existing webhook, Billing, Audit,
 Handoff and tenant-isolation regressions preserve signed raw-body, dedupe,
 provider binding and cross-tenant denial behavior.

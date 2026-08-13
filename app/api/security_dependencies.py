@@ -29,7 +29,11 @@ def get_rate_limit_service() -> Generator[RateLimitService]:
     session = next(session_generator)
     try:
         yield RateLimitService(
-            SqlAlchemyRateLimitRepository(session),
+            SqlAlchemyRateLimitRepository(
+                session,
+                retention_seconds=settings.security_rate_limit_retention_seconds,
+                cleanup_batch_size=settings.security_rate_limit_cleanup_batch_size,
+            ),
             hmac_key=key,
         )
     finally:

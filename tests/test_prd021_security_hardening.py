@@ -1,6 +1,7 @@
 import base64
 import logging
 from collections.abc import Iterator
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from app.api.dependencies import get_auth_service
@@ -176,6 +177,49 @@ def test_rate_limiter_persists_only_hmac_key_and_enforces_threshold() -> None:
     assert row.attempt_count == 3
     assert row.key_hash != "owner@example.com|127.0.0.1"
     assert len(row.key_hash) == 64
+
+
+def test_sqlite_rate_limit_cleanup_preserves_active_and_bounds_batch() -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    now = datetime.now(UTC)
+    active_window = now.replace(second=0, microsecond=0)
+    expired_keys = {f"{index:064x}" for index in range(5)}
+    with Session(engine) as session:
+        session.add_all(
+            [
+                SecurityRateLimitBucketModel(
+                    scope="auth_login",
+                    key_hash=f"{index:064x}",
+                    window_started_at=now - timedelta(days=3, seconds=index),
+                    attempt_count=1,
+                    blocked_until=None,
+                    updated_at=now - timedelta(days=3, seconds=index),
+                )
+                for index in range(5)
+            ]
+            + [
+                SecurityRateLimitBucketModel(
+                    scope="auth_login",
+                    key_hash="f" * 64,
+                    window_started_at=active_window,
+                    attempt_count=1,
+                    blocked_until=None,
+                    updated_at=now,
+                )
+            ]
+        )
+        session.commit()
+        SqlAlchemyRateLimitRepository(session, cleanup_batch_size=2).consume(
+            scope="auth_login",
+            key_hash="e" * 64,
+            limit=5,
+            window_seconds=60,
+        )
+        rows = session.scalars(select(SecurityRateLimitBucketModel)).all()
+
+    assert len([row for row in rows if row.key_hash in expired_keys]) == 3
+    assert any(row.key_hash == "f" * 64 for row in rows)
 
 
 def test_login_rate_limit_returns_safe_429_and_retry_after(

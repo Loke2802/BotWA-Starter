@@ -19,6 +19,7 @@ from app.infrastructure.repositories.conversation_repository import (
     ConversationRepository,
 )
 from app.infrastructure.repositories.message_repository import MessageRepository
+from app.observability.instrumentation import observe_conversation
 
 
 class ConversationService:
@@ -44,6 +45,7 @@ class ConversationService:
         self._conversation_repo = conversation_repo
         self._message_repo = message_repo
 
+    @observe_conversation("reply")
     def handle_message(
         self,
         message: ConversationMessage,

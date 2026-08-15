@@ -8,6 +8,7 @@ from app.application.whatsapp_live.client import (
     WhatsAppCloudApiError,
 )
 from app.domain.whatsapp_live.contracts import WhatsAppSendResponse
+from app.observability.metrics import ProviderObservation
 
 _API_VERSION = re.compile(r"v\d+\.\d+")
 _PHONE_NUMBER_ID = re.compile(r"[A-Za-z0-9_-]{1,100}")
@@ -39,6 +40,7 @@ class MetaWhatsAppCloudApiClient(WhatsAppCloudApiClient):
         text: str,
         reply_to_message_id: str | None = None,
     ) -> WhatsAppSendResponse:
+        observation = ProviderObservation("meta", "send_message")
         if _PHONE_NUMBER_ID.fullmatch(phone_number_id) is None:
             raise WhatsAppCloudApiError("INVALID_PHONE_NUMBER_ID", retryable=False)
         if not access_token:
@@ -76,19 +78,25 @@ class MetaWhatsAppCloudApiClient(WhatsAppCloudApiClient):
                     )
             response.raise_for_status()
         except httpx.TimeoutException as exc:
+            observation.finish("timeout")
             raise WhatsAppCloudApiError("TIMEOUT", retryable=True) from exc
         except httpx.RequestError as exc:
+            observation.finish("network_error")
             raise WhatsAppCloudApiError("NETWORK_ERROR", retryable=True) from exc
         except httpx.HTTPStatusError as exc:
             status_code = exc.response.status_code
             if status_code == 429:
                 code, retryable = "RATE_LIMITED", True
+                observation.finish("rate_limited")
             elif status_code >= 500:
                 code, retryable = "PROVIDER_UNAVAILABLE", True
+                observation.finish("provider_error")
             elif status_code in {401, 403}:
                 code, retryable = "AUTHENTICATION_FAILED", False
+                observation.finish("auth_error")
             else:
                 code, retryable = "INVALID_REQUEST", False
+                observation.finish("rejected")
             raise WhatsAppCloudApiError(code, retryable=retryable) from exc
 
         try:
@@ -103,8 +111,10 @@ class MetaWhatsAppCloudApiClient(WhatsAppCloudApiClient):
             if not isinstance(provider_message_id, str) or not provider_message_id:
                 raise ValueError
         except (TypeError, ValueError) as exc:
+            observation.finish("invalid_response")
             raise WhatsAppCloudApiError(
                 "INVALID_PROVIDER_RESPONSE",
                 retryable=False,
             ) from exc
+        observation.finish("success")
         return WhatsAppSendResponse(provider_message_id=provider_message_id)

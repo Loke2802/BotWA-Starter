@@ -1,7 +1,7 @@
-import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
+import structlog
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -29,7 +29,7 @@ from app.domain.user.contracts import User
 from app.infrastructure.models.onboarding import OrganizationOnboardingModel
 from app.security.authorization import AuthorizationError, require_scoped_permission
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class OnboardingService:
@@ -102,7 +102,7 @@ class OnboardingService:
             )
             self.session.commit()
             self.metrics.record("onboarding_started_total", "created")
-            logger.info("onboarding_started", extra={"event": "onboarding_started"})
+            logger.info("onboarding_started")
             return self.readiness.derive(organization_id, workflow).response
         except OnboardingOrganizationNotFound:
             self.session.rollback()
@@ -148,10 +148,7 @@ class OnboardingService:
                 self.metrics.record("onboarding_completion_attempts_total", "not_ready")
                 logger.info(
                     "onboarding_completion_blocked",
-                    extra={
-                        "event": "onboarding_completion_blocked",
-                        "blocking_reasons": readiness.blocking_reasons,
-                    },
+                    blocking_reasons=readiness.blocking_reasons,
                 )
                 raise OnboardingNotReady(readiness.blocking_reasons)
             now = datetime.now(UTC)
@@ -176,7 +173,7 @@ class OnboardingService:
             )
             self.session.commit()
             self.metrics.record("onboarding_completion_attempts_total", "completed")
-            logger.info("onboarding_completed", extra={"event": "onboarding_completed"})
+            logger.info("onboarding_completed")
             return self.readiness.derive(organization_id, workflow).response
         except (
             OnboardingNotStarted,

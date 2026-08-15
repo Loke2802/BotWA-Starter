@@ -17,6 +17,7 @@ from app.domain.integration_management.contracts import (
     CalendarAvailability,
     CalendarMetadata,
 )
+from app.observability.metrics import ProviderObservation
 
 GOOGLE_CALENDAR_SCOPES: tuple[str, ...] = (
     "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
@@ -72,6 +73,7 @@ class GoogleCalendarAdapter:
         payload = self._request_json(
             "POST",
             self.token_endpoint,
+            operation="oauth_exchange",
             data={
                 "code": code,
                 "client_id": self._client_id,
@@ -97,6 +99,7 @@ class GoogleCalendarAdapter:
         payload = self._request_json(
             "POST",
             self.token_endpoint,
+            operation="refresh_token",
             data={
                 "refresh_token": refresh_token,
                 "client_id": self._client_id,
@@ -127,6 +130,7 @@ class GoogleCalendarAdapter:
             f"{self.calendar_api_base}/users/me/calendarList",
             access_token,
             params={"maxResults": "1"},
+            operation="health_check",
         )
         items = payload.get("items", [])
         if not isinstance(items, list):
@@ -139,6 +143,7 @@ class GoogleCalendarAdapter:
             f"{self.calendar_api_base}/users/me/calendarList",
             access_token,
             params={"maxResults": "250"},
+            operation="calendar_list",
         )
         items = payload.get("items", [])
         if not isinstance(items, list):
@@ -159,6 +164,7 @@ class GoogleCalendarAdapter:
             "GET",
             f"{self.calendar_api_base}/users/me/calendarList/{encoded_calendar_id}",
             access_token,
+            operation="calendar_list",
         )
         return self._calendar_metadata(payload)
 
@@ -178,6 +184,7 @@ class GoogleCalendarAdapter:
             f"{self.calendar_api_base}/freeBusy",
             access_token,
             json=body,
+            operation="free_busy",
         )
         calendars = payload.get("calendars")
         if not isinstance(calendars, dict):
@@ -252,12 +259,14 @@ class GoogleCalendarAdapter:
         url: str,
         access_token: str,
         *,
+        operation: str,
         params: Mapping[str, str] | None = None,
         json: Mapping[str, object] | None = None,
     ) -> dict[str, object]:
         return self._request_json(
             method,
             url,
+            operation=operation,
             headers={"Authorization": f"Bearer {access_token}"},
             params=params,
             json=json,
@@ -268,12 +277,14 @@ class GoogleCalendarAdapter:
         method: str,
         url: str,
         *,
+        operation: str,
         headers: Mapping[str, str] | None = None,
         params: Mapping[str, str] | None = None,
         data: Mapping[str, str] | None = None,
         json: Mapping[str, object] | None = None,
         auth_failure: bool = False,
     ) -> dict[str, object]:
+        observation = ProviderObservation("google_calendar", operation)
         try:
             with httpx.Client(
                 timeout=self._timeout,
@@ -287,20 +298,35 @@ class GoogleCalendarAdapter:
                     data=data,
                     json=json,
                 )
+        except httpx.TimeoutException as exc:
+            observation.finish("timeout")
+            raise IntegrationProviderUnreachableError(
+                "integration provider unreachable"
+            ) from exc
         except httpx.RequestError as exc:
+            observation.finish("network_error")
             raise IntegrationProviderUnreachableError(
                 "integration provider unreachable"
             ) from exc
         if response.status_code in {400, 401, 403} and (
             auth_failure or response.status_code in {401, 403}
         ):
+            observation.finish("auth_error")
             raise IntegrationProviderAuthError("integration authentication failed")
         if response.status_code >= 400:
+            observation.finish(
+                "rate_limited"
+                if response.status_code == 429
+                else "provider_error" if response.status_code >= 500 else "rejected"
+            )
             raise IntegrationProviderResponseError("integration provider failed")
         try:
             raw = response.json()
         except ValueError as exc:
+            observation.finish("invalid_response")
             raise IntegrationProviderResponseError("invalid provider response") from exc
         if not isinstance(raw, dict):
+            observation.finish("invalid_response")
             raise IntegrationProviderResponseError("invalid provider response")
+        observation.finish("success")
         return cast(dict[str, object], raw)

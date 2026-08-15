@@ -115,7 +115,7 @@ class PersistentExecutionMonitor(ExecutionMonitor):
             "automation.task.failed",
             execution_id,
             task_id=str(task.task_id),
-            error=error,
+            error_code="UNEXPECTED_ERROR",
         )
 
     def on_complete(

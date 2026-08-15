@@ -19,6 +19,7 @@ from app.domain.billing.errors import (
     BillingProviderUnavailable,
     BillingWebhookInvalid,
 )
+from app.observability.metrics import ProviderObservation
 
 
 class MercadoPagoBillingProvider:
@@ -48,6 +49,7 @@ class MercadoPagoBillingProvider:
         data = self._request(
             "POST",
             "/preapproval",
+            operation="create_checkout",
             idempotency_key=command.idempotency_key,
             json_data={
                 "preapproval_plan_id": command.provider_price_id,
@@ -86,6 +88,7 @@ class MercadoPagoBillingProvider:
         data = self._request(
             "PUT",
             f"/preapproval/{provider_subscription_id}",
+            operation="plan_change",
             idempotency_key=idempotency_key,
             json_data={
                 "auto_recurring": {
@@ -105,6 +108,7 @@ class MercadoPagoBillingProvider:
         data = self._request(
             "PUT",
             f"/preapproval/{provider_subscription_id}",
+            operation="cancel",
             idempotency_key=idempotency_key,
             json_data={"status": "canceled"},
         )
@@ -114,7 +118,11 @@ class MercadoPagoBillingProvider:
         self, provider_subscription_id: str
     ) -> ProviderSubscriptionSnapshot:
         return self._snapshot(
-            self._request("GET", f"/preapproval/{provider_subscription_id}")
+            self._request(
+                "GET",
+                f"/preapproval/{provider_subscription_id}",
+                operation="fetch_subscription",
+            )
         )
 
     def verify_and_normalize_webhook(
@@ -161,9 +169,11 @@ class MercadoPagoBillingProvider:
         method: str,
         path: str,
         *,
+        operation: str,
         idempotency_key: str | None = None,
         json_data: dict[str, object] | None = None,
     ) -> dict[str, object]:
+        observation = ProviderObservation("mercado_pago", operation)
         headers = {"Authorization": f"Bearer {self.access_token}"}
         if idempotency_key:
             headers["X-Idempotency-Key"] = idempotency_key
@@ -173,18 +183,29 @@ class MercadoPagoBillingProvider:
             )
             response.raise_for_status()
             data = response.json()
-        except (httpx.TimeoutException, httpx.NetworkError) as exc:
+        except httpx.TimeoutException as exc:
+            observation.finish("timeout")
+            raise BillingProviderUnavailable("billing provider unavailable") from exc
+        except httpx.NetworkError as exc:
+            observation.finish("network_error")
             raise BillingProviderUnavailable("billing provider unavailable") from exc
         except httpx.HTTPStatusError as exc:
             if exc.response.status_code >= 500:
+                observation.finish("provider_error")
                 raise BillingProviderUnavailable(
                     "billing provider unavailable"
                 ) from exc
+            observation.finish(
+                "rate_limited" if exc.response.status_code == 429 else "rejected"
+            )
             raise BillingProviderRejected("billing provider rejected request") from exc
         except (ValueError, TypeError) as exc:
+            observation.finish("invalid_response")
             raise BillingProviderRejected("invalid billing provider response") from exc
         if not isinstance(data, dict) or not all(isinstance(key, str) for key in data):
+            observation.finish("invalid_response")
             raise BillingProviderRejected("invalid billing provider response")
+        observation.finish("success")
         return {str(key): value for key, value in data.items()}
 
     @staticmethod

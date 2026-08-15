@@ -1,6 +1,8 @@
 from collections import Counter
 from threading import Lock
 
+from app.observability.metrics import safe_metric
+
 
 class AuditMetricsRegistry:
     """Low-cardinality in-process counters for PRD-017."""
@@ -22,6 +24,7 @@ class AuditMetricsRegistry:
         with self._lock:
             self._counts[key] += 1
             self._duration_ms[key] += max(0, duration_ms)
+        safe_metric("record_audit", metric, operation, result, duration_ms)
 
     def snapshot(self) -> dict[str, dict[tuple[str, str, str], int]]:
         with self._lock:

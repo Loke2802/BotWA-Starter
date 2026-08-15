@@ -9,6 +9,7 @@ from app.application.conversation_management.service import (
 )
 from app.application.human_handoff.service import HumanHandoffService
 from app.domain.channel.contracts import InboundChannelMessage, OutboundChannelMessage
+from app.observability.metrics import safe_metric
 
 
 class ManagedChannelConversationHandler(ChannelMessageHandler):
@@ -65,6 +66,7 @@ class ManagedChannelConversationHandler(ChannelMessageHandler):
             message.resolved_context.organization_id,
             conversation_id,
         ):
+            safe_metric("record_handoff", "bot_reply_suppressed", "success")
             self._management.mark_inbound_processed(
                 message.external_message_id,
                 message.channel_type,

@@ -1,5 +1,7 @@
 from threading import Lock
 
+from app.observability.metrics import safe_metric
+
 
 class BusinessCalendarMetrics:
     def __init__(self) -> None:
@@ -21,6 +23,10 @@ class BusinessCalendarMetrics:
                 self._open += 1
             else:
                 self._closed += 1
+        safe_metric(
+            "record_calendar_resolution",
+            state if state in {"open", "closed"} else "error",
+        )
 
     def record_version_conflict(self) -> None:
         with self._lock:

@@ -1,6 +1,8 @@
 from collections import Counter
 from threading import Lock
 
+from app.observability.metrics import safe_metric
+
 
 class DashboardMetrics:
     """Low-cardinality metrics; labels never contain tenant or user identity."""
@@ -16,6 +18,7 @@ class DashboardMetrics:
         with self._lock:
             self._requests[key] += 1
             self._duration_ms[key] += max(0, duration_ms)
+        safe_metric("record_dashboard", endpoint, result, duration_ms)
 
     def record_error(self, endpoint: str, result: str) -> None:
         with self._lock:

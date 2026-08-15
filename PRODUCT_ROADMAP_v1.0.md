@@ -1,6 +1,6 @@
 # BotWA Product Roadmap v1.0
 
-**Status:** PRD-001 through PRD-021 CLOSED; PRD-022 IMPLEMENTED — PENDING CTO REVIEW; PRD-023 NOT STARTED
+**Status:** PRD-001 through PRD-022 CLOSED; PRD-023 NOT STARTED
 **Date:** 2026-08-15
 
 ## Current State
@@ -30,10 +30,14 @@ workflow with derived current readiness and revision `20260813_0021`. PRD-021
 Security Hardening is CLOSED after normal merge PR #34 at
 `b4a9c3d682f88526f3fc9eef7ceb3d42c0d48981`, with final approved head
 `0eb2b6de48f3c86f0308c8d4933dcc4c2e382cc5` and Alembic `20260813_0022`.
-PRD-022 Observability is IMPLEMENTED — PENDING CTO REVIEW. It provides
+PRD-022 Observability is CLOSED after normal merge PR #36 at
+`134b649ac058ec74c287f77e1825aae61ed4f8b1`, with final approved implementation
+head `e261a4c5be1fde08d4da90f23cfbda4b9885174c`. It provides vendor-neutral,
 app-scoped Prometheus metrics, request correlation, safe JSON logging and
-PostgreSQL-only readiness without a migration or provider dependency. PRD-023 is
-not started.
+PostgreSQL-only readiness without observability persistence, a migration or a
+provider readiness dependency. Alembic remains one head at `20260813_0022`.
+Collection, dashboards, alerting, retention and deployment remain deferred;
+PRD-023 is not started.
 
 **MVP milestone:** PRD-001 through PRD-010.
 
@@ -62,7 +66,7 @@ not started.
 | 19 | PRD-019 Billing and Subscriptions | CLOSED |
 | 20 | PRD-020 Onboarding | CLOSED |
 | 21 | PRD-021 Security Hardening | CLOSED |
-| 22 | PRD-022 Observability | IMPLEMENTED — PENDING CTO REVIEW |
+| 22 | PRD-022 Observability | CLOSED |
 | 23 | PRD-023 CI/CD and Deployments | NOT STARTED |
 
 ## Release History
@@ -114,8 +118,7 @@ post-merge validation.
 - Core architecture remains stable.
 - New functionality must be tied to PRDs.
 - Quality gates remain mandatory.
-- PRD-001 through PRD-021 are closed. PRD-022 is implemented pending CTO
-  review; PRD-023 is not started.
+- PRD-001 through PRD-022 are closed. PRD-023 is not started.
 - PRD-010 documents lifecycle/RBAC, tenant isolation, suppression/resume,
   encrypted idempotent replies, archive protection, and migration chain
   `0010` → `0011` → `0012`.

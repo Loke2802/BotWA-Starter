@@ -2,7 +2,11 @@
 
 ## PRD-022 Observability v1 - 2026-08-15
 
-### IMPLEMENTED — PENDING CTO REVIEW
+### CLOSED after PR #36
+
+- Closed after normal merge PR #36 at
+  `134b649ac058ec74c287f77e1825aae61ed4f8b1`, with final approved implementation
+  head `e261a4c5be1fde08d4da90f23cfbda4b9885174c`.
 
 - Added app-scoped Prometheus registries, bounded HTTP/provider/domain metric
   families, shared latency histograms and fail-open bridges to existing in-memory
@@ -21,15 +25,18 @@
 - Standardized safe aggregate telemetry for Billing due transitions, Contacts
   backfill and Automation worker commands; removed free-form Automation error
   logging while preserving command and business semantics.
-- Added `prometheus-client`; no Alembic revision, table, tracing SDK, vendor APM,
-  monitoring deployment, alerting, CI/CD or PRD-023 implementation was added.
+- Added `prometheus-client`; no Alembic revision, database table, observability
+  persistence, tracing SDK, vendor APM, monitoring deployment, alerting, CI/CD or
+  PRD-023 implementation was added. Alembic remains one head at
+  `20260813_0022`.
 - Validation: focused PRD-022 27 passed; affected-domain regression 228 passed;
   real PostgreSQL readiness 1 passed; full pytest 891 passed, 36 skipped, 2
   warnings; mypy PASS across 485 source files; Ruff PASS; Black PASS across 485
   files; `git diff --check` PASS; Alembic remains one head at `20260813_0022`.
-- PRD-001 through PRD-021 remain CLOSED. PRD-022 is IMPLEMENTED — PENDING CTO
-  REVIEW. PRD-023 remains NOT STARTED. Live Meta, Google, and Mercado Pago smokes
-  remain external deployment gates requiring approved credentials.
+- PRD-001 through PRD-022 are CLOSED. PRD-023 remains NOT STARTED. Live Meta,
+  Google, and Mercado Pago smokes remain external deployment gates requiring
+  approved credentials; Prometheus/Grafana, collectors, dashboards, alerts,
+  retention, network policy and deployment automation remain PRD-023 scope.
 
 ## PRD-021 Security Hardening v1 - 2026-08-13
 

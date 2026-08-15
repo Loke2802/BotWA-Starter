@@ -2,8 +2,8 @@
 
 **Date:** 2026-08-15
 **Role:** Lead Engineer  
-**Project phase:** Phase 3 - PRD-022 IMPLEMENTED — PENDING CTO REVIEW
-**Status source:** PRD-022 implementation branch
+**Project phase:** Phase 3 - PRD-022 CLOSED; PRD-023 NOT STARTED
+**Status source:** PRD-022 documentation closure after PR #36
 
 ## Executive Summary
 
@@ -102,12 +102,16 @@ Owner invariants, default 48-hour/200-row bounded rate-limit retention and
 same-transaction Audit expansion. Revision
 `20260813_0022` contains only the HMAC rate-limit persistence.
 
-PRD-022 Observability is IMPLEMENTED — PENDING CTO REVIEW. It adds app-scoped
-Prometheus registries, request correlation, safe JSON logging, protected metrics,
-bounded provider/domain telemetry and PostgreSQL-only readiness. It adds no
-observability persistence or migration, keeps all providers outside readiness,
-defers full tracing, deployment, collection and alerting, and does not start
-PRD-023.
+PRD-022 Observability is CLOSED after normal merge PR #36 at
+`134b649ac058ec74c287f77e1825aae61ed4f8b1`, with final approved implementation
+head `e261a4c5be1fde08d4da90f23cfbda4b9885174c`. It provides vendor-neutral
+operational observability through request-scoped correlation, safe JSON logging,
+app-scoped local Prometheus metrics with bounded cardinality, protected metrics,
+bounded provider/domain telemetry and separate process liveness from
+PostgreSQL-only readiness. It adds no observability persistence, table or
+migration, keeps all providers outside readiness, defers full tracing,
+deployment, collection, dashboards, retention and alerting, and does not start
+PRD-023. Alembic remains one head at `20260813_0022`.
 
 ## Quality Gates
 
@@ -148,7 +152,7 @@ PRD-023.
 | PRD-019 Billing & Subscriptions | CLOSED |
 | PRD-020 Onboarding | CLOSED |
 | PRD-021 Security Hardening | CLOSED |
-| PRD-022 Observability | IMPLEMENTED — PENDING CTO REVIEW |
+| PRD-022 Observability | CLOSED |
 | PRD-023 CI/CD and Deployments | NOT STARTED |
 
 ## PRD-004 Bot Management
@@ -308,8 +312,7 @@ Only the following items remain pending:
 
 ## Next Official Objective
 
-**PRD-001 through PRD-021 are CLOSED. PRD-022 is IMPLEMENTED — PENDING CTO
-REVIEW. PRD-023 remains NOT STARTED.**
+**PRD-001 through PRD-022 are CLOSED. PRD-023 remains NOT STARTED.**
 
 ## PRD-010 through PRD-015 Status
 
@@ -335,7 +338,9 @@ PR #30 at `5a87ffc32be4315ebb6f9e64826bdb96f36ada58`, final approved
 implementation head `2a15b7f022c2989d73bb97d9b964495dba961778`; PRD-020 is
 CLOSED after PR #32 at `47b589df54282145ddce7b745ef208bb80321143`, final approved
 head `15564c245067952a74f19987370b6d5037de65a1`. PRD-021 is CLOSED after PR #34;
-PRD-022 is IMPLEMENTED — PENDING CTO REVIEW; PRD-023 remains NOT STARTED.
+PRD-022 is CLOSED after normal merge PR #36 at
+`134b649ac058ec74c287f77e1825aae61ed4f8b1`, final approved implementation head
+`e261a4c5be1fde08d4da90f23cfbda4b9885174c`; PRD-023 remains NOT STARTED.
 
 ## CTO Review Status
 

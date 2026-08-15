@@ -9,7 +9,8 @@ from sqlalchemy import create_engine, inspect, text
 def isolate_postgresql_smoke_data() -> Generator[None]:
     """Keep every explicit PostgreSQL smoke independent while preserving Alembic."""
     database_url = (
-        os.getenv("BOTWA_PRD021_POSTGRES_URL")
+        os.getenv("BOTWA_PRD022_POSTGRES_URL")
+        or os.getenv("BOTWA_PRD021_POSTGRES_URL")
         or os.getenv("BOTWA_PRD019_POSTGRES_URL")
         or os.getenv("BOTWA_PRD018_POSTGRES_URL")
         or os.getenv("BOTWA_PRD017_POSTGRES_URL")

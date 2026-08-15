@@ -1,10 +1,28 @@
 # PRD-022 — Observability v1
 
-**Status:** IMPLEMENTED — PENDING CTO REVIEW
+**Status:** CLOSED
 
 **Date:** 2026-08-15
 
 **Alembic head:** `20260813_0022` (unchanged; no PRD-022 migration)
+
+## Closure record
+
+- Implementation PR: **#36**.
+- Merge method: **normal merge commit**.
+- Implementation merge SHA:
+  `134b649ac058ec74c287f77e1825aae61ed4f8b1`.
+- Final approved implementation head:
+  `e261a4c5be1fde08d4da90f23cfbda4b9885174c`.
+- Alembic remains **one head** at `20260813_0022`.
+
+Canonical architecture statement:
+
+> PRD-022 Observability v1 provides vendor-neutral operational observability
+> through request-scoped correlation context, safe JSON logs, bounded-cardinality
+> local Prometheus metrics, and separate liveness/readiness endpoints, without its
+> own persistence, without turning external providers into readiness dependencies,
+> and leaving collectors, dashboards, alerts, and deployment to PRD-023.
 
 ## Outcome
 
@@ -16,7 +34,8 @@ make an external provider a global readiness dependency.
 
 ## Architecture
 
-`ObservabilityRuntime` is created by each `create_app()` call and owns:
+`ObservabilityRuntime` is created by each `create_app()` call and uses
+`prometheus-client` to own:
 
 - one private Prometheus `CollectorRegistry`;
 - the closed metric families registered in that registry;
@@ -41,6 +60,8 @@ effective value is:
 
 Correlation IDs are never metric labels. One-shot commands create their own
 ephemeral correlation UUID and do not persist it solely for observability.
+Correlation is not an idempotency key, OAuth state, provider event identifier,
+request authentication mechanism, or tenant scope.
 
 ## Structured logging
 
@@ -50,15 +71,17 @@ one safe failure event for server errors. Unexpected exceptions use a closed
 `error_code` and never log the exception string. Uvicorn's duplicate access logger
 is disabled.
 
-Logs introduced by this PRD contain no message body, webhook body, email, phone,
-token, OAuth code/state, provider response, database URL, or free-form automation
-error. Request-body rejection uses a bounded route classification rather than the
-raw path. Existing secret-query filtering remains active.
+Logs introduced by this PRD contain no WhatsApp or Knowledge content, message or
+webhook body, email, phone, token, OAuth code/state, raw provider payload or
+response, database URL, arbitrary exception text, or free-form automation error.
+Request-body rejection uses a bounded route classification rather than the raw
+path. Existing secret-query filtering remains active.
 
 ## Prometheus endpoint and security
 
 `GET /metrics` exposes only the app registry in Prometheus text format.
 
+- Metrics are disabled by default.
 - `metrics_enabled=false` returns safe `404`.
 - Enabled metrics require `Authorization: Bearer <dedicated-token>`.
 - Comparison uses `hmac.compare_digest`.
@@ -67,8 +90,14 @@ raw path. Existing secret-query filtering remains active.
   authentication, rate-limit, Audit cursor, or OAuth-state secrets.
 - Successful scrapes are excluded from HTTP request metrics and INFO logs.
 
+The endpoint is infrastructure-scoped, not tenant-scoped and not gated by
+`PlanEnforcementService`. It is cheap, read-only, and performs no database or
+provider call. Metrics are runtime-local: there is no DB-backed counter, push
+exporter, or vendor telemetry SDK.
+
 Token provisioning, TLS/network restriction, scrape configuration, deployment,
-and rotation belong to PRD-023.
+and rotation belong to PRD-023. This closure does not claim those controls are
+already deployed.
 
 ## HTTP metrics
 
@@ -122,6 +151,19 @@ All label entry points validate closed values. Labels never contain Organization
 Bot, User, Conversation, Contact, correlation or provider-event identifiers,
 email, phone, idempotency key, raw URL, raw exception, plan code, or secret.
 
+Authentication telemetry is security-normalized and never exposes account
+existence/state, email, or IP through metric labels. Rate-limit telemetry uses
+only scopes `auth_login`, `public_bootstrap`, `whatsapp_webhook`, and
+`billing_webhook`, with results `allowed`, `blocked`, and `persistence_error`;
+identity, IP, email and HMAC key/hash are excluded.
+
+The finalized metric semantics also ensure that Audit duration is exported in
+true seconds, Dashboard duration uses actual histogram observations, Calendar
+`active_overrides` is not modeled as an invalid global gauge, no unused
+`external_imports` metric is exported without a producer, and provider/result
+labels cannot be free-form. These signals are operational telemetry, not
+business/product analytics; PRD-016 remains that boundary.
+
 ## Health contracts
 
 - `GET /health` remains compatible and returns `200 {"status":"ok"}`.
@@ -137,13 +179,21 @@ with a safe code. The former lifespan HTTPBin integration checker is removed.
 Tenant-specific integration health remains on-demand domain behavior and is not
 global readiness.
 
+Liveness never calls the database or a provider, mutates state, runs migrations,
+or performs reconciliation; database failure therefore does not fail liveness.
+Readiness is read-only and performs one bounded `SELECT 1`: healthy returns
+`200 ready`, while unavailable PostgreSQL returns `503 not_ready` without a DB
+URL, host, database name, raw exception, or pool internals. Meta, Google Calendar,
+and Mercado Pago outages degrade only their own domains and never make the whole
+application unready. No arbitrary external URL participates in health/readiness.
+
 ## Command telemetry
 
 Billing due transitions, Contacts backfill, and the Automation worker emit
 `operation_started`, `operation_completed`, and safe `operation_failed` events.
 Summaries expose only aggregate counts, dry-run where applicable, and monotonic
-`duration_ms`. Existing return/exit semantics are preserved and no tenant or
-resource identifier is logged.
+`duration_ms`, plus internal run correlation. Existing return/exit semantics are
+preserved and no tenant or resource identifier is logged.
 
 ## Failure semantics
 
@@ -154,6 +204,32 @@ resource identifier is logged.
 - Provider outage affects only the calling domain, never global readiness.
 - Metric scrape performs no database or provider call.
 - No SQL query logging or observability table exists.
+
+Audit remains the separately fail-closed, transactional administrative ledger.
+Metrics/logging remain fail-open and cannot roll back Billing, WhatsApp, Calendar,
+Knowledge, Users, or another business mutation.
+
+## Persistence, process and tracing model
+
+There are no observability tables, telemetry retention in the application DB,
+database metric aggregations, or migrations. Metrics are runtime/local and logs
+go to stdout/stderr; external retention belongs to deployment infrastructure.
+Each process owns an app-scoped registry, and an external scraper aggregates
+instances. PRD-022 adds neither app-generated instance UUID labels nor shared
+PostgreSQL counters. If multiple workers per container are adopted, PRD-023 must
+define an explicit Prometheus multiprocess strategy or deployment model.
+
+Full OpenTelemetry tracing is deferred. PRD-022 adds no OTel SDK, OTLP,
+Jaeger/Tempo or trace persistence; the correlation foundation remains compatible
+with future tracing.
+
+## Preserved security boundary
+
+PRD-022 does not weaken PRD-021. The production startup validator, JWT
+restrictions, inactive Organization protection, legacy/public-bootstrap shutdown,
+rate limiting, body limits, TrustedHost, CORS, security headers, production
+OpenAPI policy, fail-closed Audit, secret redaction and non-root Docker execution
+remain authoritative.
 
 ## Recommended alerts (PRD-023 handoff)
 
@@ -190,6 +266,9 @@ deploy alerts or notification integrations.
 
 External Meta, Google, and Mercado Pago live smokes are not closure gates for this
 PRD and remain deployment enablement gates requiring approved credentials.
+PRD-022 does not close the real Meta live smoke, real Google validation, or real
+Mercado Pago sandbox/commercial validation; each remains required before enabling
+the corresponding integration in staging or production.
 
 ## Non-goals and PRD-023 boundary
 
@@ -199,7 +278,10 @@ Loki/ELK, vendor APM, alert deployment, paging/Slack/email automation, synthetic
 monitoring, profiling/eBPF, business analytics, tenant observability UI, Audit
 replacement, SQL logging, log files/rotation, provider reconciliation from health,
 automatic migration, WebSockets, Kubernetes, CI/CD, deployment automation,
-dependency scanning, retention, environment/instance deployment labels, or
-PRD-023 implementation.
+dependency scanning, retention, environment/instance scrape labels, container
+orchestration, monitoring credentials, metrics-token provisioning, or TLS/network
+restrictions. Prometheus scrape configuration, Grafana/dashboard deployment,
+log-collector deployment, Loki/ELK, alert rules and PagerDuty/Slack/email routing
+all remain PRD-023 work.
 
-PRD-001 through PRD-021 remain **CLOSED**. PRD-023 remains **NOT STARTED**.
+PRD-001 through PRD-022 are **CLOSED**. PRD-023 remains **NOT STARTED**.

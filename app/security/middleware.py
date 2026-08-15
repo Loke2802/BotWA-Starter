@@ -4,6 +4,8 @@ from starlette.requests import ClientDisconnect
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from app.observability.metrics import safe_metric
+
 logger = structlog.get_logger(__name__)
 
 
@@ -64,7 +66,15 @@ class RequestBodyLimitMiddleware:
             await self._response(scope, send)
 
     async def _reject(self, scope: Scope, send: Send) -> None:
-        logger.warning("request_body_rejected", path=scope.get("path", ""))
+        path = str(scope.get("path", ""))
+        route = "__pre_routing__"
+        if path.startswith("/webhooks/whatsapp/"):
+            route = "/webhooks/whatsapp/{public_webhook_id}"
+            safe_metric("record_whatsapp_webhook", "oversized")
+        elif path == "/webhooks/billing/mercado-pago":
+            route = path
+            safe_metric("record_billing", "webhook", "oversized")
+        logger.warning("request_body_rejected", route=route)
         await self._response(scope, send)
 
     @staticmethod

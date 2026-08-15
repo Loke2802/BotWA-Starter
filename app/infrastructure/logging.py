@@ -55,6 +55,7 @@ def configure_logging(log_level: str) -> None:
         stream=sys.stdout,
     )
     access_logger = logging.getLogger("uvicorn.access")
+    access_logger.disabled = True
     if not any(
         isinstance(log_filter, SensitiveQueryParameterFilter)
         for log_filter in access_logger.filters

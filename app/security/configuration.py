@@ -45,6 +45,23 @@ class SecurityConfigurationValidator:
             failures.append("rate_limit_hmac_key")
         if len(settings.audit_cursor_signing_key) < 32:
             failures.append("audit_cursor_signing_key")
+        if settings.metrics_enabled:
+            metrics_token = (
+                settings.metrics_bearer_token.get_secret_value()
+                if settings.metrics_bearer_token is not None
+                else ""
+            )
+            reused_secrets = {
+                settings.auth_secret_key,
+                settings.rate_limit_hmac_key,
+                settings.audit_cursor_signing_key,
+                settings.integration_oauth_state_secret,
+            }
+            if (
+                not self._is_strong_secret(metrics_token)
+                or metrics_token in reused_secrets
+            ):
+                failures.append("metrics_bearer_token")
         if len(settings.integration_oauth_state_secret) < 32:
             failures.append("oauth_state_signing_key")
         if len(settings.contact_identity_hmac_key) < 32:

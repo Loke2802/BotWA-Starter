@@ -2,7 +2,7 @@ from enum import StrEnum
 from functools import lru_cache
 from typing import Annotated, Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     app_name: str = "BotWA Starter"
     environment: Environment = Environment.DEVELOPMENT
     log_level: str = "INFO"
+    metrics_enabled: bool = False
+    metrics_bearer_token: SecretStr | None = None
+    health_db_timeout_seconds: float = Field(default=2.0, ge=0.1, le=10.0)
     api_version: str = "v1"
     database_url: str = Field(
         default="postgresql+psycopg://botwa:botwa@localhost:5432/botwa"

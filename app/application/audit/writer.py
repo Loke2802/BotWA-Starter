@@ -11,6 +11,7 @@ from app.domain.audit.contracts import (
 )
 from app.domain.audit.ports import AuditWriter
 from app.domain.user.contracts import User
+from app.observability.context import current_correlation_id
 
 
 def append_user_audit(
@@ -35,7 +36,7 @@ def append_user_audit(
             resource_type=resource_type,
             resource_id=resource_id,
             metadata=metadata or EmptyMetadata(),
-            correlation_id=correlation_id,
+            correlation_id=correlation_id or current_correlation_id(),
             occurred_at=occurred_at or datetime.now(UTC),
         )
     )
@@ -63,7 +64,7 @@ def append_non_user_audit(
             resource_type=resource_type,
             resource_id=resource_id,
             metadata=metadata or EmptyMetadata(),
-            correlation_id=correlation_id,
+            correlation_id=correlation_id or current_correlation_id(),
             occurred_at=occurred_at or datetime.now(UTC),
         )
     )

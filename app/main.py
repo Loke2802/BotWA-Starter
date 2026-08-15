@@ -17,7 +17,6 @@ from app.api.conversation_management_routes import (
     router as conversation_management_router,
 )
 from app.api.dashboard_routes import router as dashboard_router
-from app.api.dependencies import get_integration_health_checker
 from app.api.human_handoff_routes import router as human_handoff_router
 from app.api.integration_management_routes import (
     oauth_router as integration_oauth_router,
@@ -50,6 +49,9 @@ from app.domain.plans.errors import (
 from app.infrastructure.database import engine
 from app.infrastructure.logging import configure_logging
 from app.infrastructure.settings import get_settings
+from app.observability.middleware import ObservabilityMiddleware
+from app.observability.routes import router as observability_router
+from app.observability.runtime import ObservabilityRuntime
 from app.security.configuration import SecurityConfigurationValidator
 from app.security.middleware import (
     RequestBodyLimitMiddleware,
@@ -59,10 +61,8 @@ from app.security.middleware import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
-    health_checker = get_integration_health_checker()
-    await health_checker.start_periodic_check()
     yield
-    await health_checker.stop_periodic_check()
+    app.state.observability.close()
     engine.dispose()
 
 
@@ -81,6 +81,7 @@ def create_app() -> FastAPI:
         redoc_url="/redoc" if settings.effective_openapi_enabled else None,
         openapi_url="/openapi.json" if settings.effective_openapi_enabled else None,
     )
+    app.state.observability = ObservabilityRuntime.build(settings)
 
     app.add_middleware(
         RequestBodyLimitMiddleware,
@@ -103,8 +104,19 @@ def create_app() -> FastAPI:
             allow_origins=list(settings.cors_origins),
             allow_credentials=settings.cors_allow_credentials,
             allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-            allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],
+            allow_headers=[
+                "Authorization",
+                "Content-Type",
+                "Idempotency-Key",
+                "X-Correlation-ID",
+            ],
+            expose_headers=["X-Correlation-ID"],
         )
+
+    app.add_middleware(
+        ObservabilityMiddleware,
+        metrics=app.state.observability.metrics,
+    )
 
     @app.exception_handler(PlanError)
     async def handle_plan_error(_request: Request, exc: PlanError) -> JSONResponse:
@@ -121,7 +133,24 @@ def create_app() -> FastAPI:
             detail["limit_key"] = exc.limit_key
         return JSONResponse(status_code=code, content={"detail": detail})
 
+    @app.exception_handler(Exception)
+    async def handle_unexpected_error(
+        request: Request, _exc: Exception
+    ) -> JSONResponse:
+        correlation_id = getattr(request.state, "correlation_id", None)
+        headers = (
+            {"X-Correlation-ID": str(correlation_id)}
+            if correlation_id is not None
+            else None
+        )
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"detail": {"code": "INTERNAL_SERVER_ERROR"}},
+            headers=headers,
+        )
+
     app.include_router(router)
+    app.include_router(observability_router)
     if settings.public_bootstrap_enabled:
         app.include_router(bootstrap_router)
     if settings.legacy_core_api_enabled:

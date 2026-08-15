@@ -1,7 +1,7 @@
 # BotWA Starter - Context For AI Assistants
 
-**Last updated:** 2026-08-13
-**Project phase:** Phase 3 - PRD-021 CLOSED
+**Last updated:** 2026-08-15
+**Project phase:** Phase 3 - PRD-022 IMPLEMENTED — PENDING CTO REVIEW
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
@@ -56,8 +56,11 @@ with a
 fail-closed production profile, legacy shutdown, normalized/rate-limited auth,
 streaming body limits, inactive-Organization enforcement, concurrency-safe Owner
 invariants, default 48-hour/200-row bounded rate-limit retention, sensitive Audit
-expansion and Alembic `20260813_0022`. PRD-022 and
-PRD-023 remain NOT STARTED.
+expansion and Alembic `20260813_0022`. PRD-022 Observability is IMPLEMENTED —
+PENDING CTO REVIEW with app-scoped Prometheus registries, global request
+correlation, safe JSON logs, protected metrics, bounded provider/domain telemetry
+and PostgreSQL-only readiness. It adds no migration, persistence, provider
+readiness, tracing deployment or PRD-023 work. PRD-023 remains NOT STARTED.
 
 All five core engines are implemented and closed:
 
@@ -75,14 +78,13 @@ Current validated gates:
 
 | Gate | Result |
 |---|---|
-| `pytest` | 864 passed, 35 skipped, 2 warnings |
-| Focused PRD-021 | 19 passed |
-| Affected security regression | 129 passed |
-| PostgreSQL PRD-021 | 6 passed |
-| PostgreSQL migration cycle | `0021 → 0022 → 0021 → 0022` PASS |
+| `pytest` | 891 passed, 36 skipped, 2 warnings |
+| Focused PRD-022 | 27 passed |
+| Affected-domain regression | 228 passed |
+| PostgreSQL readiness PRD-022 | 1 passed |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 473 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 473 source files |
+| `black --check app tests` | 485 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 485 source files |
 | `git diff --check` | PASS |
 
 ## Infrastructure Validation
@@ -117,7 +119,8 @@ Current validated gates:
 
 ## Current Official Objective
 
-PRD-001 through PRD-021 are CLOSED. PRD-022 and PRD-023 remain NOT STARTED.
+PRD-001 through PRD-021 are CLOSED. PRD-022 is IMPLEMENTED — PENDING CTO
+REVIEW. PRD-023 remains NOT STARTED.
 
 **Phase 3**
 
@@ -144,7 +147,7 @@ PRD-001 through PRD-021 are CLOSED. PRD-022 and PRD-023 remain NOT STARTED.
 | 19 | PRD-019 Billing & Subscriptions | CLOSED |
 | 20 | PRD-020 Onboarding | CLOSED |
 | 21 | PRD-021 Security Hardening | CLOSED |
-| 22 | PRD-022 Observability | NOT STARTED |
+| 22 | PRD-022 Observability | IMPLEMENTED — PENDING CTO REVIEW |
 | 23 | PRD-023 CI/CD and Deployments | NOT STARTED |
 
 The MVP milestone comprises PRD-001 through PRD-010.
@@ -266,6 +269,6 @@ PR #30, merge commit `5a87ffc32be4315ebb6f9e64826bdb96f36ada58`, final approved
 implementation head `2a15b7f022c2989d73bb97d9b964495dba961778`. PRD-020 is
 CLOSED after PR #32 at `47b589df54282145ddce7b745ef208bb80321143`, final approved
 head `15564c245067952a74f19987370b6d5037de65a1`. PRD-021 is CLOSED after PR #34;
-PRD-022 and PRD-023 are NOT STARTED.
+PRD-022 is IMPLEMENTED — PENDING CTO REVIEW; PRD-023 is NOT STARTED.
 Billing commercial enablement remains BLOCKED pending
 approved configuration and the real Mercado Pago sandbox smoke.

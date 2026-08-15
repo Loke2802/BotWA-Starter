@@ -1,19 +1,18 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-021 CLOSED
+## Estado actual - Phase 3 / PRD-022 IMPLEMENTED — PENDING CTO REVIEW
 
-Quality Gates (validación técnica PRD-021):
+Quality Gates (validación técnica PRD-022):
 
 | Gate | Resultado |
 |------|-----------|
-| `pytest` | **864 passed, 35 skipped, 2 warnings** |
-| PRD-021 focalizadas | **19 passed** |
-| Regresión de seguridad afectada | **129 passed** |
-| PostgreSQL PRD-021 | **6 passed** |
-| Ciclo PostgreSQL | **0021 → 0022 → 0021 → 0022 PASS** |
+| `pytest` | **891 passed, 36 skipped, 2 warnings** |
+| PRD-022 focalizadas | **27 passed** |
+| Regresión de dominios afectados | **228 passed** |
+| PostgreSQL readiness PRD-022 | **1 passed** |
 | `ruff check app tests` | **All checks passed** |
-| `black --check app tests` | **473 files would be left unchanged** |
-| `mypy app tests` | **Success: no issues found in 473 source files** |
+| `black --check app tests` | **485 files would be left unchanged** |
+| `mypy app tests` | **Success: no issues found in 485 source files** |
 | `git diff --check` | **PASS** |
 | Alembic | **20260813_0022 (head)** |
 
@@ -29,8 +28,16 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial: **PRD-001 a PRD-021 CLOSED; PRD-022 y PRD-023 permanecen NOT
-STARTED.**
+Estado oficial: **PRD-001 a PRD-021 CLOSED; PRD-022 IMPLEMENTED — PENDING CTO
+REVIEW; PRD-023 permanece NOT STARTED.**
+
+PRD-022 añade Observability v1 vendor-neutral: `X-Correlation-ID` UUID
+request-scoped, logs JSON seguros, registros Prometheus aislados por app, métricas
+HTTP/proveedor/dominio con cardinalidad cerrada, `/metrics` protegido y health
+separado en liveness y readiness PostgreSQL. No añade persistencia ni migración,
+no convierte proveedores externos en dependencias globales y no inicia PRD-023.
+La instalación de Prometheus/Grafana/colectores/alertas, el aprovisionamiento del
+token y las políticas TLS/red pertenecen a PRD-023.
 
 PRD-021 cierra los seis findings HIGH con startup de producción fail-closed,
 algoritmo JWT cerrado, claves dedicadas, autenticación normalizada y limitada,
@@ -758,7 +765,7 @@ PRD-001 through PRD-012 are closed. PRD-010 adds a tenant-scoped handoff
 lifecycle, bot suppression, encrypted and attributed human replies through the
 generic channel sender, idempotency, archive protection, and safe transport
 errors. PRD-011 adds the Contact increment; Customer is deferred and CRM is not
-implemented. PRD-012 through PRD-021 are closed; PRD-022 and PRD-023 are not
-started. Real
+implemented. PRD-012 through PRD-021 are closed; PRD-022 is implemented pending
+CTO review and PRD-023 is not started. Real
 Meta and Google validation need explicit external credentials.
 

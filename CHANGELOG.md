@@ -1,5 +1,36 @@
 # Changelog
 
+## PRD-022 Observability v1 - 2026-08-15
+
+### IMPLEMENTED — PENDING CTO REVIEW
+
+- Added app-scoped Prometheus registries, bounded HTTP/provider/domain metric
+  families, shared latency histograms and fail-open bridges to existing in-memory
+  producers without observability persistence.
+- Added global request correlation with UUID validation/generation, response
+  propagation, Structlog context cleanup and automatic Audit draft propagation.
+- Added protected `/metrics`, production fail-closed dedicated-token validation,
+  safe unmatched route labels and exclusion of health/scrape traffic.
+- Added compatible `/health`, process-only `/health/live`, and PostgreSQL-only
+  `/health/ready` using an isolated bounded `SELECT 1`; removed the lifespan
+  HTTPBin checker and kept all providers outside global readiness.
+- Instrumented Meta, Google Calendar and Mercado Pago adapter boundaries plus
+  WhatsApp, auth, rate limiting, Handoff, Conversation, Automation, Calendar,
+  Audit, Analytics, Dashboard, Plan, Billing and Onboarding operations with closed
+  labels and no tenant/resource identifiers, PII, secrets or raw exceptions.
+- Standardized safe aggregate telemetry for Billing due transitions, Contacts
+  backfill and Automation worker commands; removed free-form Automation error
+  logging while preserving command and business semantics.
+- Added `prometheus-client`; no Alembic revision, table, tracing SDK, vendor APM,
+  monitoring deployment, alerting, CI/CD or PRD-023 implementation was added.
+- Validation: focused PRD-022 27 passed; affected-domain regression 228 passed;
+  real PostgreSQL readiness 1 passed; full pytest 891 passed, 36 skipped, 2
+  warnings; mypy PASS across 485 source files; Ruff PASS; Black PASS across 485
+  files; `git diff --check` PASS; Alembic remains one head at `20260813_0022`.
+- PRD-001 through PRD-021 remain CLOSED. PRD-022 is IMPLEMENTED — PENDING CTO
+  REVIEW. PRD-023 remains NOT STARTED. Live Meta, Google, and Mercado Pago smokes
+  remain external deployment gates requiring approved credentials.
+
 ## PRD-021 Security Hardening v1 - 2026-08-13
 
 ### CLOSED after PR #34

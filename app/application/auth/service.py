@@ -6,6 +6,7 @@ from app.application.users.service import (
     UserService,
 )
 from app.domain.user.contracts import TokenResponse, User
+from app.observability.metrics import safe_metric
 from app.security.tokens import AccessTokenService, TokenError
 
 logger = structlog.get_logger(__name__)
@@ -36,6 +37,7 @@ class AuthService:
         model = self._user_service.find_by_email(email)
         if model is None:
             self._user_service.verify_dummy_password(password)
+            safe_metric("record_authentication", "failure")
             logger.info("authentication_failed", reason_code="credentials")
             raise AuthInvalidCredentialsError("invalid credentials")
         password_valid = self._user_service.verify_password(
@@ -46,11 +48,13 @@ class AuthService:
             or self._user_service.organization_is_active(model.organization_id)
         )
         if not password_valid or not account_active:
+            safe_metric("record_authentication", "failure")
             logger.info("authentication_failed", reason_code="credentials")
             raise AuthInvalidCredentialsError("invalid credentials")
 
         self._user_service.record_login(model)
         token = self._token_service.create(model.id, model.auth_version)
+        safe_metric("record_authentication", "success")
         return TokenResponse(
             access_token=token,
             expires_in=self._token_service.expires_seconds,

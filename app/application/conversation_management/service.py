@@ -27,6 +27,8 @@ from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.human_handoff import HandoffSessionModel
 from app.infrastructure.models.message import MessageModel
 from app.infrastructure.repositories.bot_repository import BotRepository
+from app.observability.instrumentation import observe_conversation
+from app.observability.metrics import safe_metric
 from app.security.authorization import AuthorizationError, require_scoped_permission
 from app.security.secret_cipher import SecretCipher
 
@@ -60,6 +62,7 @@ class ConversationManagementService:
         self._session = session
         self._audit_writer = audit_writer
 
+    @observe_conversation("message_persist")
     def record_inbound(
         self,
         message: InboundChannelMessage,
@@ -68,7 +71,7 @@ class ConversationManagementService:
         contact_id: UUID | None = None,
     ) -> ConversationModel:
         context = message.resolved_context
-        conversation, _ = self._conversations.get_or_create(
+        conversation, created = self._conversations.get_or_create(
             ConversationModel(
                 id=conversation_id,
                 company_id=str(context.organization_id),
@@ -114,6 +117,8 @@ class ConversationManagementService:
         )
         del record
         self._commit()
+        if created:
+            safe_metric("record_conversation", "create", "success")
         return conversation
 
     def _associate_contact(
@@ -155,6 +160,7 @@ class ConversationManagementService:
             record.delivery_status = target
             self._commit()
 
+    @observe_conversation("message_persist")
     def record_outbound(
         self,
         outbound: OutboundChannelMessage,
@@ -332,6 +338,8 @@ class ConversationManagementService:
             occurred_at=occurred_at,
         )
         self._commit()
+        if target == "archived":
+            safe_metric("record_conversation", "archive", "success")
         return _detail(model)
 
     def _get_scoped(

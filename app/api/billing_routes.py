@@ -31,6 +31,7 @@ from app.domain.billing.errors import (
 )
 from app.domain.user.contracts import User
 from app.infrastructure.settings import get_settings
+from app.observability.metrics import safe_metric
 from app.security.rate_limit import RateLimitService
 
 router = APIRouter(prefix="/organizations/{organization_id}/billing", tags=["billing"])
@@ -144,6 +145,7 @@ async def mercado_pago_webhook(
     )
     body = await request.body()
     if len(body) > get_settings().billing_webhook_max_body_bytes:
+        safe_metric("record_billing", "webhook", "oversized")
         raise HTTPException(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail={"code": "BILLING_WEBHOOK_INVALID"},
@@ -155,4 +157,6 @@ async def mercado_pago_webhook(
             dict(request.query_params),
         )
     except BillingError as exc:
+        if isinstance(exc, BillingWebhookInvalid):
+            safe_metric("record_billing", "webhook", "signature_invalid")
         raise_billing_error(exc)

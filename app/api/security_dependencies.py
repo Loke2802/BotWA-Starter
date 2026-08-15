@@ -9,6 +9,7 @@ from app.infrastructure.repositories.security_rate_limit_repository import (
     SqlAlchemyRateLimitRepository,
 )
 from app.infrastructure.settings import Environment, get_settings
+from app.observability.metrics import safe_metric
 from app.security.rate_limit import InMemoryRateLimitRepository, RateLimitService
 
 _development_repository = InMemoryRateLimitRepository()
@@ -66,13 +67,22 @@ def enforce_rate_limit(
     else:
         limit = settings.webhook_rate_limit_attempts
         window = settings.webhook_rate_limit_window_seconds
-    decision = service.check(
-        scope=scope,
-        identity=f"{subject}|{client_origin(request)}",
-        limit=limit,
-        window_seconds=window,
+    try:
+        decision = service.check(
+            scope=scope,
+            identity=f"{subject}|{client_origin(request)}",
+            limit=limit,
+            window_seconds=window,
+        )
+    except Exception:
+        safe_metric("record_rate_limit", scope, "persistence_error")
+        raise
+    safe_metric(
+        "record_rate_limit", scope, "allowed" if decision.allowed else "blocked"
     )
     if not decision.allowed:
+        if scope == "whatsapp_webhook":
+            safe_metric("record_whatsapp_webhook", "rate_limited")
         logger.warning(
             (
                 "authentication_rate_limited"

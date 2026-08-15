@@ -1,7 +1,7 @@
 # BotWA Product Roadmap v1.0
 
-**Status:** PRD-001 through PRD-021 CLOSED; PRD-022 through PRD-023 NOT STARTED
-**Date:** 2026-08-13
+**Status:** PRD-001 through PRD-021 CLOSED; PRD-022 IMPLEMENTED — PENDING CTO REVIEW; PRD-023 NOT STARTED
+**Date:** 2026-08-15
 
 ## Current State
 
@@ -30,7 +30,10 @@ workflow with derived current readiness and revision `20260813_0021`. PRD-021
 Security Hardening is CLOSED after normal merge PR #34 at
 `b4a9c3d682f88526f3fc9eef7ceb3d42c0d48981`, with final approved head
 `0eb2b6de48f3c86f0308c8d4933dcc4c2e382cc5` and Alembic `20260813_0022`.
-PRD-022 and PRD-023 are not started.
+PRD-022 Observability is IMPLEMENTED — PENDING CTO REVIEW. It provides
+app-scoped Prometheus metrics, request correlation, safe JSON logging and
+PostgreSQL-only readiness without a migration or provider dependency. PRD-023 is
+not started.
 
 **MVP milestone:** PRD-001 through PRD-010.
 
@@ -59,7 +62,7 @@ PRD-022 and PRD-023 are not started.
 | 19 | PRD-019 Billing and Subscriptions | CLOSED |
 | 20 | PRD-020 Onboarding | CLOSED |
 | 21 | PRD-021 Security Hardening | CLOSED |
-| 22 | PRD-022 Observability | NOT STARTED |
+| 22 | PRD-022 Observability | IMPLEMENTED — PENDING CTO REVIEW |
 | 23 | PRD-023 CI/CD and Deployments | NOT STARTED |
 
 ## Release History
@@ -75,14 +78,14 @@ PRD-022 and PRD-023 are not started.
 
 | Gate | Result |
 |---|---|
-| `pytest` | 864 passed, 35 skipped, 2 warnings |
-| Focused PRD-021 | 19 passed |
-| Affected security regression | 129 passed |
-| PostgreSQL PRD-021 | 6 passed |
-| PostgreSQL migration cycle | `0021 → 0022 → 0021 → 0022` PASS |
+| `pytest` | 891 passed, 36 skipped, 2 warnings |
+| Focused PRD-022 | 27 passed |
+| Affected-domain regression | 228 passed |
+| PostgreSQL readiness PRD-022 | 1 passed |
+| PostgreSQL readiness semantics | real `SELECT 1` PASS |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 473 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 473 source files |
+| `black --check app tests` | 485 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 485 source files |
 | `git diff --check` | PASS |
 | Alembic | `20260813_0022 (head)` |
 
@@ -111,7 +114,8 @@ post-merge validation.
 - Core architecture remains stable.
 - New functionality must be tied to PRDs.
 - Quality gates remain mandatory.
-- PRD-001 through PRD-021 are closed. PRD-022 and PRD-023 are not started.
+- PRD-001 through PRD-021 are closed. PRD-022 is implemented pending CTO
+  review; PRD-023 is not started.
 - PRD-010 documents lifecycle/RBAC, tenant isolation, suppression/resume,
   encrypted idempotent replies, archive protection, and migration chain
   `0010` → `0011` → `0012`.

@@ -7,6 +7,13 @@ class HealthResponse(BaseModel):
     status: str
 
 
+class ReadinessResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    status: str
+    dependencies: dict[str, str] | None = None
+
+
 class VersionResponse(BaseModel):
     model_config = ConfigDict(frozen=True)
 

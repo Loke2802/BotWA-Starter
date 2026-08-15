@@ -1,7 +1,10 @@
+from contextlib import suppress
 from typing import Annotated
 from uuid import UUID
 
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 
 from app.api.dependencies import (
     get_access_service,
@@ -15,7 +18,7 @@ from app.api.dependencies import (
     get_user_service,
     require_permission,
 )
-from app.api.schemas import HealthResponse, VersionResponse
+from app.api.schemas import HealthResponse, ReadinessResponse, VersionResponse
 from app.api.security_dependencies import enforce_rate_limit, get_rate_limit_service
 from app.application.access.service import AccessService
 from app.application.auth.service import (
@@ -153,6 +156,34 @@ def _raise_business_configuration_error(exc: ValueError) -> None:
 @router.get("/health", response_model=HealthResponse, tags=["system"])
 def health_check() -> HealthResponse:
     return HealthResponse(status="ok")
+
+
+@router.get("/health/live", response_model=HealthResponse, tags=["system"])
+def health_live() -> HealthResponse:
+    return HealthResponse(status="alive")
+
+
+@router.get(
+    "/health/ready",
+    response_model=ReadinessResponse,
+    response_model_exclude_none=True,
+    responses={status.HTTP_503_SERVICE_UNAVAILABLE: {"model": ReadinessResponse}},
+    tags=["system"],
+)
+def health_ready(request: Request) -> ReadinessResponse | JSONResponse:
+    result = request.app.state.observability.readiness.check()
+    if result.ready:
+        return ReadinessResponse(status="ready")
+    logger = structlog.get_logger(__name__)
+    with suppress(Exception):
+        logger.warning("database_readiness_failed", error_code="DATABASE_UNAVAILABLE")
+    payload = ReadinessResponse(
+        status="not_ready", dependencies={"database": "unavailable"}
+    )
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content=payload.model_dump(exclude_none=True),
+    )
 
 
 @router.get("/version", response_model=VersionResponse, tags=["system"])

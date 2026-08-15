@@ -25,6 +25,8 @@ from app.channels.whatsapp.live_mapper import (
     WhatsAppWebhookPayloadError,
 )
 from app.infrastructure.settings import Settings, get_settings
+from app.observability.context import current_correlation_id
+from app.observability.metrics import safe_metric
 from app.security.rate_limit import RateLimitService
 
 router = APIRouter(tags=["whatsapp-live-messaging"])
@@ -59,7 +61,7 @@ async def receive_configured_whatsapp_webhook(
         scope="whatsapp_webhook",
         subject=str(public_webhook_id),
     )
-    correlation_id = uuid4()
+    correlation_id = current_correlation_id() or uuid4()
     content_length = request.headers.get("content-length")
     if content_length is not None:
         try:
@@ -67,6 +69,7 @@ async def receive_configured_whatsapp_webhook(
         except ValueError:
             declared_size = settings.whatsapp_webhook_max_body_bytes + 1
         if declared_size > settings.whatsapp_webhook_max_body_bytes:
+            safe_metric("record_whatsapp_webhook", "oversized")
             _log_rejected(correlation_id, public_webhook_id, "BODY_TOO_LARGE")
             raise HTTPException(
                 status_code=status.HTTP_413_CONTENT_TOO_LARGE,
@@ -75,6 +78,7 @@ async def receive_configured_whatsapp_webhook(
 
     raw_body = await request.body()
     if len(raw_body) > settings.whatsapp_webhook_max_body_bytes:
+        safe_metric("record_whatsapp_webhook", "oversized")
         _log_rejected(correlation_id, public_webhook_id, "BODY_TOO_LARGE")
         raise HTTPException(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,
@@ -94,6 +98,7 @@ async def receive_configured_whatsapp_webhook(
             signature_header=signature,
         )
     except WhatsAppWebhookValidationError as exc:
+        safe_metric("record_whatsapp_webhook", "signature_invalid")
         _log_rejected(correlation_id, public_webhook_id, "SIGNATURE_INVALID")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -106,6 +111,7 @@ async def receive_configured_whatsapp_webhook(
             max_events=settings.whatsapp_webhook_max_events,
         )
     except WhatsAppWebhookPayloadError as exc:
+        safe_metric("record_whatsapp_webhook", "payload_invalid")
         _log_rejected(correlation_id, public_webhook_id, "PAYLOAD_INVALID")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -113,17 +119,28 @@ async def receive_configured_whatsapp_webhook(
         ) from exc
 
     try:
-        await processor.process(
+        results = await processor.process(
             payload,
             public_webhook_id=public_webhook_id,
             correlation_id=correlation_id,
         )
     except WhatsAppRuntimeRoutingError as exc:
+        safe_metric("record_whatsapp_webhook", "failed")
         _log_rejected(correlation_id, public_webhook_id, "CHANNEL_NOT_RESOLVED")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="webhook channel was not resolved",
         ) from exc
+    outcome = (
+        "duplicate"
+        if results and all(item.status == "duplicate" for item in results)
+        else (
+            "failed"
+            if results and all(item.status == "failed" for item in results)
+            else "accepted"
+        )
+    )
+    safe_metric("record_whatsapp_webhook", outcome)
     return PlainTextResponse("OK")
 
 

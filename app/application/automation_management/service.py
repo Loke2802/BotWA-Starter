@@ -34,6 +34,7 @@ from app.infrastructure.repositories.business_calendar_repository import (
 from app.infrastructure.repositories.managed_automation_repository import (
     ManagedAutomationRepository,
 )
+from app.observability.metrics import safe_metric
 from app.security.authorization import AuthorizationError, require_scoped_permission
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -464,6 +465,7 @@ class ManagedAutomationService:
             )
             row.lease_owner = row.lease_expires_at = None
             self.session.commit()
+            safe_metric("record_automation", "failed")
             return
         conditions = definition.get("conditions_data")
         action = definition.get("action_data")
@@ -480,11 +482,13 @@ class ManagedAutomationService:
             )
             row.lease_owner = row.lease_expires_at = None
             self.session.commit()
+            safe_metric("record_automation", "failed")
             return
         matches = all(event.get(k) == v for k, v in conditions.items() if v is not None)
         if not matches:
             row.status, row.completed_at = "skipped", datetime.now(UTC)
             self.session.commit()
+            safe_metric("record_automation", "skipped")
             return
         try:
             if self.handoff is None:
@@ -522,3 +526,10 @@ class ManagedAutomationService:
                     seconds=(0, 5, 30)[min(row.attempt_count, 2)]
                 )
         self.session.commit()
+        terminal_metric = {
+            "succeeded": "completed",
+            "failed": "failed",
+            "skipped": "skipped",
+        }.get(row.status)
+        if terminal_metric is not None:
+            safe_metric("record_automation", terminal_metric)

@@ -20,6 +20,8 @@ from app.infrastructure.models.user import UserModel
 from app.infrastructure.repositories.human_handoff_repository import (
     HumanHandoffRepository,
 )
+from app.observability.instrumentation import observe_handoff
+from app.observability.metrics import safe_metric
 from app.security.authorization import (
     AuthorizationError,
     is_platform_admin,
@@ -55,6 +57,7 @@ class HumanHandoffService:
         self._audit_writer = audit_writer
         self._plan_enforcement = plan_enforcement
 
+    @observe_handoff("request")
     def request(
         self,
         organization_id: UUID,
@@ -121,6 +124,7 @@ class HumanHandoffService:
         self._commit()
         return _response(existing)
 
+    @observe_handoff("request")
     def request_automation(
         self,
         organization_id: UUID,
@@ -184,6 +188,7 @@ class HumanHandoffService:
         self._commit()
         return _response(existing)
 
+    @observe_handoff("claim")
     def claim(
         self, organization_id: UUID, conversation_id: UUID, actor: User
     ) -> HandoffSessionResponse:
@@ -212,6 +217,7 @@ class HumanHandoffService:
         self._commit()
         return _response(row)
 
+    @observe_handoff("release")
     def release(
         self, organization_id: UUID, conversation_id: UUID, actor: User
     ) -> HandoffSessionResponse:
@@ -236,6 +242,7 @@ class HumanHandoffService:
         self._commit()
         return _response(row)
 
+    @observe_handoff("transfer")
     def transfer(
         self, organization_id: UUID, conversation_id: UUID, actor: User, user_id: UUID
     ) -> HandoffSessionResponse:
@@ -264,6 +271,28 @@ class HumanHandoffService:
         return _response(row)
 
     def resolve(
+        self,
+        organization_id: UUID,
+        conversation_id: UUID,
+        actor: User,
+        *,
+        return_to_bot: bool,
+    ) -> HandoffSessionResponse:
+        operation = "return_to_bot" if return_to_bot else "resolve"
+        try:
+            response = self._resolve(
+                organization_id,
+                conversation_id,
+                actor,
+                return_to_bot=return_to_bot,
+            )
+        except Exception:
+            safe_metric("record_handoff", operation, "failure")
+            raise
+        safe_metric("record_handoff", operation, "success")
+        return response
+
+    def _resolve(
         self,
         organization_id: UUID,
         conversation_id: UUID,

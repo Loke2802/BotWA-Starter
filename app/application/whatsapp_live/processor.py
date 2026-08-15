@@ -43,6 +43,7 @@ from app.infrastructure.models.whatsapp_message_transport import (
     InboundMessageReceiptModel,
     OutboundMessageAttemptModel,
 )
+from app.observability.metrics import safe_metric
 from app.security.secret_cipher import SecretCipher
 
 logger = structlog.get_logger(__name__)
@@ -127,6 +128,7 @@ class WhatsAppLiveMessageProcessor:
                     configuration_id=str(context.channel_configuration_id),
                     message_type=candidate.message_type,
                 )
+                safe_metric("record_whatsapp_message", "inbound", "ignored")
                 results.append(MessageProcessingResult(status="ignored"))
                 continue
 
@@ -166,6 +168,7 @@ class WhatsAppLiveMessageProcessor:
                     configuration_id=str(context.channel_configuration_id),
                     status=receipt.status,
                 )
+                safe_metric("record_whatsapp_message", "inbound", "duplicate")
                 results.append(
                     MessageProcessingResult(
                         status="duplicate",
@@ -220,6 +223,7 @@ class WhatsAppLiveMessageProcessor:
                     configuration_id=str(context.channel_configuration_id),
                     error_code="PROCESSING_FAILED",
                 )
+                safe_metric("record_whatsapp_message", "inbound", "failed")
                 results.append(
                     MessageProcessingResult(
                         status="failed",
@@ -239,6 +243,7 @@ class WhatsAppLiveMessageProcessor:
                 status="processed",
                 duration_ms=int((time.monotonic() - started) * 1000),
             )
+            safe_metric("record_whatsapp_message", "inbound", "accepted")
             results.append(
                 MessageProcessingResult(
                     status="processed",
@@ -503,6 +508,17 @@ class WhatsAppLiveMessageProcessor:
                 status=final_status,
                 error_code=exc.code,
             )
+            safe_metric(
+                "record_whatsapp_message",
+                "outbound",
+                "retry_scheduled" if final_status == "pending" else "failed",
+            )
+            safe_metric(
+                "record_provider_retry",
+                "meta",
+                "send_message",
+                "scheduled" if final_status == "pending" else "exhausted",
+            )
             return
         self._outbound_repository.mark_sent(
             attempt_id,
@@ -518,6 +534,7 @@ class WhatsAppLiveMessageProcessor:
             configuration_id=str(context.channel_configuration_id),
             status="sent",
         )
+        safe_metric("record_whatsapp_message", "outbound", "sent")
 
     def _process_status(
         self,

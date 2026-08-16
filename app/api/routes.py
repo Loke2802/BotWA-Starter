@@ -192,6 +192,7 @@ def version() -> VersionResponse:
     return VersionResponse(
         app_name=settings.app_name,
         api_version=settings.api_version,
+        build_sha=settings.build_sha,
     )
 
 

@@ -2,8 +2,10 @@
 
 import argparse
 import os
-import time
+import signal
+from threading import Event
 from time import perf_counter
+from types import FrameType
 from uuid import uuid4
 
 import structlog
@@ -26,6 +28,17 @@ from app.observability.context import correlation_context
 from app.observability.metrics import safe_metric
 
 logger = structlog.get_logger(__name__)
+
+
+def install_shutdown_handlers(stop_event: Event) -> None:
+    """Request shutdown after the currently executing batch finishes."""
+
+    def request_shutdown(_signum: int, _frame: FrameType | None) -> None:
+        logger.info("operation_shutdown_requested", operation="automation_worker")
+        stop_event.set()
+
+    signal.signal(signal.SIGTERM, request_shutdown)
+    signal.signal(signal.SIGINT, request_shutdown)
 
 
 def run_batch(batch_size: int) -> int:
@@ -82,18 +95,26 @@ def run_batch(batch_size: int) -> int:
             session.close()
 
 
+def run_worker(batch_size: int, *, once: bool, stop_event: Event) -> None:
+    """Run complete batches and stop between iterations when requested."""
+
+    while not stop_event.is_set():
+        count = run_batch(batch_size)
+        if once:
+            return
+        if count == 0:
+            stop_event.wait(1)
+
+
 def main() -> None:
     configure_logging(get_settings().log_level)
     parser = argparse.ArgumentParser()
     parser.add_argument("--once", action="store_true")
     parser.add_argument("--batch-size", type=int, default=20)
     args = parser.parse_args()
-    while True:
-        count = run_batch(args.batch_size)
-        if args.once:
-            return
-        if count == 0:
-            time.sleep(1)
+    stop_event = Event()
+    install_shutdown_handlers(stop_event)
+    run_worker(args.batch_size, once=args.once, stop_event=stop_event)
 
 
 if __name__ == "__main__":

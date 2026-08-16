@@ -59,6 +59,7 @@ def _scrape(client: TestClient) -> str:
 def _production_settings(**overrides: object) -> Settings:
     settings = Settings(
         environment=Environment.PRODUCTION,
+        build_sha="a" * 40,
         auth_secret_key="auth-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ-secret",
         legacy_core_api_enabled=False,
         legacy_whatsapp_enabled=False,

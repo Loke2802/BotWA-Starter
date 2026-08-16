@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     metrics_bearer_token: SecretStr | None = None
     health_db_timeout_seconds: float = Field(default=2.0, ge=0.1, le=10.0)
     api_version: str = "v1"
+    build_sha: str | None = None
     database_url: str = Field(
         default="postgresql+psycopg://botwa:botwa@localhost:5432/botwa"
     )
@@ -126,6 +127,18 @@ class Settings(BaseSettings):
     @classmethod
     def normalize_environment(cls, value: object) -> object:
         return Environment.DEVELOPMENT if value == "local" else value
+
+    @field_validator("build_sha")
+    @classmethod
+    def validate_build_sha(cls, value: str | None) -> str | None:
+        if value is None or value == "":
+            return None
+        normalized = value.lower()
+        if len(normalized) != 40 or any(
+            character not in "0123456789abcdef" for character in normalized
+        ):
+            raise ValueError("build SHA must be a 40-character hexadecimal git SHA")
+        return normalized
 
     @field_validator(
         "allowed_hosts", "cors_origins", "trusted_proxy_hosts", mode="before"

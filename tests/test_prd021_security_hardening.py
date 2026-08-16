@@ -35,6 +35,7 @@ from sqlalchemy.orm import Session
 def _production_settings(**overrides: object) -> Settings:
     baseline = Settings(
         environment=Environment.PRODUCTION,
+        build_sha="a" * 40,
         auth_secret_key="auth-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ-secret",
         auth_algorithm="HS256",
         legacy_core_api_enabled=False,

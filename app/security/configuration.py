@@ -27,6 +27,8 @@ class SecurityConfigurationValidator:
             return
 
         failures: list[str] = []
+        if settings.build_sha is None:
+            failures.append("build_sha")
         if not self._is_strong_secret(settings.auth_secret_key):
             failures.append("auth_signing_key")
         if settings.auth_algorithm != "HS256":

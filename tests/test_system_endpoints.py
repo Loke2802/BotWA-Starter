@@ -19,4 +19,5 @@ def test_version_endpoint() -> None:
     assert response.status_code == 200
     assert response.json()["app_name"] == "BotWA Starter"
     assert response.json()["api_version"] == "v1"
+    assert response.json()["build_sha"] is None
     assert "environment" not in response.json()

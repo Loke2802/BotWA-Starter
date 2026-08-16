@@ -1,6 +1,6 @@
 # BotWA Product Roadmap v1.0
 
-**Status:** PRD-001 through PRD-022 CLOSED; PRD-023 NOT STARTED
+**Status:** PRD-001 through PRD-022 CLOSED; PRD-023 IMPLEMENTED — PENDING CTO REVIEW
 **Date:** 2026-08-15
 
 ## Current State
@@ -36,8 +36,12 @@ head `e261a4c5be1fde08d4da90f23cfbda4b9885174c`. It provides vendor-neutral,
 app-scoped Prometheus metrics, request correlation, safe JSON logging and
 PostgreSQL-only readiness without observability persistence, a migration or a
 provider readiness dependency. Alembic remains one head at `20260813_0022`.
-Collection, dashboards, alerting, retention and deployment remain deferred;
-PRD-023 is not started.
+PRD-023 CI/CD and Deployments v1 is now implemented pending CTO review. It adds
+reproducible GitHub Actions gates, hashed pip locks, PostgreSQL/Alembic CI, a
+non-root immutable OCI artifact and provider-neutral deployment/runbook
+contracts. Hosting is NOT FROZEN; no staging or production deployment has been
+performed. Collection infrastructure, alert destinations and provider
+credentials remain external go-live decisions.
 
 **MVP milestone:** PRD-001 through PRD-010.
 
@@ -67,7 +71,7 @@ PRD-023 is not started.
 | 20 | PRD-020 Onboarding | CLOSED |
 | 21 | PRD-021 Security Hardening | CLOSED |
 | 22 | PRD-022 Observability | CLOSED |
-| 23 | PRD-023 CI/CD and Deployments | NOT STARTED |
+| 23 | PRD-023 CI/CD and Deployments | IMPLEMENTED — PENDING CTO REVIEW |
 
 ## Release History
 
@@ -82,14 +86,14 @@ PRD-023 is not started.
 
 | Gate | Result |
 |---|---|
-| `pytest` | 891 passed, 36 skipped, 2 warnings |
-| Focused PRD-022 | 27 passed |
-| Affected-domain regression | 228 passed |
-| PostgreSQL readiness PRD-022 | 1 passed |
-| PostgreSQL readiness semantics | real `SELECT 1` PASS |
-| `ruff check app tests` | All checks passed |
-| `black --check app tests` | 485 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 485 source files |
+| `pytest` | 907 passed, 36 skipped, 1 warning |
+| Focused PRD-023 | 16 passed |
+| PostgreSQL CI matrix | 36 passed, 0 skipped |
+| Dependency lock and vulnerability audit | PASS |
+| Container smoke and Trivy HIGH/CRITICAL policy | PASS |
+| `ruff check app tests scripts` | All checks passed |
+| `black --check app tests scripts` | 491 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 486 source files |
 | `git diff --check` | PASS |
 | Alembic | `20260813_0022 (head)` |
 
@@ -118,7 +122,9 @@ post-merge validation.
 - Core architecture remains stable.
 - New functionality must be tied to PRDs.
 - Quality gates remain mandatory.
-- PRD-001 through PRD-022 are closed. PRD-023 is not started.
+- PRD-001 through PRD-022 are closed. PRD-023 is implemented pending CTO review;
+  it is not CLOSED until merge, trusted master artifact publication, and
+  documentation closure.
 - PRD-010 documents lifecycle/RBAC, tenant isolation, suppression/resume,
   encrypted idempotent replies, archive protection, and migration chain
   `0010` → `0011` → `0012`.

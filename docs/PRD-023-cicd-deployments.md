@@ -1,11 +1,11 @@
 # PRD-023 — CI/CD and Deployments v1
 
-**Status:** IMPLEMENTED — PENDING CTO REVIEW  
-**Base branch:** `master`  
-**Alembic head:** `20260813_0022` (unchanged; no PRD-023 migration)  
-**OCI registry:** `ghcr.io/loke2802/botwa-starter`  
-**Hosting provider:** NOT FROZEN  
-**Staging deployment:** NOT YET PERFORMED  
+**Status:** IMPLEMENTED — PENDING CTO REVIEW
+**Base branch:** `master`
+**Alembic head:** `20260813_0022` (unchanged; no PRD-023 migration)
+**OCI registry:** `ghcr.io/loke2802/botwa-starter`
+**Hosting provider:** NOT FROZEN
+**Staging deployment:** NOT YET PERFORMED
 **Production deployment:** NOT YET PERFORMED
 
 ## Frozen architecture

@@ -1,0 +1,8 @@
+title = "BotWA Starter secret scanning policy"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Never scan the explicitly excluded local backup directory"
+paths = ['''^respaldos/''']

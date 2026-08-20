@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import difflib
 import shutil
 import subprocess
 import sys
@@ -70,6 +71,24 @@ def check() -> int:
             _compile(target, candidate)
             if candidate.read_bytes() != target.output.read_bytes():
                 failures.append(target.output)
+                committed = target.output.read_text(encoding="utf-8").splitlines()
+                regenerated = candidate.read_text(encoding="utf-8").splitlines()
+                difference = list(
+                    difflib.unified_diff(
+                        committed,
+                        regenerated,
+                        fromfile=str(target.output.relative_to(ROOT)),
+                        tofile="regenerated",
+                        lineterm="",
+                    )
+                )
+                for line in difference[:200]:
+                    print(line, file=sys.stderr)
+                if len(difference) > 200:
+                    print(
+                        f"... lock diff truncated ({len(difference)} lines)",
+                        file=sys.stderr,
+                    )
     if failures:
         for path in failures:
             print(

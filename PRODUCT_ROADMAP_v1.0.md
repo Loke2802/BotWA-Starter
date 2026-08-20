@@ -1,6 +1,6 @@
 # BotWA Product Roadmap v1.0
 
-**Status:** PRD-001 through PRD-022 CLOSED; PRD-023 IMPLEMENTED — PENDING CTO REVIEW
+**Status:** PRD-001 through PRD-023 CLOSED; all currently defined PRDs are closed
 **Date:** 2026-08-15
 
 ## Current State
@@ -36,12 +36,18 @@ head `e261a4c5be1fde08d4da90f23cfbda4b9885174c`. It provides vendor-neutral,
 app-scoped Prometheus metrics, request correlation, safe JSON logging and
 PostgreSQL-only readiness without observability persistence, a migration or a
 provider readiness dependency. Alembic remains one head at `20260813_0022`.
-PRD-023 CI/CD and Deployments v1 is now implemented pending CTO review. It adds
-reproducible GitHub Actions gates, hashed pip locks, PostgreSQL/Alembic CI, a
-non-root immutable OCI artifact and provider-neutral deployment/runbook
-contracts. Hosting is NOT FROZEN; no staging or production deployment has been
-performed. Collection infrastructure, alert destinations and provider
-credentials remain external go-live decisions.
+PRD-023 CI/CD and Deployments v1 is CLOSED after normal merge PR #38 at
+`71e18b33a09f8172e55a80f9ef34649717f6f9a5`, with final approved implementation
+head `7980f800e0fd2d4cd7062ea5437d9dfe4fc4a504`. Trusted `master` run
+`32426991892` passed all five jobs and published the immutable GHCR merge-SHA
+artifact at digest
+`sha256:a171325534235bcab094fbecf1378bf01455e59abb5c4b8895804430af899455`.
+Alembic remains one head at `20260813_0022` with no PRD-023 application
+migration. Hosting is NOT FROZEN; no Luri staging or production application has
+been deployed. A pre-existing GitHub Pages repository/static-site deployment is
+an accepted non-blocking exception and is not Luri hosting. Collection
+infrastructure, alert destinations, infrastructure selections and provider
+credentials remain external go-live decisions. No PRD-024 is currently defined.
 
 **MVP milestone:** PRD-001 through PRD-010.
 
@@ -71,7 +77,7 @@ credentials remain external go-live decisions.
 | 20 | PRD-020 Onboarding | CLOSED |
 | 21 | PRD-021 Security Hardening | CLOSED |
 | 22 | PRD-022 Observability | CLOSED |
-| 23 | PRD-023 CI/CD and Deployments | IMPLEMENTED — PENDING CTO REVIEW |
+| 23 | PRD-023 CI/CD and Deployments | CLOSED |
 
 ## Release History
 
@@ -122,9 +128,8 @@ post-merge validation.
 - Core architecture remains stable.
 - New functionality must be tied to PRDs.
 - Quality gates remain mandatory.
-- PRD-001 through PRD-022 are closed. PRD-023 is implemented pending CTO review;
-  it is not CLOSED until merge, trusted master artifact publication, and
-  documentation closure.
+- PRD-001 through PRD-023 are closed. These are all currently defined PRDs; new
+  product work requires a new approved PRD or change scope.
 - PRD-010 documents lifecycle/RBAC, tenant isolation, suppression/resume,
   encrypted idempotent replies, archive protection, and migration chain
   `0010` → `0011` → `0012`.

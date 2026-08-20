@@ -2,7 +2,11 @@
 
 ## PRD-023 CI/CD and Deployments v1 - 2026-08-15
 
-### IMPLEMENTED — PENDING CTO REVIEW
+### CLOSED after PR #38 and trusted `master` validation
+
+- Closed after normal merge PR #38 at
+  `71e18b33a09f8172e55a80f9ef34649717f6f9a5`, with final approved implementation
+  head `7980f800e0fd2d4cd7062ea5437d9dfe4fc4a504`.
 
 - Added PR and trusted-`master` GitHub Actions with stable `quality`, `tests`,
   `postgresql`, and `container-security` checks, least-privilege permissions,
@@ -20,12 +24,29 @@
   worker/job, and go-live runbooks. Hosting is NOT FROZEN; no staging or
   production deployment was performed.
 - No application table or migration was added. Alembic remains one head at
-  `20260813_0022`. PRD-001 through PRD-022 remain CLOSED; PRD-023 is not CLOSED.
+  `20260813_0022`; no revision `0023` exists. PRD-001 through PRD-023 are CLOSED
+  and no PRD-024 is currently defined.
 - Final local validation: focused PRD-023 16 passed; full pytest 907 passed,
   36 skipped, 1 warning; PostgreSQL 36 passed with zero skips; mypy PASS across
   486 source files; Ruff PASS; Black PASS across 491 files; dependency lock and
   audit PASS; container smoke and Trivy HIGH/CRITICAL policy PASS;
   `git diff --check` PASS; Alembic remains one head at `20260813_0022`.
+- Trusted `master` GitHub Actions run `32426991892` (`push`, head
+  `71e18b33a09f8172e55a80f9ef34649717f6f9a5`) completed with `quality`, `tests`,
+  `postgresql`, `container-security`, and `publish-ghcr` all successful. Linux
+  pytest reported 905 passed, 38 skipped, 1 warning; PostgreSQL reported 36
+  passed and zero skipped; fresh upgrade and `0022 -> 0021 -> 0022` passed.
+- Published immutable artifact
+  `ghcr.io/loke2802/botwa-starter:sha-71e18b33a09f8172e55a80f9ef34649717f6f9a5`
+  at OCI digest
+  `sha256:a171325534235bcab094fbecf1378bf01455e59abb5c4b8895804430af899455`,
+  with CycloneDX artifact
+  `botwa-sbom-71e18b33a09f8172e55a80f9ef34649717f6f9a5` and publication identity
+  `botwa-image-digest-71e18b33a09f8172e55a80f9ef34649717f6f9a5`; no `latest` tag exists.
+- A pre-existing GitHub Pages workflow created a repository/static-site
+  `github-pages` deployment for the merge SHA with
+  `production_environment=false`. It is accepted as non-blocking and is not a
+  Luri staging/production deployment or application hosting decision.
 
 ## PRD-022 Observability v1 - 2026-08-15
 

@@ -10,6 +10,7 @@ requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.13.0",
     "argon2-cffi>=23.1.0",
+    "colorama>=0.4.6; sys_platform == 'win32'",
     "cryptography>=45.0.0",
     "fastapi>=0.115.0",
     "PyJWT>=2.9.0",
@@ -21,6 +22,7 @@ dependencies = [
     "structlog>=24.4.0",
     "tzdata>=2026.3",
     "uvicorn[standard]>=0.30.0",
+    "uvloop>=0.22.1; sys_platform != 'win32'",
     "httpx>=0.27.0",
 ]
 
@@ -29,9 +31,13 @@ dev = [
     "black>=24.8.0",
     "httpx>=0.27.0",
     "mypy>=1.11.0",
+    "pip-audit==2.10.1",
+    "pip-tools==7.6.1",
     "pytest>=8.3.0",
     "pytest-asyncio>=0.24.0",
+    "PyYAML>=6.0.2",
     "ruff>=0.6.0",
+    "types-PyYAML>=6.0.12.20250516",
 ]
 
 [tool.setuptools.packages.find]

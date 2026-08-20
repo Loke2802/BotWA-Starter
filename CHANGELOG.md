@@ -1,5 +1,32 @@
 # Changelog
 
+## PRD-023 CI/CD and Deployments v1 - 2026-08-15
+
+### IMPLEMENTED — PENDING CTO REVIEW
+
+- Added PR and trusted-`master` GitHub Actions with stable `quality`, `tests`,
+  `postgresql`, and `container-security` checks, least-privilege permissions,
+  bounded concurrency/timeouts, and immutable action pins.
+- Added exact hashed runtime/dev pip locks, deterministic consistency checking,
+  Dependabot coverage, actionable pip-audit policy, redacted Gitleaks scanning,
+  Trivy image policy, and CycloneDX SBOM generation.
+- Hardened the application image to pinned Python 3.13.15 multi-stage runtime,
+  selective source copy, UID/GID 10001, one Uvicorn process, liveness
+  healthcheck, safe SIGTERM, immutable build SHA/OCI labels, and no runtime
+  secrets at build time.
+- Added production-required `BOTWA_BUILD_SHA`, safe `/version` build identity,
+  and graceful Automation Worker stop between completed batches.
+- Added provider-neutral deployment, rollback, database recovery, secret,
+  worker/job, and go-live runbooks. Hosting is NOT FROZEN; no staging or
+  production deployment was performed.
+- No application table or migration was added. Alembic remains one head at
+  `20260813_0022`. PRD-001 through PRD-022 remain CLOSED; PRD-023 is not CLOSED.
+- Final local validation: focused PRD-023 16 passed; full pytest 907 passed,
+  36 skipped, 1 warning; PostgreSQL 36 passed with zero skips; mypy PASS across
+  486 source files; Ruff PASS; Black PASS across 491 files; dependency lock and
+  audit PASS; container smoke and Trivy HIGH/CRITICAL policy PASS;
+  `git diff --check` PASS; Alembic remains one head at `20260813_0022`.
+
 ## PRD-022 Observability v1 - 2026-08-15
 
 ### CLOSED after PR #36

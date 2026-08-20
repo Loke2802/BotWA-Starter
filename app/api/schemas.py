@@ -19,3 +19,4 @@ class VersionResponse(BaseModel):
 
     app_name: str
     api_version: str
+    build_sha: str | None = None

@@ -1,7 +1,7 @@
 # BotWA Starter - Context For AI Assistants
 
 **Last updated:** 2026-08-15
-**Project phase:** Phase 3 - PRD-022 CLOSED; PRD-023 NOT STARTED
+**Project phase:** Phase 3 - PRD-022 CLOSED; PRD-023 IMPLEMENTED — PENDING CTO REVIEW
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
@@ -64,7 +64,13 @@ logs, app-scoped local Prometheus metrics with bounded cardinality, and separate
 process liveness from PostgreSQL-only readiness. It adds no migration, table or
 observability persistence, never makes external providers readiness dependencies,
 and defers collectors, dashboards, alerts, retention and deployment to PRD-023.
-PRD-023 remains NOT STARTED.
+PRD-023 CI/CD and Deployments v1 is IMPLEMENTED — PENDING CTO REVIEW. Its
+provider-neutral boundary adds four stable GitHub Actions checks, hashed pip
+locks, PostgreSQL/Alembic CI, a pinned non-root OCI image, safe build identity,
+GHCR publication only from trusted `master`, and deployment/recovery runbooks.
+The hosting provider is NOT FROZEN and neither staging nor production has been
+deployed. Infrastructure, repository settings, credentials and real provider
+smokes remain external gates.
 
 All five core engines are implemented and closed:
 
@@ -82,13 +88,14 @@ Current validated gates:
 
 | Gate | Result |
 |---|---|
-| `pytest` | 891 passed, 36 skipped, 2 warnings |
-| Focused PRD-022 | 27 passed |
-| Affected-domain regression | 228 passed |
-| PostgreSQL readiness PRD-022 | 1 passed |
+| `pytest` | 907 passed, 36 skipped, 1 warning |
+| Focused PRD-023 | 16 passed |
+| PostgreSQL CI matrix | 36 passed, 0 skipped |
+| Dependency lock and vulnerability audit | PASS |
+| Container smoke and Trivy HIGH/CRITICAL policy | PASS |
 | `ruff check app tests` | All checks passed |
-| `black --check app tests` | 485 files would be left unchanged |
-| `mypy app tests` | Success: no issues found in 485 source files |
+| `black --check app tests scripts` | 491 files would be left unchanged |
+| `mypy app tests` | Success: no issues found in 486 source files |
 | `git diff --check` | PASS |
 
 ## Infrastructure Validation
@@ -123,7 +130,7 @@ Current validated gates:
 
 ## Current Official Objective
 
-PRD-001 through PRD-022 are CLOSED. PRD-023 remains NOT STARTED.
+PRD-001 through PRD-022 are CLOSED. PRD-023 is IMPLEMENTED — PENDING CTO REVIEW.
 
 **Phase 3**
 
@@ -151,7 +158,7 @@ PRD-001 through PRD-022 are CLOSED. PRD-023 remains NOT STARTED.
 | 20 | PRD-020 Onboarding | CLOSED |
 | 21 | PRD-021 Security Hardening | CLOSED |
 | 22 | PRD-022 Observability | CLOSED |
-| 23 | PRD-023 CI/CD and Deployments | NOT STARTED |
+| 23 | PRD-023 CI/CD and Deployments | IMPLEMENTED — PENDING CTO REVIEW |
 
 The MVP milestone comprises PRD-001 through PRD-010.
 
@@ -274,6 +281,7 @@ CLOSED after PR #32 at `47b589df54282145ddce7b745ef208bb80321143`, final approve
 head `15564c245067952a74f19987370b6d5037de65a1`. PRD-021 is CLOSED after PR #34;
 PRD-022 is CLOSED after normal merge PR #36 at
 `134b649ac058ec74c287f77e1825aae61ed4f8b1`, final approved implementation head
-`e261a4c5be1fde08d4da90f23cfbda4b9885174c`; PRD-023 is NOT STARTED.
+`e261a4c5be1fde08d4da90f23cfbda4b9885174c`; PRD-023 is IMPLEMENTED — PENDING
+CTO REVIEW.
 Billing commercial enablement remains BLOCKED pending
 approved configuration and the real Mercado Pago sandbox smoke.

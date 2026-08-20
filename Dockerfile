@@ -24,6 +24,19 @@ ENV BOTWA_BUILD_SHA=${BOTWA_BUILD_SHA} \
 LABEL org.opencontainers.image.source="https://github.com/Loke2802/BotWA-Starter" \
       org.opencontainers.image.revision=${BOTWA_BUILD_SHA}
 
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends --only-upgrade \
+        bsdutils \
+        libblkid1 \
+        liblastlog2-2 \
+        libmount1 \
+        libsmartcols1 \
+        libuuid1 \
+        login \
+        mount \
+        util-linux \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN useradd --create-home --uid 10001 --user-group botwa
 
 WORKDIR /app

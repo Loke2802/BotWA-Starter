@@ -11,6 +11,8 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
+from packaging.requirements import Requirement
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -54,6 +56,27 @@ def generate() -> None:
         print(f"generated {target.output.relative_to(ROOT)}")
 
 
+def _for_current_platform(content: str) -> str:
+    """Drop locked requirement blocks whose explicit marker is inactive."""
+    lines = content.splitlines()
+    selected: list[str] = []
+    index = 0
+    while index < len(lines):
+        block = [lines[index]]
+        while block[-1].endswith(" \\") and index + 1 < len(lines):
+            index += 1
+            block.append(lines[index])
+        first = block[0].removesuffix(" \\")
+        if first and not first[0].isspace() and not first.startswith(("#", "--")):
+            requirement = Requirement(first)
+            if requirement.marker is not None and not requirement.marker.evaluate():
+                index += 1
+                continue
+        selected.extend(block)
+        index += 1
+    return "\n".join(selected) + "\n"
+
+
 def check() -> int:
     failures: list[Path] = []
     with tempfile.TemporaryDirectory(prefix="botwa-lock-check-") as temp_dir:
@@ -69,10 +92,13 @@ def check() -> int:
             # into an unrelated lock drift failure.
             shutil.copyfile(target.output, candidate)
             _compile(target, candidate)
-            if candidate.read_bytes() != target.output.read_bytes():
+            committed_text = target.output.read_text(encoding="utf-8")
+            expected_text = _for_current_platform(committed_text)
+            regenerated_text = candidate.read_text(encoding="utf-8")
+            if regenerated_text != expected_text:
                 failures.append(target.output)
-                committed = target.output.read_text(encoding="utf-8").splitlines()
-                regenerated = candidate.read_text(encoding="utf-8").splitlines()
+                committed = expected_text.splitlines()
+                regenerated = regenerated_text.splitlines()
                 difference = list(
                     difflib.unified_diff(
                         committed,

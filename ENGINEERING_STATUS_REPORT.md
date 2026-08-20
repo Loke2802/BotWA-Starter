@@ -2,8 +2,8 @@
 
 **Date:** 2026-08-15
 **Role:** Lead Engineer  
-**Project phase:** Phase 3 - PRD-022 CLOSED; PRD-023 IMPLEMENTED — PENDING CTO REVIEW
-**Status source:** PRD-023 implementation branch pending CTO review
+**Project phase:** Phase 3 - PRD-001 through PRD-023 CLOSED; no next PRD defined
+**Status source:** PRD-023 documentation closure after PR #38 and trusted `master` validation
 
 ## Executive Summary
 
@@ -113,14 +113,26 @@ migration, keeps all providers outside readiness, defers full tracing,
 deployment, collection, dashboards, retention and alerting, and does not start
 PRD-023. Alembic remains one head at `20260813_0022`.
 
-PRD-023 CI/CD and Deployments v1 is IMPLEMENTED — PENDING CTO REVIEW. It adds
-reproducible PR and trusted-master validation with stable `quality`, `tests`,
-`postgresql`, and `container-security` checks; hashed pip locks; pinned Actions;
-dependency/secret/image scanning; a minimal non-root Python 3.13.15 OCI image;
-build SHA and digest identity; and provider-neutral deployment, rollback,
-database recovery, secret, worker/job, and go-live contracts. It adds no table or
-migration, and Alembic remains `20260813_0022`. Hosting is NOT FROZEN. No actual
-staging or production deployment is claimed.
+PRD-023 CI/CD and Deployments v1 is CLOSED after normal merge PR #38 at
+`71e18b33a09f8172e55a80f9ef34649717f6f9a5`, with final approved implementation
+head `7980f800e0fd2d4cd7062ea5437d9dfe4fc4a504`. Trusted `master` GitHub Actions
+run `32426991892` (`push`) completed `quality`, `tests`, `postgresql`,
+`container-security`, and `publish-ghcr` successfully. Linux pytest reported 905
+passed, 38 skipped, 1 warning; PostgreSQL reported 36 passed and zero skipped;
+fresh upgrade and `0022 -> 0021 -> 0022` passed. The canonical artifact is
+`ghcr.io/loke2802/botwa-starter:sha-71e18b33a09f8172e55a80f9ef34649717f6f9a5`
+at digest
+`sha256:a171325534235bcab094fbecf1378bf01455e59abb5c4b8895804430af899455`,
+with CycloneDX SBOM and publication-identity artifacts. It adds no application
+table or migration; Alembic remains one head at `20260813_0022` and there is no
+revision `0023`.
+
+PRD-023 closes reproducible CI/CD and provider-neutral deployment contracts, not
+an application rollout. Hosting is NOT FROZEN, GHCR is the OCI registry rather
+than the hosting provider, and no Luri staging or production application is
+deployed. A pre-existing GitHub Pages workflow created a repository/static-site
+deployment for the merge SHA with `production_environment=false`; this is an
+accepted non-blocking Pages exception, not Luri hosting or production.
 
 ## Quality Gates
 
@@ -163,7 +175,7 @@ staging or production deployment is claimed.
 | PRD-020 Onboarding | CLOSED |
 | PRD-021 Security Hardening | CLOSED |
 | PRD-022 Observability | CLOSED |
-| PRD-023 CI/CD and Deployments | IMPLEMENTED — PENDING CTO REVIEW |
+| PRD-023 CI/CD and Deployments | CLOSED |
 
 ## PRD-004 Bot Management
 
@@ -315,14 +327,18 @@ The following debts were resolved and should not be reopened as active backlog:
 
 Only the following items remain pending:
 
-- Validate real WhatsApp Cloud API webhook and outbound flow with approved credentials or sandbox.
-- Add CI/CD when the release branch is ready.
-- Add a scheduled worker for due outbound retries.
-- Define recovery for receipts left in `processing` after a process crash.
+- Complete real Meta live, Google Calendar real, and Mercado Pago
+  sandbox/commercial validation with approved external credentials.
+- Select hosting, DNS/TLS, secret manager, production PostgreSQL/TLS/roles,
+  backup provider, observability collector/platform, alert destination and
+  RPO/RTO.
+- Configure and approve repository protection/settings, GitHub Environments and
+  environment reviewers for future application promotion.
 
 ## Next Official Objective
 
-**PRD-001 through PRD-022 are CLOSED. PRD-023 is IMPLEMENTED — PENDING CTO REVIEW.**
+**PRD-001 through PRD-023 are CLOSED. No PRD-024 or next PRD is currently
+defined; new work requires an approved PRD or change scope.**
 
 ## PRD-010 through PRD-015 Status
 
@@ -350,8 +366,10 @@ CLOSED after PR #32 at `47b589df54282145ddce7b745ef208bb80321143`, final approve
 head `15564c245067952a74f19987370b6d5037de65a1`. PRD-021 is CLOSED after PR #34;
 PRD-022 is CLOSED after normal merge PR #36 at
 `134b649ac058ec74c287f77e1825aae61ed4f8b1`, final approved implementation head
-`e261a4c5be1fde08d4da90f23cfbda4b9885174c`; PRD-023 is IMPLEMENTED — PENDING
-CTO REVIEW.
+`e261a4c5be1fde08d4da90f23cfbda4b9885174c`; PRD-023 is CLOSED after normal
+merge PR #38 at `71e18b33a09f8172e55a80f9ef34649717f6f9a5`, final approved
+implementation head `7980f800e0fd2d4cd7062ea5437d9dfe4fc4a504`, and trusted
+`master` run `32426991892`. No PRD-024 is defined.
 
 ## CTO Review Status
 

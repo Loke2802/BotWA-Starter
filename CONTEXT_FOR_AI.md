@@ -1,7 +1,7 @@
 # BotWA Starter - Context For AI Assistants
 
 **Last updated:** 2026-08-15
-**Project phase:** Phase 3 - PRD-022 CLOSED; PRD-023 IMPLEMENTED — PENDING CTO REVIEW
+**Project phase:** Phase 3 - PRD-001 through PRD-023 CLOSED; no next PRD defined
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
@@ -64,13 +64,22 @@ logs, app-scoped local Prometheus metrics with bounded cardinality, and separate
 process liveness from PostgreSQL-only readiness. It adds no migration, table or
 observability persistence, never makes external providers readiness dependencies,
 and defers collectors, dashboards, alerts, retention and deployment to PRD-023.
-PRD-023 CI/CD and Deployments v1 is IMPLEMENTED — PENDING CTO REVIEW. Its
-provider-neutral boundary adds four stable GitHub Actions checks, hashed pip
-locks, PostgreSQL/Alembic CI, a pinned non-root OCI image, safe build identity,
-GHCR publication only from trusted `master`, and deployment/recovery runbooks.
-The hosting provider is NOT FROZEN and neither staging nor production has been
-deployed. Infrastructure, repository settings, credentials and real provider
-smokes remain external gates.
+PRD-023 CI/CD and Deployments v1 is CLOSED after normal merge PR #38 at
+`71e18b33a09f8172e55a80f9ef34649717f6f9a5`, with final approved implementation
+head `7980f800e0fd2d4cd7062ea5437d9dfe4fc4a504`. Trusted `master` run
+`32426991892` passed `quality`, `tests`, `postgresql`, `container-security`, and
+`publish-ghcr`, publishing
+`ghcr.io/loke2802/botwa-starter:sha-71e18b33a09f8172e55a80f9ef34649717f6f9a5`
+at digest
+`sha256:a171325534235bcab094fbecf1378bf01455e59abb5c4b8895804430af899455`.
+Its provider-neutral boundary includes hashed locks, PostgreSQL/Alembic CI, a
+pinned non-root OCI image, safe build identity, trusted-master-only GHCR
+publication, and deployment/recovery runbooks. No application migration was
+added; Alembic remains one head at `20260813_0022`. Hosting remains NOT FROZEN
+and no Luri staging or production application has been deployed. A pre-existing
+GitHub Pages workflow deployment is accepted only as a non-production
+repository/static-site deployment, not Luri hosting. Infrastructure decisions,
+repository settings, credentials and real provider smokes remain external gates.
 
 All five core engines are implemented and closed:
 
@@ -130,7 +139,8 @@ Current validated gates:
 
 ## Current Official Objective
 
-PRD-001 through PRD-022 are CLOSED. PRD-023 is IMPLEMENTED — PENDING CTO REVIEW.
+PRD-001 through PRD-023 are CLOSED. No PRD-024 or next PRD is currently defined;
+new work requires a new approved PRD or change scope.
 
 **Phase 3**
 
@@ -158,7 +168,7 @@ PRD-001 through PRD-022 are CLOSED. PRD-023 is IMPLEMENTED — PENDING CTO REVIE
 | 20 | PRD-020 Onboarding | CLOSED |
 | 21 | PRD-021 Security Hardening | CLOSED |
 | 22 | PRD-022 Observability | CLOSED |
-| 23 | PRD-023 CI/CD and Deployments | IMPLEMENTED — PENDING CTO REVIEW |
+| 23 | PRD-023 CI/CD and Deployments | CLOSED |
 
 The MVP milestone comprises PRD-001 through PRD-010.
 
@@ -281,7 +291,9 @@ CLOSED after PR #32 at `47b589df54282145ddce7b745ef208bb80321143`, final approve
 head `15564c245067952a74f19987370b6d5037de65a1`. PRD-021 is CLOSED after PR #34;
 PRD-022 is CLOSED after normal merge PR #36 at
 `134b649ac058ec74c287f77e1825aae61ed4f8b1`, final approved implementation head
-`e261a4c5be1fde08d4da90f23cfbda4b9885174c`; PRD-023 is IMPLEMENTED — PENDING
-CTO REVIEW.
+`e261a4c5be1fde08d4da90f23cfbda4b9885174c`; PRD-023 is CLOSED after normal
+merge PR #38 at `71e18b33a09f8172e55a80f9ef34649717f6f9a5`, final approved
+implementation head `7980f800e0fd2d4cd7062ea5437d9dfe4fc4a504`, and trusted
+`master` run `32426991892`. No next PRD is currently defined.
 Billing commercial enablement remains BLOCKED pending
 approved configuration and the real Mercado Pago sandbox smoke.

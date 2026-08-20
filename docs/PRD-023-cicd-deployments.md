@@ -1,12 +1,47 @@
 # PRD-023 — CI/CD and Deployments v1
 
-**Status:** IMPLEMENTED — PENDING CTO REVIEW
+**Status:** CLOSED
 **Base branch:** `master`
 **Alembic head:** `20260813_0022` (unchanged; no PRD-023 migration)
 **OCI registry:** `ghcr.io/loke2802/botwa-starter`
 **Hosting provider:** NOT FROZEN
 **Staging deployment:** NOT YET PERFORMED
 **Production deployment:** NOT YET PERFORMED
+
+## Closure record
+
+- Implementation PR: **#38**.
+- Merge method: **normal merge commit**.
+- Final approved implementation head:
+  `7980f800e0fd2d4cd7062ea5437d9dfe4fc4a504`.
+- Implementation merge SHA:
+  `71e18b33a09f8172e55a80f9ef34649717f6f9a5`.
+- Trusted `master` GitHub Actions run: **`32426991892`**, event `push`, branch
+  `master`, head `71e18b33a09f8172e55a80f9ef34649717f6f9a5`.
+- Required jobs: `quality`, `tests`, `postgresql`, `container-security`, and
+  `publish-ghcr` — **SUCCESS**.
+- Master/Linux pytest: **905 passed, 38 skipped, 1 warning**.
+- Deterministic PostgreSQL matrix: **36 passed, 0 skipped** on PostgreSQL 17.
+- Alembic: **one head** at `20260813_0022`; fresh upgrade and
+  `0022 -> 0021 -> 0022` cycle — **PASS**.
+- No application migration or revision `0023` was added.
+
+Local approved validation remains: focused PRD-023 16 passed; full pytest 907
+passed, 36 skipped, 1 warning; mypy PASS across 486 source files; Ruff PASS;
+Black PASS across 491 files; and `git diff --check` PASS.
+
+## Canonical OCI publication
+
+- Image:
+  `ghcr.io/loke2802/botwa-starter:sha-71e18b33a09f8172e55a80f9ef34649717f6f9a5`.
+- OCI digest:
+  `sha256:a171325534235bcab094fbecf1378bf01455e59abb5c4b8895804430af899455`.
+- CycloneDX SBOM artifact:
+  `botwa-sbom-71e18b33a09f8172e55a80f9ef34649717f6f9a5`.
+- Publication identity artifact:
+  `botwa-image-digest-71e18b33a09f8172e55a80f9ef34649717f6f9a5`.
+- No `latest` tag exists. GHCR is the canonical OCI artifact registry, not the
+  Luri application hosting provider.
 
 ## Frozen architecture
 
@@ -80,6 +115,12 @@ current equals head; roll out web; roll out the Automation Worker; wait for
 readiness; execute safe smoke checks; verify private metrics and JSON logs; then
 complete promotion. Web and worker startup never run migrations.
 
+PRD-023 closes CI/CD and deployment contracts. It does not claim that a Luri
+staging or production application is deployed, or that hosting, DNS, TLS,
+production PostgreSQL, secret management, managed observability, alert routing,
+backup infrastructure, environment reviewers, or RPO/RTO have been selected.
+Hosting remains **NOT FROZEN**.
+
 The migration identity should use a DDL-capable role while runtime identities
 should not have schema DDL. Production database TLS, CA handling, snapshots,
 restore testing, and provider commands remain hosting-specific. Application
@@ -129,6 +170,23 @@ Prometheus/Grafana deployment, CodeQL requirement, Cosign key, Git tag, or
 PRD-024 is included.
 
 The operational procedures are canonical in `docs/runbooks/`. PRD-001 through
-PRD-022 remain **CLOSED**. PRD-023 is **IMPLEMENTED — PENDING CTO REVIEW** until
-PR CI, CTO review, merge, trusted `master` artifact publication, and subsequent
-documentation closure are complete.
+PRD-023 are **CLOSED**. No PRD-024 is currently defined; new work requires a new
+approved PRD or change scope.
+
+## Accepted GitHub Pages exception
+
+A pre-existing GitHub Pages workflow generated a repository/static-site
+`github-pages` deployment for the implementation merge SHA. GitHub recorded
+`production_environment=false`. This is accepted as a non-blocking repository
+deployment: it is not Luri staging, Luri production, or the Luri application
+hosting provider. This documentation closure does not disable GitHub Pages.
+
+## External operational gates
+
+Real Meta live validation, Google Calendar real validation, and Mercado Pago
+sandbox/commercial validation remain required before enabling their respective
+integrations. Hosting, DNS/TLS, secret manager, production PostgreSQL provider
+and DB TLS/roles, backup provider, observability collector/platform, alert
+destination, GitHub repository protection/settings, environment reviewers, and
+RPO/RTO remain explicit external decisions. These do not block PRD-023 technical
+or documentation closure.

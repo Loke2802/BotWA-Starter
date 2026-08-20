@@ -1,6 +1,6 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-022 CLOSED; PRD-023 IMPLEMENTED — PENDING CTO REVIEW
+## Estado actual - Phase 3 / PRD-001 a PRD-023 CLOSED
 
 Quality Gates (validación técnica PRD-023):
 
@@ -29,7 +29,8 @@ La base actual incluye 5 Engines:
 
 > **Nota de runtime:** El código tiene `BOTWA_USE_DATABASE=true` como default interno. Los tests locales fuerzan `BOTWA_USE_DATABASE=false` para correr en modo in-memory sin Docker/PostgreSQL. La validación de cierre de Phase 2 fue ejecutada contra Docker/PostgreSQL real.
 
-Estado oficial: **PRD-001 a PRD-022 CLOSED; PRD-023 está IMPLEMENTED — PENDING CTO REVIEW.**
+Estado oficial: **PRD-001 a PRD-023 CLOSED. Todos los PRD definidos actualmente
+están cerrados; no existe PRD-024.**
 
 PRD-023 implementa CI/CD reproducible con checks estables `quality`, `tests`,
 `postgresql` y `container-security`; locks pip exactos con hashes; Actions
@@ -40,13 +41,29 @@ recuperación, secretos y procesos. No añade migración y Alembic sigue en
 `20260813_0022`. El hosting permanece **NOT FROZEN** y no se ha desplegado
 staging ni producción.
 
+PRD-023 cerró después del merge normal del PR #38 en
+`71e18b33a09f8172e55a80f9ef34649717f6f9a5`, con head final aprobado
+`7980f800e0fd2d4cd7062ea5437d9dfe4fc4a504`. El run confiable de `master`
+`32426991892` pasó `quality`, `tests`, `postgresql`, `container-security` y
+`publish-ghcr`. Publicó el artefacto canónico
+`ghcr.io/loke2802/botwa-starter:sha-71e18b33a09f8172e55a80f9ef34649717f6f9a5`
+con digest OCI
+`sha256:a171325534235bcab094fbecf1378bf01455e59abb5c4b8895804430af899455`,
+sin etiqueta `latest`. GHCR es el registry de artefactos, no el proveedor de
+hosting. Un workflow preexistente de GitHub Pages generó un deployment del sitio
+estático del repositorio con `production_environment=false`; se acepta como
+excepción no bloqueante y no representa staging, producción ni hosting de Luri.
+Meta real/live, Google Calendar real y Mercado Pago sandbox/comercial, junto con
+las decisiones de infraestructura, continúan como gates operativos externos.
+
 PRD-022 añade Observability v1 vendor-neutral: `X-Correlation-ID` UUID
 request-scoped, logs JSON seguros, registros Prometheus aislados por app, métricas
 HTTP/proveedor/dominio con cardinalidad cerrada, `/metrics` protegido y health
 separado en liveness y readiness PostgreSQL. No añade persistencia ni migración,
-no convierte proveedores externos en dependencias globales y no inicia PRD-023.
-La instalación de Prometheus/Grafana/colectores/alertas, el aprovisionamiento del
-token y las políticas TLS/red pertenecen a PRD-023.
+no convierte proveedores externos en dependencias globales y no adelantó
+PRD-023. La instalación de Prometheus/Grafana/colectores/alertas, el
+aprovisionamiento del token y las políticas TLS/red permanecen decisiones
+operativas externas aun después del cierre contractual de PRD-023.
 
 PRD-022 cerró después del merge normal aprobado vía PR #36, merge commit
 `134b649ac058ec74c287f77e1825aae61ed4f8b1`, con head final aprobado
@@ -54,9 +71,9 @@ PRD-022 cerró después del merge normal aprobado vía PR #36, merge commit
 `20260813_0022`: PRD-022 no añadió migración, tablas ni persistencia de
 observabilidad. Este cierre no implica que Prometheus/Grafana, collectors,
 dashboards, alertas, retención, token de métricas, políticas TLS/red o despliegue
-estén provisionados; pertenecen a PRD-023, que sigue sin iniciar. Los smokes
-reales de Meta, Google y Mercado Pago continúan como gates externos previos a la
-habilitación de cada integración.
+estén provisionados; PRD-023 cerró sus contratos sin seleccionar ni desplegar
+esa infraestructura. Los smokes reales de Meta, Google y Mercado Pago continúan
+como gates externos previos a la habilitación de cada integración.
 
 PRD-021 cierra los seis findings HIGH con startup de producción fail-closed,
 algoritmo JWT cerrado, claves dedicadas, autenticación normalizada y limitada,
@@ -784,7 +801,7 @@ PRD-001 through PRD-012 are closed. PRD-010 adds a tenant-scoped handoff
 lifecycle, bot suppression, encrypted and attributed human replies through the
 generic channel sender, idempotency, archive protection, and safe transport
 errors. PRD-011 adds the Contact increment; Customer is deferred and CRM is not
-implemented. PRD-012 through PRD-022 are closed; PRD-023 is implemented pending
-CTO review. Real
+implemented. PRD-012 through PRD-023 are closed; no PRD-024 is currently
+defined. Real
 Meta and Google validation need explicit external credentials.
 

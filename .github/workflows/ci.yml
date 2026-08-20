@@ -160,7 +160,7 @@ jobs:
       - name: Verify OCI metadata and non-root user
         run: |
           test "$(docker image inspect --format '{{.Config.User}}' "${IMAGE_REF}")" = "10001:10001"
-          test "$(docker image inspect --format '{{index .Config.Labels \"org.opencontainers.image.revision\"}}' "${IMAGE_REF}")" = "${GITHUB_SHA}"
+          test "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "${IMAGE_REF}")" = "${GITHUB_SHA}"
           docker run --rm "${IMAGE_REF}" python -c "import importlib.util; assert importlib.util.find_spec('pip') is None"
       - name: Upgrade smoke database
         env:

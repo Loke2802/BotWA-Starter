@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -58,10 +59,16 @@ def check() -> int:
         temp_root = Path(temp_dir)
         for target in TARGETS:
             candidate = temp_root / target.output.name
+            if not target.output.exists():
+                failures.append(target.output)
+                continue
+            # pip-compile reuses compatible versions from an existing output.
+            # Seed the candidate with the committed lock so a freshness check
+            # detects source changes without turning every new PyPI release
+            # into an unrelated lock drift failure.
+            shutil.copyfile(target.output, candidate)
             _compile(target, candidate)
-            if not target.output.exists() or (
-                candidate.read_bytes() != target.output.read_bytes()
-            ):
+            if candidate.read_bytes() != target.output.read_bytes():
                 failures.append(target.output)
     if failures:
         for path in failures:

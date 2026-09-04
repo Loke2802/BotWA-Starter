@@ -31,9 +31,12 @@ RUN apt-get update \
         liblastlog2-2 \
         libmount1 \
         libsmartcols1 \
+        libssl3t64 \
         libuuid1 \
         login \
         mount \
+        openssl \
+        openssl-provider-legacy \
         util-linux \
     && rm -rf /var/lib/apt/lists/*
 

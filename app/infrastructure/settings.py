@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     google_calendar_timeout_seconds: float = Field(default=10.0, gt=0, le=120)
     contact_identity_hmac_key: str = ""
     whatsapp_live_client_mode: str = "disabled"
+    whatsapp_outbound_allowed_recipients: Annotated[tuple[str, ...], NoDecode] = ()
     whatsapp_webhook_max_body_bytes: int = Field(
         default=1_048_576,
         ge=1_024,
@@ -141,7 +142,11 @@ class Settings(BaseSettings):
         return normalized
 
     @field_validator(
-        "allowed_hosts", "cors_origins", "trusted_proxy_hosts", mode="before"
+        "allowed_hosts",
+        "cors_origins",
+        "trusted_proxy_hosts",
+        "whatsapp_outbound_allowed_recipients",
+        mode="before",
     )
     @classmethod
     def parse_csv_tuple(cls, value: object) -> object:

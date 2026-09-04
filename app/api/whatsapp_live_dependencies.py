@@ -163,4 +163,9 @@ def get_whatsapp_live_message_processor(
         retry_max_seconds=settings.whatsapp_outbound_retry_max_seconds,
         conversation_management=management,
         outbound_enabled=settings.whatsapp_live_client_mode != "disabled",
+        outbound_recipient_allowlist=(
+            frozenset(settings.whatsapp_outbound_allowed_recipients)
+            if settings.whatsapp_live_client_mode == "meta"
+            else None
+        ),
     )

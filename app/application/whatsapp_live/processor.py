@@ -72,6 +72,7 @@ class WhatsAppLiveMessageProcessor:
         retry_max_seconds: float,
         conversation_management: ConversationManagementService | None = None,
         outbound_enabled: bool = True,
+        outbound_recipient_allowlist: frozenset[str] | None = None,
         now: Callable[[], datetime] | None = None,
     ) -> None:
         self._configuration_repository = configuration_repository
@@ -89,6 +90,7 @@ class WhatsAppLiveMessageProcessor:
         self._retry_max_seconds = retry_max_seconds
         self._conversation_management = conversation_management
         self._outbound_enabled = outbound_enabled
+        self._outbound_recipient_allowlist = outbound_recipient_allowlist
         self._now = now or (lambda: datetime.now(UTC))
 
     async def process(
@@ -200,8 +202,10 @@ class WhatsAppLiveMessageProcessor:
                 )
                 outbound = self._handler.handle(message)
                 attempt_ids: tuple[UUID, ...] = ()
-                if self._outbound_enabled and not outbound.metadata.get(
-                    "handoff_blocked"
+                if (
+                    self._outbound_enabled
+                    and self._recipient_is_allowed(outbound.external_recipient_id)
+                    and not outbound.metadata.get("handoff_blocked")
                 ):
                     attempt_ids = await self._send_outbound(
                         receipt.id,
@@ -256,6 +260,19 @@ class WhatsAppLiveMessageProcessor:
                 )
             )
         return tuple(results)
+
+    def _recipient_is_allowed(self, recipient_id: str) -> bool:
+        if self._outbound_recipient_allowlist is None:
+            return True
+        if recipient_id in self._outbound_recipient_allowlist:
+            return True
+        logger.info(
+            "whatsapp.outbound.suppressed",
+            recipient_hash=_identifier_hash(recipient_id),
+            reason="RECIPIENT_NOT_ALLOWED",
+        )
+        safe_metric("record_whatsapp_message", "outbound", "suppressed")
+        return False
 
     async def retry_attempt(
         self,

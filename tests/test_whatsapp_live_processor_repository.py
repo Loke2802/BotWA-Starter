@@ -134,6 +134,7 @@ def build_processor(
     client: FakeWhatsAppCloudApiClient | None = None,
     handler: RecordingHandler | None = None,
     outbound_enabled: bool = True,
+    outbound_recipient_allowlist: frozenset[str] | None = None,
 ) -> tuple[
     WhatsAppLiveMessageProcessor,
     WhatsAppChannelConfigurationModel,
@@ -171,6 +172,7 @@ def build_processor(
         retry_base_seconds=1,
         retry_max_seconds=60,
         outbound_enabled=outbound_enabled,
+        outbound_recipient_allowlist=outbound_recipient_allowlist,
         now=lambda: NOW,
     )
     return (
@@ -204,6 +206,45 @@ async def test_processor_processes_inbound_when_outbound_is_disabled(
     receipt = receipts.get_by_external_message_id("whatsapp", "wamid.1")
     assert receipt is not None
     assert receipt.status == "processed"
+
+
+async def test_processor_suppresses_outbound_for_recipient_outside_allowlist(
+    session: Session,
+) -> None:
+    processor, model, receipts, outbound, client, handler = build_processor(
+        session,
+        outbound_recipient_allowlist=frozenset({"51911111111"}),
+    )
+
+    result = await processor.process(
+        parsed(),
+        public_webhook_id=model.public_webhook_id,
+        correlation_id=uuid4(),
+    )
+
+    assert result[0].status == "processed"
+    assert len(handler.messages) == 1
+    assert client.calls == []
+    assert outbound.attempts == {}
+
+
+async def test_processor_sends_outbound_for_allowlisted_recipient(
+    session: Session,
+) -> None:
+    processor, model, _, outbound, client, _ = build_processor(
+        session,
+        outbound_recipient_allowlist=frozenset({"51999999999"}),
+    )
+
+    result = await processor.process(
+        parsed(),
+        public_webhook_id=model.public_webhook_id,
+        correlation_id=uuid4(),
+    )
+
+    assert result[0].status == "processed"
+    assert len(client.calls) == 1
+    assert len(outbound.attempts) == 1
 
 
 async def test_processor_is_idempotent_and_persists_provider_status(

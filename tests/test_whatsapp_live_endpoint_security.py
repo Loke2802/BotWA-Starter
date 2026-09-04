@@ -12,6 +12,7 @@ from app.api.whatsapp_configuration_dependencies import (
     get_whatsapp_webhook_validation_service,
 )
 from app.api.whatsapp_live_dependencies import (
+    get_whatsapp_cloud_api_client,
     get_whatsapp_live_message_processor,
 )
 from app.application.whatsapp_configuration.signature import (
@@ -32,6 +33,7 @@ from app.infrastructure.repositories.whatsapp_configuration_repository import (
     InMemoryWhatsAppConfigurationRepository,
 )
 from app.infrastructure.settings import Settings, get_settings
+from app.infrastructure.whatsapp.disabled_client import DisabledWhatsAppCloudApiClient
 from app.main import create_app
 from app.security.secret_cipher import EnvironmentSecretCipher
 from fastapi.testclient import TestClient
@@ -94,6 +96,14 @@ def signature(raw_body: bytes, secret: str = "app-secret") -> str:
             hashlib.sha256,
         ).hexdigest()
     )
+
+
+async def test_disabled_client_mode_allows_inbound_dependency_construction() -> None:
+    client = get_whatsapp_cloud_api_client(
+        Settings(whatsapp_live_client_mode="disabled"),
+    )
+
+    assert isinstance(client, DisabledWhatsAppCloudApiClient)
 
 
 @pytest.fixture

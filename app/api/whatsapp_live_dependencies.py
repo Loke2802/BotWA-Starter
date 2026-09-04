@@ -59,6 +59,7 @@ from app.infrastructure.repositories.whatsapp_message_transport_repository impor
     SqlAlchemyOutboundMessageAttemptRepository,
 )
 from app.infrastructure.settings import Settings, get_settings
+from app.infrastructure.whatsapp.disabled_client import DisabledWhatsAppCloudApiClient
 from app.infrastructure.whatsapp.fake_client import FakeWhatsAppCloudApiClient
 from app.infrastructure.whatsapp.meta_client import MetaWhatsAppCloudApiClient
 from app.security.secret_cipher import SecretCipher
@@ -67,6 +68,8 @@ from app.security.secret_cipher import SecretCipher
 def get_whatsapp_cloud_api_client(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> WhatsAppCloudApiClient:
+    if settings.whatsapp_live_client_mode == "disabled":
+        return DisabledWhatsAppCloudApiClient()
     if settings.whatsapp_live_client_mode == "fake":
         return FakeWhatsAppCloudApiClient()
     if settings.whatsapp_live_client_mode == "meta":
@@ -76,7 +79,7 @@ def get_whatsapp_cloud_api_client(
         )
     raise HTTPException(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        detail="WhatsApp live messaging client is disabled",
+        detail="WhatsApp live messaging client mode is invalid",
     )
 
 
@@ -159,4 +162,5 @@ def get_whatsapp_live_message_processor(
         retry_base_seconds=settings.whatsapp_outbound_retry_base_seconds,
         retry_max_seconds=settings.whatsapp_outbound_retry_max_seconds,
         conversation_management=management,
+        outbound_enabled=settings.whatsapp_live_client_mode != "disabled",
     )

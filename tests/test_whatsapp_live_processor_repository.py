@@ -133,6 +133,7 @@ def build_processor(
     *,
     client: FakeWhatsAppCloudApiClient | None = None,
     handler: RecordingHandler | None = None,
+    outbound_enabled: bool = True,
 ) -> tuple[
     WhatsAppLiveMessageProcessor,
     WhatsAppChannelConfigurationModel,
@@ -169,6 +170,7 @@ def build_processor(
         max_attempts=3,
         retry_base_seconds=1,
         retry_max_seconds=60,
+        outbound_enabled=outbound_enabled,
         now=lambda: NOW,
     )
     return (
@@ -179,6 +181,29 @@ def build_processor(
         fake_client,
         recording_handler,
     )
+
+
+async def test_processor_processes_inbound_when_outbound_is_disabled(
+    session: Session,
+) -> None:
+    processor, model, receipts, outbound, client, handler = build_processor(
+        session,
+        outbound_enabled=False,
+    )
+
+    result = await processor.process(
+        parsed(),
+        public_webhook_id=model.public_webhook_id,
+        correlation_id=uuid4(),
+    )
+
+    assert result[0].status == "processed"
+    assert len(handler.messages) == 1
+    assert client.calls == []
+    assert outbound.attempts == {}
+    receipt = receipts.get_by_external_message_id("whatsapp", "wamid.1")
+    assert receipt is not None
+    assert receipt.status == "processed"
 
 
 async def test_processor_is_idempotent_and_persists_provider_status(

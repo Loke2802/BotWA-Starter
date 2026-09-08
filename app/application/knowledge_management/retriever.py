@@ -68,21 +68,22 @@ class PublishedBotKnowledgeRetriever(KnowledgeRetriever):
             )
         )[:8]
         matches: dict[UUID, tuple[KnowledgeEntry, int]] = {}
-        for term in terms:
-            for entry in self._provider.retrieve_published(
-                self._organization_id,
-                self._bot_id,
-                search=term,
-                limit=20,
+        for entry in self._provider.retrieve_published(
+            self._organization_id,
+            self._bot_id,
+            limit=100,
+        ):
+            if (
+                entry.organization_id != self._organization_id
+                or entry.bot_id != self._bot_id
+                or entry.status != "published"
             ):
-                if (
-                    entry.organization_id != self._organization_id
-                    or entry.bot_id != self._bot_id
-                    or entry.status != "published"
-                ):
-                    raise ValueError("knowledge scope mismatch")
-                previous = matches.get(entry.id)
-                matches[entry.id] = (entry, (previous[1] if previous else 0) + 1)
+                raise ValueError("knowledge scope mismatch")
+
+            searchable = f"{entry.title} {entry.content}".casefold()
+            score = sum(term in searchable for term in terms)
+            if score:
+                matches[entry.id] = (entry, score)
 
         ranked = sorted(
             matches.values(),

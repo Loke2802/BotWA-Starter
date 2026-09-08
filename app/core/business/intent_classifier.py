@@ -6,6 +6,16 @@ class IntentClassifier:
         "thanks": ["gracias", "agradezco", "thanks", "thank you"],
         "support": ["ayuda", "soporte", "problema", "error", "falla", "no funciona"],
     }
+    _QUESTION_PREFIXES: tuple[str, ...] = (
+        "como funciona",
+        "cómo funciona",
+        "para que negocios",
+        "para qué negocios",
+        "que es",
+        "que funciones",
+        "qué es",
+        "qué funciones",
+    )
 
     def classify(self, content: str) -> str:
         text = content.lower().strip()
@@ -22,5 +32,8 @@ class IntentClassifier:
         for intent, keywords in self._KEYWORDS.items():
             if any(kw in text for kw in keywords):
                 return intent
+
+        if text.startswith(self._QUESTION_PREFIXES):
+            return "question"
 
         return "unknown"

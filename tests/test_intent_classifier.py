@@ -1,3 +1,4 @@
+import pytest
 from app.core.business.intent_classifier import IntentClassifier
 
 
@@ -35,6 +36,20 @@ def test_classify_question_with_keyword() -> None:
 def test_classify_question_without_keyword() -> None:
     classifier = IntentClassifier()
     assert classifier.classify("¿Cómo funciona?") == "question"
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Que es Luri",
+        "Que funciones tiene Luri",
+        "Para que negocios esta pensado Luri",
+        "Como funciona Luri",
+    ],
+)
+def test_classify_common_question_without_question_mark(message: str) -> None:
+    classifier = IntentClassifier()
+    assert classifier.classify(message) == "question"
 
 
 def test_classify_unknown() -> None:

@@ -110,6 +110,24 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 def get_conversation_service() -> Generator[ConversationService]:
     settings = get_settings()
+    if not settings.use_database:
+        yield build_conversation_service()
+        return
+
+    session_generator = get_session()
+    session = next(session_generator)
+    try:
+        yield build_conversation_service(session)
+    finally:
+        session_generator.close()
+
+
+def build_conversation_service(
+    session: Session | None = None,
+    *,
+    knowledge_retriever: KnowledgeRetriever | None = None,
+) -> ConversationService:
+    """Build the Conversation Core with an optional scoped knowledge source."""
     intent_classifier = IntentClassifier()
     decision_maker = DecisionMaker()
     confidence_evaluator = ConfidenceEvaluator()
@@ -126,7 +144,6 @@ def get_conversation_service() -> Generator[ConversationService]:
     )
     rule_evaluator = RuleEvaluator()
 
-    session = None
     conversation_repo = None
     message_repo = None
 
@@ -134,22 +151,22 @@ def get_conversation_service() -> Generator[ConversationService]:
     publisher: KnowledgePublisher
     query_log_repo = None
 
-    session_generator: Generator[Session] | None = None
-
-    if settings.use_database:
-        session_generator = get_session()
-        session = next(session_generator)
+    if session is not None:
         conversation_repo = ConversationRepository(session=session)
         message_repo = MessageRepository(session=session)
         event_repo = BusinessEventRepository(session=session)
         event_publisher = BusinessEventPublisher(event_repository=event_repo)
 
-        catalog_repo = KnowledgeCatalogRepository(session=session)
-        ensure_knowledge_seed_data(catalog_repo)
-        catalog = DbKnowledgeCatalog(catalog_repository=catalog_repo)
-        retriever = DbKnowledgeRetriever(catalog=catalog)
-        publisher = DbKnowledgePublisher(catalog_repository=catalog_repo)
-        query_log_repo = KnowledgeQueryLogRepository(session=session)
+        if knowledge_retriever is None:
+            catalog_repo = KnowledgeCatalogRepository(session=session)
+            ensure_knowledge_seed_data(catalog_repo)
+            catalog = DbKnowledgeCatalog(catalog_repository=catalog_repo)
+            retriever = DbKnowledgeRetriever(catalog=catalog)
+            publisher = DbKnowledgePublisher(catalog_repository=catalog_repo)
+            query_log_repo = KnowledgeQueryLogRepository(session=session)
+        else:
+            retriever = knowledge_retriever
+            publisher = InMemoryKnowledgePublisher()
 
         ae_event_publisher = AutomationEventPublisher(event_repository=event_repo)
         ae_exec_repo = AutomationExecutionRepository(session=session)
@@ -176,7 +193,7 @@ def get_conversation_service() -> Generator[ConversationService]:
         )
         automation_service.recover()
     else:
-        retriever = InMemoryKnowledgeRetriever()
+        retriever = knowledge_retriever or InMemoryKnowledgeRetriever()
         publisher = InMemoryKnowledgePublisher()
 
         automation_builder = DefaultAutomationRequestBuilder()
@@ -230,21 +247,17 @@ def get_conversation_service() -> Generator[ConversationService]:
     adapters: dict[str, HttpChannelAdapter] = {
         "http": HttpChannelAdapter(),
     }
-    try:
-        yield ConversationService(
-            router=router,
-            adapters=adapters,
-            state_manager=state_manager,
-            context_builder=context_builder,
-            topic_detector=topic_detector,
-            response_composer=response_composer,
-            session=session,
-            conversation_repo=conversation_repo,
-            message_repo=message_repo,
-        )
-    finally:
-        if session_generator is not None:
-            session_generator.close()
+    return ConversationService(
+        router=router,
+        adapters=adapters,
+        state_manager=state_manager,
+        context_builder=context_builder,
+        topic_detector=topic_detector,
+        response_composer=response_composer,
+        session=session,
+        conversation_repo=conversation_repo,
+        message_repo=message_repo,
+    )
 
 
 def get_organization_service() -> Generator[OrganizationService]:

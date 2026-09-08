@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from uuid import UUID, uuid5
 
 from app.application.channel.messaging import ChannelMessageHandler
@@ -6,6 +7,7 @@ from app.core.conversation.service import ConversationService
 from app.domain.channel.contracts import (
     InboundChannelMessage,
     OutboundChannelMessage,
+    ResolvedChannelContext,
 )
 from app.domain.conversation.contracts import ConversationMessage
 
@@ -15,7 +17,10 @@ CHANNEL_CONVERSATION_NAMESPACE = UUID("a72fba71-d418-47e7-87cc-1a193c07b074")
 class ChannelConversationHandler(ChannelMessageHandler):
     def __init__(
         self,
-        conversation_service: ConversationService,
+        conversation_service: (
+            ConversationService
+            | Callable[[ResolvedChannelContext], ConversationService]
+        ),
         knowledge_provider: BotKnowledgeProvider | None = None,
         *,
         persist_core_messages: bool = True,
@@ -58,10 +63,15 @@ class ChannelConversationHandler(ChannelMessageHandler):
             metadata=metadata,
             received_at=message.timestamp,
         )
+        service = (
+            self._conversation_service(context)
+            if callable(self._conversation_service)
+            else self._conversation_service
+        )
         if self._persist_core_messages:
-            response = self._conversation_service.handle_message(core_message)
+            response = service.handle_message(core_message)
         else:
-            response = self._conversation_service.handle_message(
+            response = service.handle_message(
                 core_message,
                 persist=False,
             )

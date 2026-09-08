@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_conversation_service
+from app.api.dependencies import build_conversation_service
 from app.api.whatsapp_configuration_dependencies import (
     get_whatsapp_secret_cipher,
 )
@@ -21,6 +21,9 @@ from app.application.conversation_management.service import (
 )
 from app.application.human_handoff.service import HumanHandoffService
 from app.application.knowledge_management.provider import BotKnowledgeProvider
+from app.application.knowledge_management.retriever import (
+    PublishedBotKnowledgeRetriever,
+)
 from app.application.plans.service import PlanEnforcementService
 from app.application.whatsapp_configuration.resolver import (
     WhatsAppChannelResolver,
@@ -30,6 +33,7 @@ from app.application.whatsapp_live.processor import WhatsAppLiveMessageProcessor
 from app.application.whatsapp_live.sender import WhatsAppChannelMessageSender
 from app.channels.whatsapp.live_mapper import WhatsAppInboundMessageMapper
 from app.core.conversation.service import ConversationService
+from app.domain.channel.contracts import ResolvedChannelContext
 from app.domain.contacts.contracts import ContactIdentityNormalizer
 from app.infrastructure.database import get_session
 from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
@@ -85,10 +89,6 @@ def get_whatsapp_cloud_api_client(
 
 def get_whatsapp_live_message_processor(
     session: Annotated[Session, Depends(get_session)],
-    conversation_service: Annotated[
-        ConversationService,
-        Depends(get_conversation_service),
-    ],
     secret_cipher: Annotated[
         SecretCipher,
         Depends(get_whatsapp_secret_cipher),
@@ -124,10 +124,22 @@ def get_whatsapp_live_message_processor(
         secret_cipher,
         session,
     )
+
+    def conversation_service_for(
+        context: ResolvedChannelContext,
+    ) -> ConversationService:
+        return build_conversation_service(
+            session,
+            knowledge_retriever=PublishedBotKnowledgeRetriever(
+                BotKnowledgeProvider(SqlAlchemyKnowledgeEntryRepository(session)),
+                context.organization_id,
+                context.bot_id,
+            ),
+        )
+
     handler = ManagedChannelConversationHandler(
         ChannelConversationHandler(
-            conversation_service,
-            BotKnowledgeProvider(SqlAlchemyKnowledgeEntryRepository(session)),
+            conversation_service_for,
             persist_core_messages=False,
         ),
         management,

@@ -142,6 +142,35 @@ class ConversationManagementService:
     ) -> None:
         self._mark_inbound(external_message_id, channel_type, "processed")
 
+    def start_lead_capture(self, conversation: ConversationModel, intent: str) -> None:
+        data = dict(conversation.extra_data or {})
+        data["lead_capture"] = {
+            "status": "awaiting_details",
+            "intent": intent,
+            "requested_at": datetime.now(UTC).isoformat(),
+        }
+        conversation.extra_data = data
+        self._commit()
+
+    def complete_lead_capture(self, conversation: ConversationModel) -> str | None:
+        data = dict(conversation.extra_data or {})
+        lead_capture = data.get("lead_capture")
+        if not isinstance(lead_capture, dict):
+            return None
+        if lead_capture.get("status") != "awaiting_details":
+            return None
+        intent = lead_capture.get("intent")
+        if not isinstance(intent, str):
+            return None
+        data["lead_capture"] = {
+            **lead_capture,
+            "status": "notified",
+            "completed_at": datetime.now(UTC).isoformat(),
+        }
+        conversation.extra_data = data
+        self._commit()
+        return intent
+
     def mark_inbound_failed(self, external_message_id: str, channel_type: str) -> None:
         self._mark_inbound(external_message_id, channel_type, "failed")
 

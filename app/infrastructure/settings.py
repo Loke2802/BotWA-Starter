@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     contact_identity_hmac_key: str = ""
     whatsapp_live_client_mode: str = "disabled"
     whatsapp_outbound_allowed_recipients: Annotated[tuple[str, ...], NoDecode] = ()
+    lead_notification_recipients: Annotated[tuple[str, ...], NoDecode] = ()
     whatsapp_webhook_max_body_bytes: int = Field(
         default=1_048_576,
         ge=1_024,
@@ -146,6 +147,7 @@ class Settings(BaseSettings):
         "cors_origins",
         "trusted_proxy_hosts",
         "whatsapp_outbound_allowed_recipients",
+        "lead_notification_recipients",
         mode="before",
     )
     @classmethod

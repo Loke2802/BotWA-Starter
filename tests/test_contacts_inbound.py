@@ -126,7 +126,11 @@ def _configuration(
 
 
 def _payload(
-    message_id: str, phone_number_id: str, sender: str
+    message_id: str,
+    phone_number_id: str,
+    sender: str,
+    *,
+    text: str = "Need help",
 ) -> WhatsAppParsedWebhook:
     return WhatsAppParsedWebhook(
         messages=(
@@ -136,7 +140,7 @@ def _payload(
                 phone_number_id=phone_number_id,
                 timestamp=NOW,
                 message_type="text",
-                text="Need help",
+                text=text,
             ),
         )
     )
@@ -145,6 +149,9 @@ def _payload(
 def _processor(
     session: Session,
     configurations: InMemoryWhatsAppConfigurationRepository,
+    *,
+    lead_notification_recipients: tuple[str, ...] = (),
+    outbound_recipient_allowlist: frozenset[str] | None = None,
 ) -> tuple[WhatsAppLiveMessageProcessor, RecordingCore, FakeWhatsAppCloudApiClient]:
     cipher = _cipher()
     audit_writer = SqlAlchemyAuditRepository(session)
@@ -163,7 +170,12 @@ def _processor(
         cipher,
         session,
     )
-    handler = ManagedChannelConversationHandler(core, management, contacts=contacts)
+    handler = ManagedChannelConversationHandler(
+        core,
+        management,
+        contacts=contacts,
+        lead_notification_recipients=lead_notification_recipients,
+    )
     client = FakeWhatsAppCloudApiClient()
     return (
         WhatsAppLiveMessageProcessor(
@@ -185,6 +197,7 @@ def _processor(
             max_attempts=3,
             retry_base_seconds=1,
             retry_max_seconds=60,
+            outbound_recipient_allowlist=outbound_recipient_allowlist,
             now=lambda: NOW,
         ),
         core,
@@ -235,6 +248,51 @@ async def test_inbound_creates_reuses_contact_and_preserves_receipt_idempotency(
     logs = capsys.readouterr().out
     assert "51999999999" not in logs
     assert HMAC_KEY not in logs
+
+
+async def test_lead_details_notify_only_configured_allowlisted_destination(
+    session: Session,
+) -> None:
+    cipher = _cipher()
+    organization_id, bot_id = uuid4(), uuid4()
+    configuration = _configuration(cipher, organization_id, bot_id, "123456789")
+    configurations = InMemoryWhatsAppConfigurationRepository()
+    configurations.add(configuration)
+    destination = "51988888888"
+    sender = "51999999999"
+    processor, core, client = _processor(
+        session,
+        configurations,
+        lead_notification_recipients=(destination,),
+        outbound_recipient_allowlist=frozenset({sender, destination}),
+    )
+
+    first = await processor.process(
+        _payload(
+            "wamid.lead-1",
+            configuration.phone_number_id,
+            sender,
+            text="Quiero una demo de Luri",
+        ),
+        public_webhook_id=configuration.public_webhook_id,
+        correlation_id=uuid4(),
+    )
+    second = await processor.process(
+        _payload(
+            "wamid.lead-2",
+            configuration.phone_number_id,
+            sender,
+            text="Soy Ana de un spa y quiero automatizar reservas.",
+        ),
+        public_webhook_id=configuration.public_webhook_id,
+        correlation_id=uuid4(),
+    )
+
+    assert [result.status for result in (*first, *second)] == ["processed", "processed"]
+    assert core.calls == 1
+    assert len(client.calls) == 3
+    assert second[0].outbound_attempt_ids is not None
+    assert len(second[0].outbound_attempt_ids) == 2
 
 
 async def test_contact_is_scoped_to_tenant_and_reused_across_bots(

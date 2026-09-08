@@ -152,6 +152,7 @@ def get_whatsapp_live_message_processor(
             plan_enforcement=plan_enforcement,
             handoff=handoff,
         ),
+        lead_notification_recipients=settings.lead_notification_recipients,
     )
     sender = WhatsAppChannelMessageSender(
         configuration_repository,

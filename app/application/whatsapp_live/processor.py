@@ -202,12 +202,32 @@ class WhatsAppLiveMessageProcessor:
                 )
                 outbound = self._handler.handle(message)
                 attempt_ids: tuple[UUID, ...] = ()
+                notification_recipients = _notification_recipients(outbound)
+                for recipient in notification_recipients:
+                    if self._outbound_enabled and self._recipient_is_allowed(recipient):
+                        notification = OutboundChannelMessage(
+                            channel_type=outbound.channel_type,
+                            external_recipient_id=recipient,
+                            text=str(outbound.metadata["lead_notification_text"]),
+                            metadata={
+                                "conversation_id": str(
+                                    outbound.metadata["conversation_id"]
+                                ),
+                                "lead_notification": True,
+                            },
+                        )
+                        attempt_ids += await self._send_outbound(
+                            receipt.id,
+                            context,
+                            notification,
+                            correlation_id,
+                        )
                 if (
                     self._outbound_enabled
                     and self._recipient_is_allowed(outbound.external_recipient_id)
                     and not outbound.metadata.get("handoff_blocked")
                 ):
-                    attempt_ids = await self._send_outbound(
+                    attempt_ids += await self._send_outbound(
                         receipt.id,
                         context,
                         outbound,
@@ -619,3 +639,10 @@ class WhatsAppLiveMessageProcessor:
 
 def _identifier_hash(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _notification_recipients(message: OutboundChannelMessage) -> tuple[str, ...]:
+    raw = message.metadata.get("lead_notification_recipients")
+    if not isinstance(raw, str):
+        return ()
+    return tuple(item.strip() for item in raw.split(",") if item.strip())

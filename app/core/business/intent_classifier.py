@@ -1,4 +1,16 @@
 class IntentClassifier:
+    _COMMERCIAL_KEYWORDS: dict[str, list[str]] = {
+        "human_handoff": ["asesor", "agente", "hablar con una persona", "humano"],
+        "lead_qualification": [
+            "demostracion",
+            "demostración",
+            "demo",
+            "me interesa",
+            "quiero informacion",
+            "quiero información",
+            "quiero contratar",
+        ],
+    }
     _KEYWORDS: dict[str, list[str]] = {
         "greeting": ["hola", "buenos", "saludos", "hey", "buen día", "que tal"],
         "farewell": ["adiós", "chao", "hasta luego", "nos vemos", "hasta pronto"],
@@ -23,15 +35,16 @@ class IntentClassifier:
         if not text:
             return "unknown"
 
-        if "?" in text:
-            for intent, keywords in self._KEYWORDS.items():
-                if intent != "question" and any(kw in text for kw in keywords):
-                    return intent
-            return "question"
+        for intent, keywords in self._COMMERCIAL_KEYWORDS.items():
+            if any(keyword in text for keyword in keywords):
+                return intent
 
         for intent, keywords in self._KEYWORDS.items():
-            if any(kw in text for kw in keywords):
+            if any(keyword in text for keyword in keywords):
                 return intent
+
+        if "?" in text:
+            return "question"
 
         if text.startswith(self._QUESTION_PREFIXES):
             return "question"

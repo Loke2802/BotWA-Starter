@@ -127,9 +127,7 @@ def test_vs1_knowledge_fallback_flow() -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "accepted"
-    assert (
-        data["message"] == "Déjame revisar la información para responder tu consulta."
-    )
+    assert "Puedo ayudarte con Luri" in data["message"]
 
 
 def test_vs1_unknown_flow() -> None:
@@ -148,7 +146,7 @@ def test_vs1_unknown_flow() -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "rejected"
-    assert data["message"] == "Gracias por tu mensaje. Estamos procesando tu solicitud."
+    assert "Puedo ayudarte con Luri" in data["message"]
 
 
 def test_vs1_empty_content_rejected() -> None:
@@ -205,7 +203,4 @@ def test_vs1_price_inquiry_knowledge_flow() -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "accepted"
-    assert (
-        data["message"]
-        == "Gracias por tu interés. Un asesor te contactará con los precios."
-    )
+    assert "Para orientarte sobre una propuesta" in data["message"]

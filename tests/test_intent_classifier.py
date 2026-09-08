@@ -52,6 +52,19 @@ def test_classify_common_question_without_question_mark(message: str) -> None:
     assert classifier.classify(message) == "question"
 
 
+@pytest.mark.parametrize(
+    ("message", "expected_intent"),
+    [
+        ("Quiero una demostración de Luri", "lead_qualification"),
+        ("Me interesa Luri", "lead_qualification"),
+        ("Quiero hablar con un asesor", "human_handoff"),
+    ],
+)
+def test_classify_commercial_intents(message: str, expected_intent: str) -> None:
+    classifier = IntentClassifier()
+    assert classifier.classify(message) == expected_intent
+
+
 def test_classify_unknown() -> None:
     classifier = IntentClassifier()
     assert classifier.classify("xyz123") == "unknown"

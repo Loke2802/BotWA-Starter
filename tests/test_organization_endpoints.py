@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from typing import cast
 from uuid import UUID, uuid4
 
 import pytest
@@ -19,6 +20,7 @@ from app.infrastructure.repositories.user_repository import UserRepository
 from app.main import create_app
 from app.security.passwords import PasswordService
 from argon2 import PasswordHasher
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -156,14 +158,15 @@ def test_platform_organization_creation_requires_platform_permission(
         email="platform@example.com",
         role="platform_admin",
     )
-    client.app.dependency_overrides[get_current_user] = lambda: platform_actor
+    app = cast(FastAPI, client.app)
+    app.dependency_overrides[get_current_user] = lambda: platform_actor
     try:
         allowed = client.post(
             "/platform/organizations",
             json={"name": "Kalivur Site", "slug": "kalivur-site"},
         )
     finally:
-        del client.app.dependency_overrides[get_current_user]
+        del app.dependency_overrides[get_current_user]
 
     assert allowed.status_code == 201
     assert allowed.json()["organization"]["slug"] == "kalivur-site"

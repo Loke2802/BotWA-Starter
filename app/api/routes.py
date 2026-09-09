@@ -248,6 +248,30 @@ def create_organization(
     return OrganizationResponse(organization=organization)
 
 
+@router.post(
+    "/platform/organizations",
+    response_model=OrganizationResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["platform"],
+)
+def create_platform_organization(
+    request: OrganizationCreate,
+    service: Annotated[OrganizationService, Depends(get_organization_service)],
+    _actor: Annotated[
+        User, Depends(require_permission("platform.organizations.manage"))
+    ],
+) -> OrganizationResponse:
+    """Create a tenant from the authenticated platform administration surface."""
+    try:
+        organization = service.create(request)
+    except OrganizationConflictError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+    return OrganizationResponse(organization=organization)
+
+
 @router.get(
     "/organizations",
     response_model=OrganizationListResponse,

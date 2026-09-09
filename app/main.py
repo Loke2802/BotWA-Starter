@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.analytics_routes import router as analytics_router
@@ -27,6 +28,7 @@ from app.api.integration_management_routes import (
 from app.api.knowledge_routes import router as knowledge_management_router
 from app.api.onboarding_routes import router as onboarding_router
 from app.api.plan_routes import router as plan_router
+from app.api.portal_routes import router as portal_router
 from app.api.routes import bootstrap_router, legacy_router, router
 from app.api.security_dependencies import reset_development_rate_limits
 from app.api.whatsapp_configuration_routes import (
@@ -150,6 +152,12 @@ def create_app() -> FastAPI:
         )
 
     app.include_router(router)
+    app.include_router(portal_router)
+    app.mount(
+        "/portal/assets",
+        StaticFiles(directory="app/portal"),
+        name="portal-assets",
+    )
     app.include_router(observability_router)
     if settings.public_bootstrap_enabled:
         app.include_router(bootstrap_router)

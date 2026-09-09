@@ -1,10 +1,15 @@
 from collections.abc import Generator
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
-from app.api.dependencies import get_organization_service, get_user_service
+from app.api.dependencies import (
+    get_current_user,
+    get_organization_service,
+    get_user_service,
+)
 from app.application.organizations.service import OrganizationService
 from app.application.users.service import UserService
+from app.domain.user.contracts import User
 from app.infrastructure.database import Base
 from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
 from app.infrastructure.repositories.organization_repository import (
@@ -123,6 +128,45 @@ def test_create_invalid_payload_endpoint(client: TestClient) -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_platform_organization_creation_requires_platform_permission(
+    client: TestClient,
+) -> None:
+    unauthorized = client.post(
+        "/platform/organizations",
+        json={"name": "Kalivur Site", "slug": "kalivur-site"},
+    )
+    assert unauthorized.status_code == 401
+
+    first = client.post(
+        "/organizations",
+        json={"name": "Acme", "slug": "acme"},
+    ).json()["organization"]
+    owner_token = create_owner_token(client, first["id"])
+    owner_attempt = client.post(
+        "/platform/organizations",
+        json={"name": "Kalivur Site", "slug": "kalivur-site"},
+        headers=auth_header(owner_token),
+    )
+    assert owner_attempt.status_code == 403
+
+    platform_actor = User(
+        organization_id=UUID(first["id"]),
+        email="platform@example.com",
+        role="platform_admin",
+    )
+    client.app.dependency_overrides[get_current_user] = lambda: platform_actor
+    try:
+        allowed = client.post(
+            "/platform/organizations",
+            json={"name": "Kalivur Site", "slug": "kalivur-site"},
+        )
+    finally:
+        del client.app.dependency_overrides[get_current_user]
+
+    assert allowed.status_code == 201
+    assert allowed.json()["organization"]["slug"] == "kalivur-site"
 
 
 def test_get_list_update_deactivate_endpoints(client: TestClient) -> None:

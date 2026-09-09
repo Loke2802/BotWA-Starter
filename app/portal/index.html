@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#111a2e" />
+    <title>Luri | Operaciones</title>
+    <link rel="stylesheet" href="/portal/assets/portal.css" />
+  </head>
+  <body>
+    <main id="login-screen" class="login-shell">
+      <section class="login-card">
+        <div class="brand-mark" aria-hidden="true">L</div>
+        <p class="eyebrow">KALIVUR · OPERACIONES</p>
+        <h1>Bienvenido a Luri</h1>
+        <p class="muted">Administra las conversaciones y operación de tu empresa.</p>
+        <form id="login-form">
+          <label>
+            Correo
+            <input id="email" type="email" autocomplete="username" required />
+          </label>
+          <label>
+            Contraseña
+            <input id="password" type="password" autocomplete="current-password" required />
+          </label>
+          <p id="login-error" class="form-error" role="alert"></p>
+          <button class="primary-button" type="submit">Ingresar</button>
+        </form>
+      </section>
+    </main>
+
+    <main id="app-shell" class="app-shell" hidden>
+      <aside class="sidebar">
+        <a class="brand" href="#overview" aria-label="Inicio de Luri">
+          <span class="brand-mark">L</span>
+          <span><strong>Luri</strong><small>WhatsApp + IA</small></span>
+        </a>
+        <nav aria-label="Navegación principal">
+          <button class="nav-item active" data-view="overview">Inicio</button>
+          <button class="nav-item" data-view="conversations">Conversaciones</button>
+          <button class="nav-item" data-view="contacts">Clientes</button>
+          <button class="nav-item" data-view="team">Equipo</button>
+          <button class="nav-item" data-view="configuration">Configuración</button>
+        </nav>
+        <div class="sidebar-footer">
+          <span>Una plataforma de Kalivur</span>
+          <button id="logout" class="text-button">Cerrar sesión</button>
+        </div>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">ESPACIO DE TRABAJO</p>
+            <h2 id="organization-name">Cargando empresa…</h2>
+          </div>
+          <label class="organization-select">
+            <span>Empresa</span>
+            <select id="organization-picker" aria-label="Cambiar empresa"></select>
+          </label>
+          <button id="create-organization" class="primary-button compact-button" type="button" hidden>Agregar empresa</button>
+        </header>
+        <div id="portal-notice" class="notice" hidden></div>
+        <section id="portal-content" class="content" aria-live="polite"></section>
+      </section>
+    </main>
+
+    <section id="organization-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="organization-modal-title" hidden>
+      <form id="organization-form" class="modal-card">
+        <div class="modal-heading">
+          <div>
+            <p class="eyebrow">PLATAFORMA KALIVUR</p>
+            <h3 id="organization-modal-title">Crear empresa cliente</h3>
+          </div>
+          <button id="close-organization-modal" class="icon-button" type="button" aria-label="Cerrar">×</button>
+        </div>
+        <p class="muted">Se creará la empresa y su propietario. Esa persona solo verá la información de su propia empresa.</p>
+        <div class="form-grid">
+          <label>Nombre de la empresa<input id="new-organization-name" maxlength="120" required /></label>
+          <label>Identificador único<input id="new-organization-slug" pattern="[a-z0-9-]+" maxlength="80" placeholder="ejemplo-spa" required /></label>
+          <label>Correo del propietario<input id="new-owner-email" type="email" autocomplete="off" required /></label>
+          <label>Nombre del propietario<input id="new-owner-first-name" maxlength="80" autocomplete="off" /></label>
+          <label class="full-width">Contraseña temporal<input id="new-owner-password" type="password" minlength="12" maxlength="256" autocomplete="new-password" required /></label>
+        </div>
+        <p class="field-hint">Mínimo 12 caracteres. No se guarda en este navegador después de crear el acceso.</p>
+        <p id="organization-form-error" class="form-error" role="alert"></p>
+        <div class="modal-actions"><button id="cancel-organization" class="secondary-button" type="button">Cancelar</button><button class="primary-button" type="submit">Crear empresa y acceso</button></div>
+      </form>
+    </section>
+    <script src="/portal/assets/portal.js" defer></script>
+  </body>
+</html>

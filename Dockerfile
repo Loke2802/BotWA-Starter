@@ -30,6 +30,8 @@ RUN apt-get update \
         libblkid1 \
         liblastlog2-2 \
         libmount1 \
+        libpcre2-8-0 \
+        libsqlite3-0 \
         libsmartcols1 \
         libssl3t64 \
         libuuid1 \
@@ -37,6 +39,7 @@ RUN apt-get update \
         mount \
         openssl \
         openssl-provider-legacy \
+        perl-base \
         util-linux \
     && rm -rf /var/lib/apt/lists/*
 

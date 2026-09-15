@@ -183,6 +183,9 @@ def create_app() -> FastAPI:
     app.include_router(whatsapp_live_router)
     if settings.legacy_whatsapp_enabled:
         app.include_router(whatsapp_router)
+    from app.api.public_contacts_routes import install_public_contacts
+
+    install_public_contacts(app)
     return app
 
 

@@ -29,6 +29,7 @@ from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.conversation_state_history import (
     ConversationStateHistoryModel,
 )
+from app.infrastructure.models.customer_profile import CustomerProfileModel
 from app.infrastructure.models.human_handoff import (
     HandoffEventModel,
     HandoffSessionModel,
@@ -65,6 +66,7 @@ from app.infrastructure.models.whatsapp_message_transport import (
 )
 
 __all__ = [
+    "CustomerProfileModel",
     "AutomationExecutionModel",
     "AutomationTaskExecutionModel",
     "AnalyticsDailySummaryModel",

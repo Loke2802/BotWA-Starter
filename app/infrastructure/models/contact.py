@@ -19,6 +19,7 @@ from app.infrastructure.database import Base
 class ContactModel(Base):
     __tablename__ = "contact"
     __table_args__ = (
+        UniqueConstraint("id", "organization_id", name="uq_contact_id_organization"),
         UniqueConstraint(
             "organization_id",
             "channel_type",

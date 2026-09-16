@@ -60,7 +60,8 @@ async function api(path, options = {}) {
   }
   if (!response.ok) {
     const detail = await response.json().catch(() => null);
-    throw new Error(detail?.detail?.code || detail?.detail || "No se pudo cargar la información.");
+    const message = typeof detail?.detail === "string" ? detail.detail : response.status === 422 ? "Revisa los campos del formulario." : response.status === 403 ? "No tienes permiso para esta acción." : "No se pudo completar la solicitud. Intenta nuevamente.";
+    throw new Error(message);
   }
   return response.json();
 }
@@ -85,6 +86,9 @@ async function login(event) {
 }
 
 function signOut() {
+  window.LuriCRM.reset();
+  renderGeneration++;
+  content.innerHTML = "";
   sessionStorage.removeItem(storageKey);
   sessionStorage.removeItem(organizationKey);
   state.token = null;
@@ -232,9 +236,7 @@ async function renderConversations(organizationId) {
 }
 
 async function renderContacts(organizationId) {
-  const result = await loadSafe(`/organizations/${organizationId}/contacts?page_size=50`);
-  if (result.error) return `${header("Clientes", "Contactos que escribieron a tu empresa.")}<p class="empty">No tienes permiso para ver clientes.</p>`;
-  return `${header("Clientes", `${result.total} contactos registrados.`)}<article class="panel">${table(["Nombre", "Canal", "Estado", "Creado"], result.items.map((item) => `<tr><td>${escapeHtml(item.display_name || "Sin nombre")}</td><td>${escapeHtml(item.channel_type)}</td><td><span class="status ${escapeHtml(item.status)}">${escapeHtml(item.status)}</span></td><td>${escapeHtml(formatDate(item.created_at))}</td></tr>`))}</article>`;
+  return window.LuriCRM.render(organizationId, api, renderView);
 }
 
 async function renderTeam() {
@@ -257,7 +259,10 @@ async function renderConfiguration() {
   return `${header("Configuración", "Perfil y operación de tu empresa.")}<article class="panel"><div class="configuration-list"><div><span>Nombre comercial</span><strong>${escapeHtml(configuration.business_name)}</strong></div><div><span>Zona horaria</span><strong>${escapeHtml(configuration.timezone)}</strong></div><div><span>Servicios configurados</span><strong>${escapeHtml(configuration.services?.length ?? 0)}</strong></div><div><span>Métodos de pago</span><strong>${escapeHtml(configuration.payment_methods?.length ?? 0)}</strong></div></div></article>`;
 }
 
+let renderGeneration = 0;
 async function renderView() {
+  const ticket = ++renderGeneration;
+  window.LuriCRM.close();
   const organizationId = state.activeOrganization;
   if (!organizationId) return;
   clearNotice();
@@ -270,9 +275,13 @@ async function renderView() {
     configuration: () => renderConfiguration(),
   };
   try {
-    content.innerHTML = await renderers[state.view]();
+    const markup = await renderers[state.view]();
+    if (ticket !== renderGeneration || !state.token || state.activeOrganization !== organizationId) return;
+    content.innerHTML = markup;
+    if (state.view === "contacts") window.LuriCRM.mount(content);
   } catch (error) {
-    content.innerHTML = '<p class="empty">No se pudo cargar esta vista.</p>';
+    if (ticket !== renderGeneration || !state.token) return;
+    content.innerHTML = '<p class="empty">No se pudo cargar esta vista. Vuelve a seleccionar la sección para reintentar.</p>';
     showNotice(error.message || "Ocurrió un error inesperado.");
   }
 }
@@ -288,6 +297,7 @@ document.querySelector("#new-organization-name").addEventListener("input", (even
 });
 organizationForm.addEventListener("submit", createOrganization);
 picker.addEventListener("change", async (event) => {
+  window.LuriCRM.reset();
   state.activeOrganization = event.target.value;
   sessionStorage.setItem(organizationKey, state.activeOrganization);
   renderOrganizationPicker();

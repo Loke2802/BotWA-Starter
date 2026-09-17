@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from uuid import UUID
 
 from app.application.automation_management.service import ManagedAutomationService
@@ -9,7 +10,11 @@ from app.application.conversation_management.service import (
 )
 from app.application.human_handoff.service import HumanHandoffService
 from app.core.business.intent_classifier import IntentClassifier
-from app.domain.channel.contracts import InboundChannelMessage, OutboundChannelMessage
+from app.domain.channel.contracts import (
+    InboundChannelMessage,
+    OutboundChannelMessage,
+    ResolvedChannelContext,
+)
 from app.observability.metrics import safe_metric
 
 
@@ -23,7 +28,9 @@ class ManagedChannelConversationHandler(ChannelMessageHandler):
         handoff: HumanHandoffService | None = None,
         contacts: ContactResolutionService | None = None,
         automations: ManagedAutomationService | None = None,
-        lead_notification_recipients: tuple[str, ...] = (),
+        lead_notification_recipients: (
+            tuple[str, ...] | Callable[[ResolvedChannelContext], tuple[str, ...]]
+        ) = (),
     ) -> None:
         self._handler = handler
         self._management = management
@@ -33,6 +40,11 @@ class ManagedChannelConversationHandler(ChannelMessageHandler):
         self._lead_notification_recipients = lead_notification_recipients
 
     def handle(self, message: InboundChannelMessage) -> OutboundChannelMessage:
+        recipients = (
+            self._lead_notification_recipients(message.resolved_context)
+            if callable(self._lead_notification_recipients)
+            else self._lead_notification_recipients
+        )
         conversation_id = self._handler.conversation_id_for(message)
         receipt_id = message.metadata.get("receipt_id")
         if not isinstance(receipt_id, str):
@@ -84,9 +96,7 @@ class ManagedChannelConversationHandler(ChannelMessageHandler):
                 },
             )
         completed_lead_intent = (
-            self._management.complete_lead_capture(conversation)
-            if self._lead_notification_recipients
-            else None
+            self._management.complete_lead_capture(conversation) if recipients else None
         )
         if completed_lead_intent is not None:
             self._management.mark_inbound_processed(
@@ -100,9 +110,7 @@ class ManagedChannelConversationHandler(ChannelMessageHandler):
                 reply_to_external_message_id=message.external_message_id,
                 metadata={
                     "conversation_id": str(conversation_id),
-                    "lead_notification_recipients": ",".join(
-                        self._lead_notification_recipients
-                    ),
+                    "lead_notification_recipients": ",".join(recipients),
                     "lead_notification_text": (
                         "Nuevo prospecto de Luri\n"
                         f"Tipo de solicitud: {completed_lead_intent}\n"
@@ -128,7 +136,7 @@ class ManagedChannelConversationHandler(ChannelMessageHandler):
         intent = IntentClassifier().classify(message.text)
         if (
             intent in {"lead_qualification", "human_handoff", "price_inquiry"}
-            and self._lead_notification_recipients
+            and recipients
         ):
             self._management.start_lead_capture(conversation, intent)
         return outbound.model_copy(update={"metadata": metadata})

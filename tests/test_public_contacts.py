@@ -76,12 +76,12 @@ def test_persists_encrypted_contact_and_deduplicates(setup_db: DatabaseFixture) 
     session.expire_all()
     contact = session.scalars(select(ContactModel)).one()
     assert contact.display_name_ciphertext is not None
-    assert contact.notes_ciphertext is not None
+    assert contact.registration_ciphertext is not None
     assert contact.organization_id == org.id
     assert cipher.decrypt(contact.display_name_ciphertext) == "Cliente de prueba"
     assert cipher.decrypt(contact.external_identifier_ciphertext) == "51900000001"
     assert "Cliente" not in contact.display_name_ciphertext
-    assert "contact-registration-v1" in cipher.decrypt(contact.notes_ciphertext)
+    assert "contact-registration-v1" in cipher.decrypt(contact.registration_ciphertext)
     contact.status = "archived"
     session.commit()
     assert post(client, name="Intento de reemplazo").status_code == 200

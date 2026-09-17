@@ -197,6 +197,7 @@ def _processor(
             max_attempts=3,
             retry_base_seconds=1,
             retry_max_seconds=60,
+            notification_recipients_for=lambda _: lead_notification_recipients,
             outbound_recipient_allowlist=outbound_recipient_allowlist,
             now=lambda: NOW,
         ),

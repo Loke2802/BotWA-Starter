@@ -6,6 +6,11 @@ __pycache__/
 .venv/
 venv/
 .env
+.env.*
+!.env.example
+respaldos/
+.worktrees/
+.audit-results/
 htmlcov/
 .coverage
 dist/

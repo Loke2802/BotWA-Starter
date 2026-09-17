@@ -54,6 +54,7 @@ RUN rm -rf \
     /usr/local/lib/python3.13/site-packages/pip \
     /usr/local/lib/python3.13/site-packages/pip-*.dist-info
 COPY --chown=10001:10001 app/ ./app/
+RUN if [ -n "${BOTWA_BUILD_SHA}" ]; then printf '%s' "${BOTWA_BUILD_SHA}" > /app/app/_build_sha; fi
 COPY --chown=10001:10001 alembic/ ./alembic/
 COPY --chown=10001:10001 alembic.ini ./alembic.ini
 

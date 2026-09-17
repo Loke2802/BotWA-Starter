@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from sqlalchemy import select
+from sqlalchemy import or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -60,14 +60,26 @@ class SqlAlchemyInboundMessageReceiptRepository(
                 raise
             return existing, False
 
-    def acquire_for_processing(self, receipt_id: UUID) -> bool:
+    def acquire_for_processing(
+        self, receipt_id: UUID, *, now: datetime | None = None, max_attempts: int = 3
+    ) -> bool:
         stmt = (
             select(InboundMessageReceiptModel)
             .where(InboundMessageReceiptModel.id == receipt_id)
-            .with_for_update()
+            .with_for_update(skip_locked=True)
+            .execution_options(populate_existing=True)
         )
         receipt = self._session.scalars(stmt).one_or_none()
-        if receipt is None or receipt.status != "received":
+        if (
+            receipt is None
+            or receipt.status not in {"received", "failed"}
+            or (receipt.attempt_count or 0) >= max_attempts
+            or (receipt.status == "failed" and not receipt.payload_ciphertext)
+            or (
+                receipt.next_attempt_at is not None
+                and _utc(receipt.next_attempt_at) > (now or datetime.now(UTC))
+            )
+        ):
             return False
         receipt.status = "processing"
         receipt.attempt_count = (receipt.attempt_count or 0) + 1
@@ -122,7 +134,9 @@ class SqlAlchemyOutboundMessageAttemptRepository(
         )
         if for_update:
             stmt = stmt.with_for_update()
-        return self._session.scalars(stmt).one_or_none()
+        return self._session.scalars(
+            stmt.execution_options(populate_existing=True)
+        ).one_or_none()
 
     def mark_attempt_started(
         self,
@@ -135,6 +149,32 @@ class SqlAlchemyOutboundMessageAttemptRepository(
         attempt.next_attempt_at = None
         return attempt
 
+    def claim_delivery(
+        self, attempt_id: UUID, now: datetime, max_attempts: int
+    ) -> OutboundMessageAttemptModel | None:
+        claimed = self._session.execute(
+            update(OutboundMessageAttemptModel)
+            .execution_options(synchronize_session="fetch")
+            .where(
+                OutboundMessageAttemptModel.id == attempt_id,
+                OutboundMessageAttemptModel.status == "pending",
+                OutboundMessageAttemptModel.delivery_token.is_(None),
+                OutboundMessageAttemptModel.attempt_count < max_attempts,
+                or_(
+                    OutboundMessageAttemptModel.next_attempt_at.is_(None),
+                    OutboundMessageAttemptModel.next_attempt_at <= now,
+                ),
+            )
+            .values(
+                delivery_token=uuid4(),
+                delivery_started_at=now,
+                attempt_count=OutboundMessageAttemptModel.attempt_count + 1,
+                next_attempt_at=None,
+            )
+            .returning(OutboundMessageAttemptModel.id)
+        ).scalar_one_or_none()
+        return self.get(attempt_id) if claimed is not None else None
+
     def mark_sent(
         self,
         attempt_id: UUID,
@@ -144,6 +184,7 @@ class SqlAlchemyOutboundMessageAttemptRepository(
         attempt = self.get(attempt_id, for_update=True)
         if attempt is None:
             raise ValueError("outbound attempt was not found")
+        attempt.delivery_token = None
         attempt.status = "sent"
         attempt.provider_message_id = provider_message_id
         attempt.sent_at = sent_at
@@ -155,6 +196,7 @@ class SqlAlchemyOutboundMessageAttemptRepository(
         attempt = self.get(attempt_id, for_update=True)
         if attempt is None:
             raise ValueError("outbound attempt was not found")
+        attempt.delivery_token = None
         attempt.status = "failed"
         attempt.last_error_code = error_code
         attempt.next_attempt_at = None
@@ -168,6 +210,7 @@ class SqlAlchemyOutboundMessageAttemptRepository(
         attempt = self.get(attempt_id, for_update=True)
         if attempt is None:
             raise ValueError("outbound attempt was not found")
+        attempt.delivery_token = None
         attempt.status = "pending"
         attempt.last_error_code = error_code
         attempt.next_attempt_at = next_attempt_at
@@ -229,9 +272,20 @@ class InMemoryInboundMessageReceiptRepository(InboundMessageReceiptRepository):
         self.keys[key] = receipt.id
         return receipt, True
 
-    def acquire_for_processing(self, receipt_id: UUID) -> bool:
+    def acquire_for_processing(
+        self, receipt_id: UUID, *, now: datetime | None = None, max_attempts: int = 3
+    ) -> bool:
         receipt = self.receipts.get(receipt_id)
-        if receipt is None or receipt.status != "received":
+        if (
+            receipt is None
+            or receipt.status not in {"received", "failed"}
+            or (receipt.attempt_count or 0) >= max_attempts
+            or (receipt.status == "failed" and not receipt.payload_ciphertext)
+            or (
+                receipt.next_attempt_at is not None
+                and _utc(receipt.next_attempt_at) > (now or datetime.now(UTC))
+            )
+        ):
             return False
         receipt.status = "processing"
         receipt.attempt_count = (receipt.attempt_count or 0) + 1
@@ -285,6 +339,25 @@ class InMemoryOutboundMessageAttemptRepository(
         attempt.next_attempt_at = None
         return attempt
 
+    def claim_delivery(
+        self, attempt_id: UUID, now: datetime, max_attempts: int
+    ) -> OutboundMessageAttemptModel | None:
+        attempt = self.attempts.get(attempt_id)
+        if (
+            attempt is None
+            or attempt.status != "pending"
+            or attempt.delivery_token is not None
+            or (attempt.attempt_count or 0) >= max_attempts
+            or (
+                attempt.next_attempt_at is not None
+                and _utc(attempt.next_attempt_at) > now
+            )
+        ):
+            return None
+        attempt.delivery_token = uuid4()
+        attempt.delivery_started_at = now
+        return self.mark_attempt_started(attempt_id)
+
     def mark_sent(
         self,
         attempt_id: UUID,
@@ -292,6 +365,7 @@ class InMemoryOutboundMessageAttemptRepository(
         sent_at: datetime,
     ) -> None:
         attempt = self.attempts[attempt_id]
+        attempt.delivery_token = None
         attempt.status = "sent"
         attempt.provider_message_id = provider_message_id
         attempt.sent_at = sent_at
@@ -301,6 +375,7 @@ class InMemoryOutboundMessageAttemptRepository(
 
     def mark_failed(self, attempt_id: UUID, error_code: str) -> None:
         attempt = self.attempts[attempt_id]
+        attempt.delivery_token = None
         attempt.status = "failed"
         attempt.last_error_code = error_code
         attempt.next_attempt_at = None
@@ -312,6 +387,7 @@ class InMemoryOutboundMessageAttemptRepository(
         next_attempt_at: datetime,
     ) -> None:
         attempt = self.attempts[attempt_id]
+        attempt.delivery_token = None
         attempt.status = "pending"
         attempt.last_error_code = error_code
         attempt.next_attempt_at = next_attempt_at

@@ -1,7 +1,7 @@
 services:
   api:
     build: .
-    environment:
+    environment: &application-environment
       BOTWA_APP_NAME: ${BOTWA_APP_NAME}
       BOTWA_ENVIRONMENT: ${BOTWA_ENVIRONMENT}
       BOTWA_LOG_LEVEL: ${BOTWA_LOG_LEVEL}
@@ -18,6 +18,10 @@ services:
       BOTWA_RATE_LIMIT_HMAC_KEY: ${BOTWA_RATE_LIMIT_HMAC_KEY:-}
       BOTWA_AUDIT_CURSOR_SIGNING_KEY: ${BOTWA_AUDIT_CURSOR_SIGNING_KEY:-}
       BOTWA_DATABASE_URL: ${BOTWA_DATABASE_URL}
+      BOTWA_USE_DATABASE: ${BOTWA_USE_DATABASE:-true}
+      BOTWA_CONTACT_IDENTITY_HMAC_KEY: ${BOTWA_CONTACT_IDENTITY_HMAC_KEY:-}
+      BOTWA_LEAD_NOTIFICATION_SCOPES: ${BOTWA_LEAD_NOTIFICATION_SCOPES:?Set notification scopes JSON; use an empty object to disable}
+      BOTWA_WHATSAPP_OUTBOUND_ALLOWED_RECIPIENTS: ${BOTWA_WHATSAPP_OUTBOUND_ALLOWED_RECIPIENTS:-}
       BOTWA_WHATSAPP_ACCESS_TOKEN: ${BOTWA_WHATSAPP_ACCESS_TOKEN}
       BOTWA_WHATSAPP_PHONE_NUMBER_ID: ${BOTWA_WHATSAPP_PHONE_NUMBER_ID}
       BOTWA_WHATSAPP_WEBHOOK_VERIFY_TOKEN: ${BOTWA_WHATSAPP_WEBHOOK_VERIFY_TOKEN}
@@ -57,6 +61,17 @@ services:
     command: ["python", "-m", "app.operations.automation_worker"]
     environment:
       BOTWA_DATABASE_URL: ${BOTWA_DATABASE_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  whatsapp-worker:
+    build: .
+    command: ["python", "-m", "app.operations.whatsapp_worker"]
+    environment: *application-environment
+    restart: unless-stopped
+    healthcheck:
+      disable: true
     depends_on:
       db:
         condition: service_healthy

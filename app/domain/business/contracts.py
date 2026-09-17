@@ -3,6 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.domain.conversation.contracts import HistoryEntry
+
 
 class BusinessRequest(BaseModel):
     model_config = ConfigDict(frozen=True)
@@ -11,6 +13,7 @@ class BusinessRequest(BaseModel):
     customer_id: str = Field(min_length=1)
     company_id: str = Field(min_length=1)
     conversation_id: UUID
+    history: tuple[HistoryEntry, ...] = ()
 
 
 class BusinessContext(BaseModel):

@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 
 from app.application.audit.writer import append_user_audit
 from app.application.contacts.identity import ContactIdentityHasher
+from app.application.contacts.registration import preserve_registration
 from app.domain.contacts.crm_contracts import (
     CrmAssignee,
     CrmSummary,
@@ -306,7 +307,10 @@ class CrmService:
         profile.updated_at = datetime.now(UTC)
         contact.display_name_ciphertext = self.cipher.encrypt(data.display_name)
         if data.notes is not None:
-            contact.notes_ciphertext = self.cipher.encrypt(data.notes)
+            preserve_registration(contact, self.cipher)
+            contact.notes_ciphertext = (
+                self.cipher.encrypt(data.notes) if data.notes else None
+            )
         contact.updated_at = datetime.now(UTC)
         contact.updated_by_user_id = actor.id
         self._audit(org, actor, contact_id)

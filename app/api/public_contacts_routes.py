@@ -85,7 +85,7 @@ def register_contact(
         external_identifier_hash=identity.external_identifier_hash,
         external_identifier_ciphertext=cipher.encrypt(identity.normalized_identifier),
         display_name_ciphertext=cipher.encrypt(body.name),
-        notes_ciphertext=cipher.encrypt(
+        registration_ciphertext=cipher.encrypt(
             json.dumps(
                 {
                     "source": "website",

@@ -3,6 +3,7 @@ from uuid import UUID
 
 from app.application.audit.writer import append_user_audit
 from app.application.contacts.identity import ContactIdentityHasher
+from app.application.contacts.registration import preserve_registration
 from app.application.contacts.repository import ContactRepository
 from app.domain.audit.contracts import StatusTransitionMetadata
 from app.domain.audit.ports import AuditWriter
@@ -96,7 +97,8 @@ class ContactAdministrationService:
         if display_name is not None:
             contact.display_name_ciphertext = self._cipher.encrypt(display_name)
         if notes is not None:
-            contact.notes_ciphertext = self._cipher.encrypt(notes)
+            preserve_registration(contact, self._cipher)
+            contact.notes_ciphertext = self._cipher.encrypt(notes) if notes else None
         contact.updated_by_user_id = actor.id
         contact.updated_at = datetime.now(UTC)
         append_user_audit(

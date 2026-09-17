@@ -13,5 +13,6 @@ class MessageRouter:
             customer_id=context.message.customer_id,
             company_id=context.message.company_id,
             conversation_id=context.message.conversation_id,
+            history=tuple(context.history),
         )
         return self._business_brain.process(request)

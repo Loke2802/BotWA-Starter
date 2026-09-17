@@ -5,7 +5,9 @@ from app.application.contacts.identity import ContactIdentityHasher
 from app.application.contacts.repository import ContactRepository
 from app.domain.contacts.contracts import ContactIdentity
 from app.infrastructure.models.contact import ContactModel
+from app.infrastructure.unit_of_work import commit, rollback
 from app.security.secret_cipher import SecretCipher
+from sqlalchemy import inspect
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -44,6 +46,8 @@ class ContactResolutionService:
             contact.status = "active"
             contact.updated_at = datetime.now(UTC)
             self._commit()
+        if self._session.info.get("atomic_transport") and inspect(contact).persistent:
+            self._session.refresh(contact, with_for_update=True)
         return contact
 
     def _create(self, identity: ContactIdentity) -> ContactModel:
@@ -63,9 +67,11 @@ class ContactResolutionService:
             self._commit()
             return contact
         except IntegrityError as exc:
+            if self._session.info.get("atomic_transport"):
+                raise
             if not _is_identity_conflict(exc):
                 raise
-            self._session.rollback()
+            rollback(self._session)
             existing = self._repository.get_by_identity(
                 identity.organization_id,
                 identity.channel_type,
@@ -77,9 +83,9 @@ class ContactResolutionService:
 
     def _commit(self) -> None:
         try:
-            self._session.commit()
+            commit(self._session)
         except IntegrityError:
-            self._session.rollback()
+            rollback(self._session)
             raise
 
 

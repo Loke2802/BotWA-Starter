@@ -34,6 +34,7 @@ from app.infrastructure.repositories.business_calendar_repository import (
 from app.infrastructure.repositories.managed_automation_repository import (
     ManagedAutomationRepository,
 )
+from app.infrastructure.unit_of_work import commit, rollback
 from app.observability.metrics import safe_metric
 from app.security.authorization import AuthorizationError, require_scoped_permission
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -350,9 +351,9 @@ class ManagedAutomationService:
 
     def _commit_admin(self) -> None:
         try:
-            self.session.commit()
+            commit(self.session)
         except SQLAlchemyError as exc:
-            self.session.rollback()
+            rollback(self.session)
             raise AutomationConflictError("automation persistence failed") from exc
 
     def record_inbound(
@@ -416,7 +417,9 @@ class ManagedAutomationService:
             self.session.add(receipt)
             self.session.flush()
         except IntegrityError:
-            self.session.rollback()
+            if self.session.info.get("atomic_transport"):
+                raise
+            rollback(self.session)
             return
         for definition in self.repo.active(organization_id, bot_id):
             snapshot = {
@@ -442,9 +445,9 @@ class ManagedAutomationService:
                 )
             )
         try:
-            self.session.commit()
+            commit(self.session)
         except IntegrityError:
-            self.session.rollback()
+            rollback(self.session)
 
     def business_hours_state(
         self,
@@ -464,7 +467,7 @@ class ManagedAutomationService:
                 datetime.now(UTC),
             )
             row.lease_owner = row.lease_expires_at = None
-            self.session.commit()
+            commit(self.session)
             safe_metric("record_automation", "failed")
             return
         conditions = definition.get("conditions_data")
@@ -481,13 +484,13 @@ class ManagedAutomationService:
                 datetime.now(UTC),
             )
             row.lease_owner = row.lease_expires_at = None
-            self.session.commit()
+            commit(self.session)
             safe_metric("record_automation", "failed")
             return
         matches = all(event.get(k) == v for k, v in conditions.items() if v is not None)
         if not matches:
             row.status, row.completed_at = "skipped", datetime.now(UTC)
-            self.session.commit()
+            commit(self.session)
             safe_metric("record_automation", "skipped")
             return
         try:
@@ -525,7 +528,7 @@ class ManagedAutomationService:
                 row.status, row.available_at = "pending", datetime.now(UTC) + timedelta(
                     seconds=(0, 5, 30)[min(row.attempt_count, 2)]
                 )
-        self.session.commit()
+        commit(self.session)
         terminal_metric = {
             "succeeded": "completed",
             "failed": "failed",

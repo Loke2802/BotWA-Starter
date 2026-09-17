@@ -1,4 +1,5 @@
-from collections.abc import Generator
+from collections.abc import Callable, Generator
+from functools import lru_cache
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -64,6 +65,7 @@ from app.core.knowledge.seed_data import ensure_knowledge_seed_data
 from app.core.knowledge.service import KnowledgeService
 from app.core.knowledge.validator import QualityValidator
 from app.domain.access.contracts import Permission
+from app.domain.conversation.contracts import ConversationMessage, HistoryEntry
 from app.domain.user.contracts import User
 from app.infrastructure.database import get_session
 from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
@@ -113,7 +115,6 @@ def get_conversation_service() -> Generator[ConversationService]:
     if not settings.use_database:
         yield build_conversation_service()
         return
-
     session_generator = get_session()
     session = next(session_generator)
     try:
@@ -126,8 +127,10 @@ def build_conversation_service(
     session: Session | None = None,
     *,
     knowledge_retriever: KnowledgeRetriever | None = None,
+    history_loader: Callable[[ConversationMessage], list[HistoryEntry]] | None = None,
+    managed_transport: bool = False,
 ) -> ConversationService:
-    """Build the Conversation Core with an optional scoped knowledge source."""
+    """Compose the Core using an explicitly owned unit of work and knowledge source."""
     intent_classifier = IntentClassifier()
     decision_maker = DecisionMaker()
     confidence_evaluator = ConfidenceEvaluator()
@@ -191,7 +194,6 @@ def build_conversation_service(
             registry=registry,
             session_factory=get_session,  # type: ignore[arg-type]
         )
-        automation_service.recover()
     else:
         retriever = knowledge_retriever or InMemoryKnowledgeRetriever()
         publisher = InMemoryKnowledgePublisher()
@@ -228,6 +230,7 @@ def build_conversation_service(
     context_builder = ConversationContextBuilder(
         state_manager=state_manager,
         message_repo=message_repo,
+        history_loader=history_loader,
     )
 
     business_brain = BusinessBrainService(
@@ -239,7 +242,7 @@ def build_conversation_service(
         action_planner=action_planner,
         knowledge_service=knowledge_service,
         event_publisher=event_publisher,
-        automation_service=automation_service,
+        automation_service=None if managed_transport else automation_service,
     )
     router = MessageRouter(business_brain=business_brain)
     topic_detector = TopicDetector()
@@ -276,7 +279,12 @@ def get_organization_service() -> Generator[OrganizationService]:
 
 
 def get_password_service() -> PasswordService:
-    return PasswordService(max_length=get_settings().auth_password_max_length)
+    return _password_service(get_settings().auth_password_max_length)
+
+
+@lru_cache(maxsize=8)
+def _password_service(max_length: int) -> PasswordService:
+    return PasswordService(max_length=max_length)
 
 
 def get_access_token_service() -> AccessTokenService:

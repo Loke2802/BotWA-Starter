@@ -18,8 +18,11 @@ from app.infrastructure.database import Base
 
 
 class InboundMessageReceiptModel(Base):
+    payload_ciphertext: Mapped[str | None] = mapped_column(Text, nullable=True)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __tablename__ = "inbound_message_receipt"
     __table_args__ = (
+        Index("ix_inbound_recovery", "status", "next_attempt_at"),
         UniqueConstraint(
             "channel_type",
             "external_message_id",
@@ -92,6 +95,11 @@ class InboundMessageReceiptModel(Base):
 
 
 class OutboundMessageAttemptModel(Base):
+    delivery_token: Mapped[UUID | None] = mapped_column(Uuid, nullable=True)
+    delivery_started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    notification: Mapped[bool] = mapped_column(default=False, nullable=False)
     __tablename__ = "outbound_message_attempt"
     __table_args__ = (
         UniqueConstraint(

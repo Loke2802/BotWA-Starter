@@ -20,6 +20,7 @@ from app.infrastructure.models.user import UserModel
 from app.infrastructure.repositories.human_handoff_repository import (
     HumanHandoffRepository,
 )
+from app.infrastructure.unit_of_work import commit, rollback
 from app.observability.instrumentation import observe_handoff
 from app.observability.metrics import safe_metric
 from app.security.authorization import (
@@ -441,9 +442,9 @@ class HumanHandoffService:
 
     def _commit(self) -> None:
         try:
-            self._session.commit()
+            commit(self._session)
         except SQLAlchemyError as exc:
-            self._session.rollback()
+            rollback(self._session)
             raise HandoffConflictError("handoff conflict") from exc
 
 

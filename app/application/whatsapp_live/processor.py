@@ -35,6 +35,7 @@ from app.domain.channel.contracts import (
     ResolvedChannelContext,
 )
 from app.domain.whatsapp_live.contracts import (
+    WhatsAppInboundCandidate,
     WhatsAppParsedWebhook,
     WhatsAppStatusEvent,
 )
@@ -43,6 +44,7 @@ from app.infrastructure.models.whatsapp_message_transport import (
     InboundMessageReceiptModel,
     OutboundMessageAttemptModel,
 )
+from app.infrastructure.unit_of_work import atomic_transport
 from app.observability.metrics import safe_metric
 from app.security.secret_cipher import SecretCipher
 
@@ -74,6 +76,9 @@ class WhatsAppLiveMessageProcessor:
         outbound_enabled: bool = True,
         outbound_recipient_allowlist: frozenset[str] | None = None,
         now: Callable[[], datetime] | None = None,
+        notification_recipients_for: (
+            Callable[[ResolvedChannelContext], tuple[str, ...]] | None
+        ) = None,
     ) -> None:
         self._configuration_repository = configuration_repository
         self._receipt_repository = receipt_repository
@@ -91,6 +96,7 @@ class WhatsAppLiveMessageProcessor:
         self._conversation_management = conversation_management
         self._outbound_enabled = outbound_enabled
         self._outbound_recipient_allowlist = outbound_recipient_allowlist
+        self._notification_recipients_for = notification_recipients_for
         self._now = now or (lambda: datetime.now(UTC))
 
     async def process(
@@ -143,6 +149,9 @@ class WhatsAppLiveMessageProcessor:
                 organization_id=context.organization_id,
                 bot_id=context.bot_id,
                 channel_configuration_id=context.channel_configuration_id,
+                payload_ciphertext=self._secret_cipher.encrypt(
+                    candidate.model_dump_json()
+                ),
                 status="received",
                 attempt_count=0,
                 received_at=self._now(),
@@ -159,8 +168,10 @@ class WhatsAppLiveMessageProcessor:
                 raise WhatsAppRuntimeRoutingError(
                     "WhatsApp receipt identity does not match resolved channel",
                 )
-            if not created or not self._receipt_repository.acquire_for_processing(
+            if not self._receipt_repository.acquire_for_processing(
                 receipt.id,
+                now=self._now(),
+                max_attempts=self._max_attempts,
             ):
                 self._session.commit()
                 logger.info(
@@ -180,77 +191,68 @@ class WhatsAppLiveMessageProcessor:
                     )
                 )
                 continue
-            self._session.commit()
-            logger.info(
-                "whatsapp.message.processing_started",
-                correlation_id=str(correlation_id),
-                receipt_id=str(receipt.id),
-                organization_id=str(context.organization_id),
-                bot_id=str(context.bot_id),
-                configuration_id=str(context.channel_configuration_id),
-                message_type=candidate.message_type,
-            )
-
+            # Keep the receipt row lock until handler state and the complete outbox
+            # commit together. A crash rolls this work back to a recoverable receipt.
             try:
-                message = message.model_copy(
-                    update={
-                        "metadata": {
-                            **message.metadata,
-                            "receipt_id": str(receipt.id),
+                with self._session.begin_nested(), atomic_transport(self._session):
+                    if receipt.payload_ciphertext:
+                        original = WhatsAppInboundCandidate.model_validate_json(
+                            self._secret_cipher.decrypt(receipt.payload_ciphertext)
+                        )
+                        message = self._mapper.map(original, context)
+                        if message is None:
+                            raise ValueError("stored inbound message is unsupported")
+                    message = message.model_copy(
+                        update={
+                            "metadata": {
+                                **message.metadata,
+                                "receipt_id": str(receipt.id),
+                            }
                         }
-                    }
-                )
-                outbound = self._handler.handle(message)
-                attempt_ids: tuple[UUID, ...] = ()
-                notification_recipients = _notification_recipients(outbound)
-                for recipient in notification_recipients:
-                    if self._outbound_enabled and self._recipient_is_allowed(recipient):
-                        notification = OutboundChannelMessage(
-                            channel_type=outbound.channel_type,
-                            external_recipient_id=recipient,
-                            text=str(outbound.metadata["lead_notification_text"]),
-                            metadata={
-                                "conversation_id": str(
-                                    outbound.metadata["conversation_id"]
-                                ),
-                                "lead_notification": True,
-                            },
-                        )
-                        attempt_ids += await self._send_outbound(
-                            receipt.id,
-                            context,
-                            notification,
-                            correlation_id,
-                        )
-                if (
-                    self._outbound_enabled
-                    and self._recipient_is_allowed(outbound.external_recipient_id)
-                    and not outbound.metadata.get("handoff_blocked")
-                ):
-                    attempt_ids += await self._send_outbound(
-                        receipt.id,
-                        context,
-                        outbound,
-                        correlation_id,
                     )
-                self._receipt_repository.mark_processed(receipt.id, self._now())
-                self._session.commit()
+                    outbound = self._handler.handle(message)
+                    attempt_ids: tuple[UUID, ...] = ()
+                    for recipient in _notification_recipients(outbound):
+                        if self._outbound_enabled and self._recipient_is_allowed(
+                            recipient
+                        ):
+                            notification = OutboundChannelMessage(
+                                channel_type=outbound.channel_type,
+                                external_recipient_id=recipient,
+                                text=str(outbound.metadata["lead_notification_text"]),
+                                metadata={
+                                    "conversation_id": str(
+                                        outbound.metadata["conversation_id"]
+                                    ),
+                                    "lead_notification": True,
+                                },
+                            )
+                            attempt_ids += self._enqueue_outbound(
+                                receipt.id, context, notification
+                            )
+                    if (
+                        self._outbound_enabled
+                        and self._recipient_is_allowed(outbound.external_recipient_id)
+                        and not outbound.metadata.get("handoff_blocked")
+                    ):
+                        attempt_ids += self._enqueue_outbound(
+                            receipt.id, context, outbound
+                        )
+                    self._receipt_repository.mark_processed(receipt.id, self._now())
+                    receipt.next_attempt_at = None
+                    receipt.payload_ciphertext = None
             except Exception:
-                self._session.rollback()
-                self._receipt_repository.mark_failed(
-                    receipt.id,
-                    "PROCESSING_FAILED",
+                # The work savepoint rolls back; the receipt lock still belongs to
+                # us, so another worker cannot steal it before recording failure.
+                self._receipt_repository.mark_failed(receipt.id, "PROCESSING_FAILED")
+                receipt.next_attempt_at = self._now() + timedelta(
+                    seconds=min(
+                        self._retry_base_seconds
+                        * 2 ** max(receipt.attempt_count - 1, 0),
+                        self._retry_max_seconds,
+                    )
                 )
                 self._session.commit()
-                logger.error(
-                    "whatsapp.message.processing_failed",
-                    correlation_id=str(correlation_id),
-                    receipt_id=str(receipt.id),
-                    organization_id=str(context.organization_id),
-                    bot_id=str(context.bot_id),
-                    configuration_id=str(context.channel_configuration_id),
-                    error_code="PROCESSING_FAILED",
-                )
                 safe_metric("record_whatsapp_message", "inbound", "failed")
                 results.append(
                     MessageProcessingResult(
@@ -260,6 +262,11 @@ class WhatsAppLiveMessageProcessor:
                     )
                 )
                 continue
+
+            self._session.commit()
+            # Provider failure cannot rerun committed business work.
+            for attempt_id in attempt_ids:
+                await self.retry_attempt(attempt_id, correlation_id=correlation_id)
 
             logger.info(
                 "whatsapp.message.processing_completed",
@@ -303,11 +310,12 @@ class WhatsAppLiveMessageProcessor:
         attempt = self._outbound_repository.get(attempt_id, for_update=True)
         if (
             attempt is None
+            or attempt.delivery_token is not None
             or attempt.status != "pending"
             or attempt.attempt_count >= self._max_attempts
             or (
                 attempt.next_attempt_at is not None
-                and attempt.next_attempt_at > self._now()
+                and _utc(attempt.next_attempt_at) > self._now()
             )
         ):
             self._session.rollback()
@@ -338,14 +346,16 @@ class WhatsAppLiveMessageProcessor:
             ),
             text=self._secret_cipher.decrypt(attempt.message_ciphertext),
             reply_to_external_message_id=attempt.reply_to_external_message_id,
+            metadata={"lead_notification": bool(attempt.notification)},
         )
-        await self._deliver(
+        delivered = await self._deliver(
             attempt.id,
             context,
             message,
             correlation_id or uuid4(),
         )
-        return True
+        self._sync_outbound_attempt(attempt.id)
+        return delivered
 
     async def send_human_reply(
         self,
@@ -424,12 +434,11 @@ class WhatsAppLiveMessageProcessor:
         self._sync_outbound_attempt(attempt.id)
         return self._outbound_repository.get(attempt.id) or attempt
 
-    async def _send_outbound(
+    def _enqueue_outbound(
         self,
         receipt_id: UUID,
         context: ResolvedChannelContext,
         outbound: OutboundChannelMessage,
-        correlation_id: UUID,
     ) -> tuple[UUID, ...]:
         chunks = split_outbound_message(
             outbound,
@@ -440,6 +449,7 @@ class WhatsAppLiveMessageProcessor:
             attempt = OutboundMessageAttemptModel(
                 id=uuid4(),
                 inbound_receipt_id=receipt_id,
+                notification=bool(outbound.metadata.get("lead_notification")),
                 organization_id=context.organization_id,
                 bot_id=context.bot_id,
                 channel_configuration_id=context.channel_configuration_id,
@@ -457,16 +467,9 @@ class WhatsAppLiveMessageProcessor:
                 updated_at=self._now(),
             )
             self._outbound_repository.create_pending(attempt)
-            self._session.commit()
+            self._session.flush()
             attempt_ids.append(attempt.id)
             self._record_outbound(chunk, attempt, context)
-            await self._deliver(
-                attempt.id,
-                context,
-                chunk,
-                correlation_id,
-            )
-            self._sync_outbound_attempt(attempt.id)
         return tuple(attempt_ids)
 
     def _record_outbound(
@@ -506,8 +509,14 @@ class WhatsAppLiveMessageProcessor:
         context: ResolvedChannelContext,
         message: OutboundChannelMessage,
         correlation_id: UUID,
-    ) -> None:
-        attempt = self._outbound_repository.mark_attempt_started(attempt_id)
+    ) -> bool:
+        attempt = self._outbound_repository.claim_delivery(
+            attempt_id, self._now(), self._max_attempts
+        )
+        if attempt is None:
+            self._session.rollback()
+            return False
+        token = attempt.delivery_token
         self._session.commit()
         logger.info(
             "whatsapp.outbound.started",
@@ -523,8 +532,22 @@ class WhatsAppLiveMessageProcessor:
             status="pending",
         )
         try:
+            if not self._outbound_enabled:
+                raise WhatsAppChannelDeliveryError("OUTBOUND_DISABLED")
+            if not self._recipient_is_allowed(message.external_recipient_id):
+                raise WhatsAppChannelDeliveryError("RECIPIENT_NOT_ALLOWED")
+            if message.metadata.get("lead_notification") and (
+                self._notification_recipients_for is None
+                or message.external_recipient_id
+                not in self._notification_recipients_for(context)
+            ):
+                raise WhatsAppChannelDeliveryError("NOTIFICATION_NOT_AUTHORIZED")
             delivery = await self._sender.send(message, context)
         except WhatsAppChannelDeliveryError as exc:
+            current = self._outbound_repository.get(attempt_id, for_update=True)
+            if current is None or current.delivery_token != token:
+                self._session.rollback()
+                return False
             if exc.retryable and attempt.attempt_count < self._max_attempts:
                 delay = min(
                     self._retry_base_seconds * (2 ** max(attempt.attempt_count - 1, 0)),
@@ -560,7 +583,18 @@ class WhatsAppLiveMessageProcessor:
                 "send_message",
                 "scheduled" if final_status == "pending" else "exhausted",
             )
-            return
+            return True
+        except Exception:
+            self._session.rollback()
+            current = self._outbound_repository.get(attempt_id, for_update=True)
+            if current is not None and current.delivery_token == token:
+                self._outbound_repository.mark_failed(attempt_id, "DELIVERY_UNKNOWN")
+                self._session.commit()
+            return True
+        current = self._outbound_repository.get(attempt_id, for_update=True)
+        if current is None or current.delivery_token != token:
+            self._session.rollback()
+            return False
         self._outbound_repository.mark_sent(
             attempt_id,
             delivery.provider_message_id,
@@ -576,6 +610,7 @@ class WhatsAppLiveMessageProcessor:
             status="sent",
         )
         safe_metric("record_whatsapp_message", "outbound", "sent")
+        return True
 
     def _process_status(
         self,
@@ -646,3 +681,7 @@ def _notification_recipients(message: OutboundChannelMessage) -> tuple[str, ...]
     if not isinstance(raw, str):
         return ()
     return tuple(item.strip() for item in raw.split(",") if item.strip())
+
+
+def _utc(value: datetime) -> datetime:
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)

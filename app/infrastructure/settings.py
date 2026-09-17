@@ -50,6 +50,28 @@ class Settings(BaseSettings):
     whatsapp_live_client_mode: str = "disabled"
     whatsapp_outbound_allowed_recipients: Annotated[tuple[str, ...], NoDecode] = ()
     lead_notification_recipients: Annotated[tuple[str, ...], NoDecode] = ()
+    lead_notification_scopes: dict[str, tuple[str, ...]] = Field(default_factory=dict)
+
+    @field_validator("lead_notification_scopes")
+    @classmethod
+    def validate_notification_scopes(
+        cls, scopes: dict[str, tuple[str, ...]]
+    ) -> dict[str, tuple[str, ...]]:
+        import re
+        from uuid import UUID
+
+        for scope, recipients in scopes.items():
+            parts = scope.split(":")
+            if len(parts) != 2 or any(str(UUID(part)) != part for part in parts):
+                raise ValueError(
+                    "notification scope must be organization UUID:bot UUID"
+                )
+            if len(recipients) > 20 or any(
+                re.fullmatch(r"[1-9][0-9]{7,14}", item) is None for item in recipients
+            ):
+                raise ValueError("invalid notification recipients")
+        return scopes
+
     whatsapp_webhook_max_body_bytes: int = Field(
         default=1_048_576,
         ge=1_024,
@@ -133,6 +155,9 @@ class Settings(BaseSettings):
     @field_validator("build_sha")
     @classmethod
     def validate_build_sha(cls, value: str | None) -> str | None:
+        from app.infrastructure.build_metadata import image_build_sha
+
+        value = image_build_sha() or value
         if value is None or value == "":
             return None
         normalized = value.lower()

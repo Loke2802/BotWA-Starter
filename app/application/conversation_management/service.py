@@ -27,6 +27,7 @@ from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.human_handoff import HandoffSessionModel
 from app.infrastructure.models.message import MessageModel
 from app.infrastructure.repositories.bot_repository import BotRepository
+from app.infrastructure.unit_of_work import commit, rollback
 from app.observability.instrumentation import observe_conversation
 from app.observability.metrics import safe_metric
 from app.security.authorization import AuthorizationError, require_scoped_permission
@@ -397,9 +398,9 @@ class ConversationManagementService:
 
     def _commit(self) -> None:
         try:
-            self._session.commit()
+            commit(self._session)
         except SQLAlchemyError as exc:
-            self._session.rollback()
+            rollback(self._session)
             raise ConversationManagementConflictError("conversation conflict") from exc
 
 

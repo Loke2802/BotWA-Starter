@@ -17,7 +17,9 @@ class InboundMessageReceiptRepository(ABC):
     ) -> tuple[InboundMessageReceiptModel, bool]: ...
 
     @abstractmethod
-    def acquire_for_processing(self, receipt_id: UUID) -> bool: ...
+    def acquire_for_processing(
+        self, receipt_id: UUID, *, now: datetime | None = None, max_attempts: int = 3
+    ) -> bool: ...
 
     @abstractmethod
     def mark_processed(self, receipt_id: UUID, processed_at: datetime) -> None: ...
@@ -44,6 +46,11 @@ class OutboundMessageAttemptRepository(ABC):
 
     @abstractmethod
     def mark_attempt_started(self, attempt_id: UUID) -> OutboundMessageAttemptModel: ...
+
+    @abstractmethod
+    def claim_delivery(
+        self, attempt_id: UUID, now: datetime, max_attempts: int
+    ) -> OutboundMessageAttemptModel | None: ...
 
     @abstractmethod
     def mark_sent(

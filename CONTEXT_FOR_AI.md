@@ -1,10 +1,22 @@
 # BotWA Starter - Context For AI Assistants
 
-**Last updated:** 2026-08-15
+**Last updated:** 2026-09-16
 **Project phase:** Phase 3 - PRD-001 through PRD-023 CLOSED; no next PRD defined
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 
 ## Official Current State
+
+### September audit correction (local branch, deployment pending)
+
+The correction branch starts from master `4f763909e3bd150d8d8ae13fbce3eab867a37b31`,
+including website registration (PR #40) and the CRM (PR #41). Historical statements
+below that CRM is unimplemented are superseded by those changes. Schema head is
+`20260916_0024`. See `docs/AUDIT_REMEDIATION_2026-09-16.md` for correction scope,
+verification and operational requirements. Do not infer that local fixes have
+been deployed or that an LLM has been integrated. The current engine remains
+deterministic; recent encrypted history is available to its business request.
+
+### Historical PRD closure record
 
 BotWA is a multi-engine conversational assistant platform with WhatsApp Cloud API
 integration, persistence, automation, integration providers, and deterministic

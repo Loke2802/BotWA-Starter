@@ -79,10 +79,10 @@ class MetaWhatsAppCloudApiClient(WhatsAppCloudApiClient):
             response.raise_for_status()
         except httpx.TimeoutException as exc:
             observation.finish("timeout")
-            raise WhatsAppCloudApiError("TIMEOUT", retryable=True) from exc
+            raise WhatsAppCloudApiError("DELIVERY_UNKNOWN", retryable=False) from exc
         except httpx.RequestError as exc:
             observation.finish("network_error")
-            raise WhatsAppCloudApiError("NETWORK_ERROR", retryable=True) from exc
+            raise WhatsAppCloudApiError("DELIVERY_UNKNOWN", retryable=False) from exc
         except httpx.HTTPStatusError as exc:
             status_code = exc.response.status_code
             if status_code == 429:

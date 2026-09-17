@@ -167,8 +167,8 @@ async def test_meta_client_classifies_timeout_without_leaking_request() -> None:
                 text="private body",
             )
 
-    assert caught.value.code == "TIMEOUT"
-    assert caught.value.retryable
+    assert caught.value.code == "DELIVERY_UNKNOWN"
+    assert not caught.value.retryable
     assert "sensitive timeout" not in str(caught.value)
 
 

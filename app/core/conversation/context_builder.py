@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
@@ -16,9 +17,13 @@ class ConversationContextBuilder:
         self,
         state_manager: ConversationStateManager,
         message_repo: MessageRepository | None = None,
+        history_loader: (
+            Callable[[ConversationMessage], list[HistoryEntry]] | None
+        ) = None,
     ) -> None:
         self._state_manager = state_manager
         self._message_repo = message_repo
+        self._history_loader = history_loader
 
     def build(
         self,
@@ -30,7 +35,11 @@ class ConversationContextBuilder:
             context_id=uuid4(),
             created_at=datetime.now(UTC),
             state=state,
-            history=self._load_history(message.conversation_id),
+            history=(
+                self._history_loader(message)
+                if self._history_loader is not None
+                else self._load_history(message.conversation_id)
+            ),
             customer_profile={
                 "customer_id": message.customer_id,
                 "company_id": message.company_id,

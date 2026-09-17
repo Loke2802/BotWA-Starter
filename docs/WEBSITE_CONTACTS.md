@@ -33,7 +33,9 @@ Request example (synthetic data only):
 Success is `200 {"accepted":true}` for both new and existing identities. The
 endpoint never exposes IDs, existing names, or whether a contact existed.
 New records include encrypted source, consent purpose/version/time, and an
-unverified identity marker in notes. A submitted phone number is not proof of
+unverified identity marker in the separate encrypted registration field. CRM note
+edits cannot overwrite it. Legacy registration evidence still stored in notes is
+preserved in that field before the first note edit. A submitted phone number is not proof of
 ownership. The endpoint does not send WhatsApp messages or subscribe marketing.
 For existing identities it does not overwrite names/notes or reactivate archived
 contacts. It registers initial contact details, not inquiry history.

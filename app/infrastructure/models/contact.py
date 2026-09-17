@@ -17,6 +17,7 @@ from app.infrastructure.database import Base
 
 
 class ContactModel(Base):
+    registration_ciphertext: Mapped[str | None] = mapped_column(Text, nullable=True)
     __tablename__ = "contact"
     __table_args__ = (
         UniqueConstraint("id", "organization_id", name="uq_contact_id_organization"),

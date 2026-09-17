@@ -30,11 +30,13 @@ class WhatsAppChannelMessageSender(ChannelMessageSender):
         client: WhatsAppCloudApiClient,
         *,
         max_text_chars: int,
+        allowed_recipients: frozenset[str] | None = None,
     ) -> None:
         self._configuration_repository = configuration_repository
         self._secret_cipher = secret_cipher
         self._client = client
         self._max_text_chars = max_text_chars
+        self._allowed_recipients = allowed_recipients
 
     async def send(
         self,
@@ -47,6 +49,11 @@ class WhatsAppChannelMessageSender(ChannelMessageSender):
             raise WhatsAppChannelDeliveryError("MESSAGE_TOO_LONG")
         if _RECIPIENT.fullmatch(message.external_recipient_id) is None:
             raise WhatsAppChannelDeliveryError("INVALID_RECIPIENT")
+        if (
+            self._allowed_recipients is not None
+            and message.external_recipient_id not in self._allowed_recipients
+        ):
+            raise WhatsAppChannelDeliveryError("RECIPIENT_NOT_ALLOWED")
 
         configuration = self._configuration_repository.get_scoped(
             context.channel_configuration_id,

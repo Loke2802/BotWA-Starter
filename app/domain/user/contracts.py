@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.domain.access.contracts import Role
+from app.infrastructure.settings import get_settings
 
 UserStatus = Literal["active", "inactive"]
 
@@ -64,8 +65,9 @@ class UserCreate(BaseModel):
     def validate_password(cls, value: str) -> str:
         if len(value) < 12:
             raise ValueError("password must be at least 12 characters")
-        if len(value) > 256:
-            raise ValueError("password must be at most 256 characters")
+        maximum = get_settings().auth_password_max_length
+        if len(value) > maximum:
+            raise ValueError(f"password must be at most {maximum} characters")
         return value
 
 
@@ -104,8 +106,9 @@ class LoginRequest(BaseModel):
     @field_validator("password")
     @classmethod
     def validate_password_bound(cls, value: str) -> str:
-        if len(value) > 256:
-            raise ValueError("password must be at most 256 characters")
+        maximum = get_settings().auth_password_max_length
+        if len(value) > maximum:
+            raise ValueError(f"password must be at most {maximum} characters")
         return value
 
 
@@ -128,15 +131,17 @@ class ChangePasswordRequest(BaseModel):
     def validate_new_password(cls, value: str) -> str:
         if len(value) < 12:
             raise ValueError("password must be at least 12 characters")
-        if len(value) > 256:
-            raise ValueError("password must be at most 256 characters")
+        maximum = get_settings().auth_password_max_length
+        if len(value) > maximum:
+            raise ValueError(f"password must be at most {maximum} characters")
         return value
 
     @field_validator("current_password")
     @classmethod
     def validate_current_password_bound(cls, value: str) -> str:
-        if len(value) > 256:
-            raise ValueError("password must be at most 256 characters")
+        maximum = get_settings().auth_password_max_length
+        if len(value) > maximum:
+            raise ValueError(f"password must be at most {maximum} characters")
         return value
 
 

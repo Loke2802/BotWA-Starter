@@ -13,6 +13,9 @@ from app.application.channel.conversation_handler import (
 )
 from app.application.contacts.identity import ContactIdentityHasher
 from app.application.contacts.service import ContactResolutionService
+from app.application.conversation_management.history import (
+    ManagedConversationHistoryLoader,
+)
 from app.application.conversation_management.managed_handler import (
     ManagedChannelConversationHandler,
 )
@@ -135,6 +138,15 @@ def get_whatsapp_live_message_processor(
                 context.organization_id,
                 context.bot_id,
             ),
+            history_loader=ManagedConversationHistoryLoader(
+                session, secret_cipher, context
+            ),
+            managed_transport=True,
+        )
+
+    def notification_recipients(context: ResolvedChannelContext) -> tuple[str, ...]:
+        return settings.lead_notification_scopes.get(
+            f"{context.organization_id}:{context.bot_id}", ()
         )
 
     handler = ManagedChannelConversationHandler(
@@ -152,13 +164,18 @@ def get_whatsapp_live_message_processor(
             plan_enforcement=plan_enforcement,
             handoff=handoff,
         ),
-        lead_notification_recipients=settings.lead_notification_recipients,
+        lead_notification_recipients=notification_recipients,
     )
     sender = WhatsAppChannelMessageSender(
         configuration_repository,
         secret_cipher,
         client,
         max_text_chars=settings.whatsapp_outbound_max_text_chars,
+        allowed_recipients=(
+            frozenset(settings.whatsapp_outbound_allowed_recipients)
+            if settings.whatsapp_live_client_mode == "meta"
+            else None
+        ),
     )
     return WhatsAppLiveMessageProcessor(
         configuration_repository=configuration_repository,
@@ -176,6 +193,7 @@ def get_whatsapp_live_message_processor(
         retry_max_seconds=settings.whatsapp_outbound_retry_max_seconds,
         conversation_management=management,
         outbound_enabled=settings.whatsapp_live_client_mode != "disabled",
+        notification_recipients_for=notification_recipients,
         outbound_recipient_allowlist=(
             frozenset(settings.whatsapp_outbound_allowed_recipients)
             if settings.whatsapp_live_client_mode == "meta"

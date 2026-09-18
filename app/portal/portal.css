@@ -132,6 +132,18 @@ th { color: #6f7891; font-size: 11px; letter-spacing: .04em; text-transform: upp
 .crm-dialog small { font-weight:400; line-height:1.4; color:#64748b; }
 button:disabled { cursor:not-allowed; opacity:.55; }
 button:focus-visible,textarea:focus-visible { outline:3px solid #14b8a6; outline-offset:3px; }
+.conversation-list { display:grid; gap:12px; }
+.conversation-row { display:flex; flex-wrap:wrap; align-items:center; gap:16px; width:100%; padding:18px; text-align:left; background:#fff; color:#18223a; border:1px solid #dbe3ee; border-radius:12px; }
+.conversation-row strong { flex:1; min-width:100px; }
+.conversation-row:hover { border-color:#14b8a6; background:#f7fdfc; }
+.conversation-actions { display:flex; flex-wrap:wrap; gap:12px; }
+.conversation-history { margin-block:20px; }
+.conversation-messages { display:grid; gap:16px; list-style:none; padding:0; }
+.conversation-message { width:85%; padding:16px; border:1px solid #dbe3ee; border-radius:12px; background:#f5f7fb; overflow-wrap:anywhere; }
+.conversation-message.outbound { margin-left:auto; background:#e6f8f0; }
+.conversation-message p { white-space:pre-wrap; margin:8px 0; }
+.conversation-message small { color:#586176; }
+#conversation-reply textarea { display:block; width:100%; margin-top:10px; padding:12px; border:1px solid #ccd3e0; border-radius:10px; font:inherit; resize:vertical; }
 @media(max-width:600px) {
  .crm-contact { flex-wrap:wrap; padding:14px; }
  .crm-contact-meta { width:100%; justify-items:start; text-align:left; padding-left:57px; }

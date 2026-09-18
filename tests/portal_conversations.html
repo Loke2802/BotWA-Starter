@@ -1,0 +1,109 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>Pruebas del panel de conversaciones</title>
+<link rel="stylesheet" href="../app/portal/portal.css">
+<main style="padding:24px"><h1>Pruebas del panel de conversaciones</h1><pre id="results" role="status">Ejecutando…</pre><div id="fixture"></div></main>
+<script src="../app/portal/conversations.js"></script>
+<script>
+// Serve the repository root: python -m http.server 8765 --bind 127.0.0.1
+// Open /tests/portal_conversations.html. All requests use synthetic data below.
+(async () => {
+  const root = document.querySelector('#fixture');
+  const results = document.querySelector('#results');
+  const report = [];
+  const permissions = ['conversation.read_content','handoff.read','handoff.request','handoff.claim','handoff.release','handoff.resolve','handoff.reply'];
+  const user = {id:'test-user',role:'operator'};
+  let calls, handoff, failSend, pendingDetail, messageFailure;
+  const summary = {id:'test-conversation',masked_customer_identifier:'***0001',status:'open',message_count:2,last_message_at:'2026-09-18T12:00:00Z'};
+  const assert = (value, text) => {if (!value) throw Error(text);};
+  const wait = async predicate => {for (let n=0;n<100;n++) {if (predicate()) return; await new Promise(r=>setTimeout(r,10));} throw Error('Tiempo agotado');};
+  const click = name => root.querySelector(`[data-conversation-action="${name}"]`).click();
+  async function api(path, options={}) {
+    calls.push({path,...options});
+    if (options.method === 'POST') {
+      if (path.endsWith('/messages')) {if (failSend) throw Error('network'); return {status:'sent'};}
+      handoff = {status:path.endsWith('/request') ? 'waiting_human' : path.endsWith('/claim') ? 'human_active' : 'bot_active', assigned_user_id:path.endsWith('/claim') ? user.id : null};
+      return handoff;
+    }
+    if (path.includes('/messages?')) {
+      if (messageFailure) {const e=Error('forbidden'); e.status=403; throw e;}
+      return {items:[{direction:'inbound',text:'<img src=x onerror=alert(1)>',status:'received',occurred_at:'2026-09-18T12:00:00Z'},{direction:'outbound',text:'Respuesta de prueba',status:'sent',occurred_at:'2026-09-18T12:01:00Z'}],total:52,has_previous:path.includes('page=2'),has_next:!path.includes('page=2')};
+    }
+    if (path.endsWith('/handoff')) {if (!handoff) {const e=Error('missing'); e.status=404; throw e;} return handoff;}
+    if (path.endsWith('/test-conversation')) {if (pendingDetail) return pendingDetail; return summary;}
+    return {items:[summary],total:21,has_previous:path.includes('page=2'),has_next:!path.includes('page=2')};
+  }
+  async function setup(perms=permissions, actor=user) {
+    window.LuriConversations.reset(); sessionStorage.clear();
+    calls=[]; handoff=null; failSend=false; pendingDetail=null; messageFailure=false;
+    root.innerHTML=await window.LuriConversations.render('test-org',api,actor,perms);
+    window.LuriConversations.mount(root);
+  }
+  async function open() {root.querySelector('[data-conversation-id]').click(); await wait(()=>root.querySelector('.conversation-history'));}
+  async function test(name, fn) {await fn(); report.push('PASS '+name); results.textContent=report.join('\n');}
+  try {
+    await test('Historial, escape de HTML y paginación',async()=>{
+      await setup(); await open();
+      assert(root.textContent.includes('<img src=x onerror=alert(1)>'),'texto escapado');
+      assert(!root.querySelector('img'),'no ejecutar HTML de mensajes');
+      click('newer'); await wait(()=>root.textContent.includes('Página 2'));
+      assert(calls.some(c=>c.path.includes('/messages?page=2')),'página siguiente consultada');
+      click('back'); await wait(()=>root.querySelector('.conversation-list'));
+      click('next'); await wait(()=>root.textContent.includes('Página 2'));
+      assert(calls.some(c=>c.path.includes('/conversations?page=2')),'paginación del listado');
+    });
+    await test('Viewer no consulta contenido ni ofrece acciones de envío',async()=>{
+      await setup(['handoff.read'],{id:'viewer',role:'viewer'}); await open();
+      assert(!calls.some(c=>c.path.includes('/messages')),'no consultar contenido protegido');
+      assert(!root.querySelector('#conversation-reply'),'no compositor');
+      assert(!root.querySelector('[data-conversation-action="request"]'),'no solicitud sin permiso');
+    });
+    await test('Respuesta tardía no repuebla otra empresa',async()=>{
+      await setup(); let resolve; pendingDetail=new Promise(r=>resolve=r);
+      root.querySelector('[data-conversation-id]').click();
+      window.LuriConversations.reset(); root.textContent='Otra empresa'; resolve(summary);
+      await new Promise(r=>setTimeout(r,30)); assert(root.textContent==='Otra empresa','datos antiguos descartados');
+    });
+    await test('Solicitud, toma, envío idempotente y devolución a Luri',async()=>{
+      await setup(); await open(); click('request'); await wait(()=>root.textContent.includes('Esperando atención humana'));
+      click('claim'); await wait(()=>root.querySelector('#conversation-text'));
+      root.querySelector('#conversation-text').value='Prueba sin envío real'; failSend=true;
+      root.querySelector('#conversation-reply').requestSubmit();
+      await wait(()=>root.querySelector('#conversation-error').textContent.includes('No se pudo confirmar'));
+      const first=JSON.parse(calls.find(c=>c.method==='POST' && c.path.endsWith('/messages')).body);
+      assert(!sessionStorage.getItem('luri.reply.test-user.test-org.test-conversation').includes(first.text),'no persistir texto');
+      // A lost response and a portal reload must reuse the original delivery key.
+      window.LuriConversations.reset();
+      root.innerHTML=await window.LuriConversations.render('test-org',api,user,permissions);
+      window.LuriConversations.mount(root); await open(); failSend=false;
+      root.querySelector('#conversation-text').value=first.text;
+      root.querySelector('#conversation-reply').requestSubmit();
+      root.querySelector('#conversation-reply').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+      await wait(()=>root.querySelector('#conversation-feedback')?.textContent.includes('Enviado al proveedor'));
+      const sends=calls.filter(c=>c.method==='POST' && c.path.endsWith('/messages'));
+      assert(sends.length===2,'doble clic suprimido');
+      assert(JSON.parse(sends[1].body).idempotency_key===first.idempotency_key,'misma clave después de recarga');
+      assert(root.querySelector('#conversation-text').value==='','vaciar tras éxito');
+      click('return-to-bot'); await wait(()=>root.textContent.includes('Atiende Luri'));
+      assert(!root.querySelector('#conversation-reply'),'ocultar envío tras devolver');
+    });
+    await test('Un operador no responde una atención asignada a otro',async()=>{
+      await setup(); handoff={status:'human_active',assigned_user_id:'other-user'}; await open();
+      assert(!root.querySelector('#conversation-reply'),'asignación respetada');
+    });
+    await test('Errores de permisos visibles y recuperables',async()=>{
+      await setup(); messageFailure=true; root.querySelector('[data-conversation-id]').click();
+      await wait(()=>root.querySelector('#conversation-error'));
+      assert(root.textContent.includes('No tienes permiso'),'error visible');
+      messageFailure=false; await open(); assert(root.querySelector('.conversation-history'),'se puede reintentar');
+    });
+    await test('Un fallo al refrescar no invita a reenviar un mensaje confirmado',async()=>{
+      await setup(); handoff={status:'human_active',assigned_user_id:user.id}; await open();
+      messageFailure=true; root.querySelector('#conversation-text').value='Mensaje confirmado';
+      root.querySelector('#conversation-reply').requestSubmit();
+      await wait(()=>root.querySelector('#conversation-error').textContent.includes('fue enviada al proveedor'));
+      assert(root.querySelector('#conversation-text').value==='','no dejar el mensaje enviado en el formulario');
+      messageFailure=false; click('refresh'); await wait(()=>!root.querySelector('#conversation-error').textContent);
+    });
+    results.textContent=report.join('\n')+'\n7 pruebas aprobadas. Ningún mensaje real enviado.';
+  } catch(error) {results.textContent=report.join('\n')+'\nFAIL '+error.stack;}
+})();
+</script></html>

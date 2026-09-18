@@ -5,6 +5,7 @@ const state = {
   activeOrganization: null,
   organizations: [],
   user: null,
+  permissions: [],
   token: sessionStorage.getItem(storageKey),
   view: "overview",
 };
@@ -61,7 +62,9 @@ async function api(path, options = {}) {
   if (!response.ok) {
     const detail = await response.json().catch(() => null);
     const message = typeof detail?.detail === "string" ? detail.detail : response.status === 422 ? "Revisa los campos del formulario." : response.status === 403 ? "No tienes permiso para esta acción." : "No se pudo completar la solicitud. Intenta nuevamente.";
-    throw new Error(message);
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
   }
   return response.json();
 }
@@ -86,6 +89,7 @@ async function login(event) {
 }
 
 function signOut() {
+  window.LuriConversations.reset();
   window.LuriCRM.reset();
   renderGeneration++;
   content.innerHTML = "";
@@ -94,6 +98,7 @@ function signOut() {
   state.token = null;
   state.activeOrganization = null;
   state.user = null;
+  state.permissions = [];
   loginScreen.hidden = false;
   appShell.hidden = true;
 }
@@ -114,8 +119,9 @@ function renderOrganizationPicker() {
 
 async function startWorkspace() {
   clearNotice();
-  const [result, currentUser] = await Promise.all([api("/organizations"), api("/auth/me")]);
+  const [result, currentUser, access] = await Promise.all([api("/organizations"), api("/auth/me"), api("/permissions/me")]);
   state.user = currentUser.user;
+  state.permissions = access.permissions;
   state.organizations = result.organizations || [];
   if (!state.organizations.length) {
     throw new Error("No tienes una empresa asignada todavía.");
@@ -224,15 +230,13 @@ async function renderOverview(organizationId) {
       <article class="metric-card"><span>Automatizaciones activas</span><strong>${metrics.automations?.running ?? "—"}</strong></article>
     </div>
     <div class="two-columns">
-      <article class="panel"><h4>Conversaciones recientes</h4>${table(["Cliente", "Estado", "Último mensaje"], conversationItems.map((item) => `<tr><td>${escapeHtml(item.masked_customer_identifier)}</td><td><span class="status ${escapeHtml(item.status)}">${escapeHtml(item.status)}</span></td><td>${escapeHtml(item.last_message_preview || "Sin mensajes")}</td></tr>`))}</article>
+      <article class="panel"><h4>Conversaciones recientes</h4>${table(["Cliente", "Estado", "Último mensaje"], conversationItems.map((item) => `<tr><td>${escapeHtml(item.masked_customer_identifier)}</td><td><span class="status ${escapeHtml(item.status)}">${escapeHtml(item.status)}</span></td><td>${escapeHtml(item.last_message_preview || (item.message_count > 0 ? "Vista previa no disponible" : "Sin mensajes"))}</td></tr>`))}</article>
       <article class="panel"><h4>Clientes recientes</h4>${table(["Cliente", "Canal", "Estado"], contactItems.map((item) => `<tr><td>${escapeHtml(item.display_name || "Sin nombre")}</td><td>${escapeHtml(item.channel_type)}</td><td><span class="status ${escapeHtml(item.status)}">${escapeHtml(item.status)}</span></td></tr>`))}</article>
     </div>`;
 }
 
 async function renderConversations(organizationId) {
-  const result = await loadSafe(`/organizations/${organizationId}/conversations?page_size=50`);
-  if (result.error) return `${header("Conversaciones", "Historial de WhatsApp de tu empresa.")}<p class="empty">No tienes permiso para ver conversaciones.</p>`;
-  return `${header("Conversaciones", `${result.total} conversaciones de tu empresa.`)}<article class="panel">${table(["Cliente", "Canal", "Estado", "Mensajes", "Última actividad"], result.items.map((item) => `<tr><td>${escapeHtml(item.masked_customer_identifier)}</td><td>${escapeHtml(item.channel_type)}</td><td><span class="status ${escapeHtml(item.status)}">${escapeHtml(item.status)}</span></td><td>${escapeHtml(item.message_count)}</td><td>${escapeHtml(formatDate(item.last_message_at))}</td></tr>`))}</article>`;
+  return window.LuriConversations.render(organizationId, api, state.user, state.permissions);
 }
 
 async function renderContacts(organizationId) {
@@ -263,6 +267,7 @@ let renderGeneration = 0;
 async function renderView() {
   const ticket = ++renderGeneration;
   window.LuriCRM.close();
+  window.LuriConversations.reset();
   const organizationId = state.activeOrganization;
   if (!organizationId) return;
   clearNotice();
@@ -279,6 +284,7 @@ async function renderView() {
     if (ticket !== renderGeneration || !state.token || state.activeOrganization !== organizationId) return;
     content.innerHTML = markup;
     if (state.view === "contacts") window.LuriCRM.mount(content);
+    if (state.view === "conversations") window.LuriConversations.mount(content);
   } catch (error) {
     if (ticket !== renderGeneration || !state.token) return;
     content.innerHTML = '<p class="empty">No se pudo cargar esta vista. Vuelve a seleccionar la sección para reintentar.</p>';

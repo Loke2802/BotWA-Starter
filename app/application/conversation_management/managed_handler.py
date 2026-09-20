@@ -8,6 +8,7 @@ from app.application.contacts.service import ContactResolutionService
 from app.application.conversation_management.service import (
     ConversationManagementService,
 )
+from app.application.generative_ai.ingress import AIIngress
 from app.application.human_handoff.service import HumanHandoffService
 from app.core.business.intent_classifier import IntentClassifier
 from app.domain.channel.contracts import (
@@ -31,7 +32,9 @@ class ManagedChannelConversationHandler(ChannelMessageHandler):
         lead_notification_recipients: (
             tuple[str, ...] | Callable[[ResolvedChannelContext], tuple[str, ...]]
         ) = (),
+        ai_ingress: AIIngress | None = None,
     ) -> None:
+        self._ai_ingress = ai_ingress
         self._handler = handler
         self._management = management
         self._handoff = handoff
@@ -94,6 +97,18 @@ class ManagedChannelConversationHandler(ChannelMessageHandler):
                     "conversation_id": str(conversation_id),
                     "handoff_blocked": True,
                 },
+            )
+        if self._ai_ingress is not None and self._ai_ingress.enqueue(
+            message, conversation_id
+        ):
+            self._management.mark_inbound_processed(
+                message.external_message_id, message.channel_type
+            )
+            return OutboundChannelMessage(
+                channel_type=message.channel_type,
+                external_recipient_id=message.external_sender_id,
+                text="ai-queued",
+                metadata={"conversation_id": str(conversation_id), "ai_queued": True},
             )
         completed_lead_intent = (
             self._management.complete_lead_capture(conversation) if recipients else None

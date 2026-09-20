@@ -10,6 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 POSTGRESQL_TESTS = (
+    "tests/integration/test_generative_ai_postgresql.py",
     "tests/integration/test_transport_postgresql.py",
     "tests/integration/test_crm_postgresql.py",
     "tests/integration/test_prd012_postgresql_smoke.py",

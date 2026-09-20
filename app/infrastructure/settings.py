@@ -20,6 +20,15 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    ai_enabled: bool = False
+    ai_pilot_scopes: tuple[str, ...] = ()
+    ai_openai_api_key: SecretStr | None = None
+    ai_timeout_seconds: float = Field(default=20, ge=1, le=60)
+    ai_max_output_tokens: int = Field(default=1600, ge=256, le=4000)
+    ai_max_attempts: int = Field(default=2, ge=1, le=3)
+    ai_job_max_age_seconds: int = Field(default=300, ge=60, le=1800)
+    ai_daily_call_limit: int = Field(default=500, ge=1, le=5000)
+
     app_name: str = "BotWA Starter"
     environment: Environment = Environment.DEVELOPMENT
     log_level: str = "INFO"

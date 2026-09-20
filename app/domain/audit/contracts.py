@@ -9,6 +9,8 @@ from app.domain.access.contracts import Role
 AuditActorType = Literal["user", "system", "automation"]
 AuditResult = Literal["success"]
 AuditAction = Literal[
+    "ai.generated",
+    "ai.fallback",
     "organization.created",
     "organization.updated",
     "organization.deactivated",
@@ -78,6 +80,7 @@ AuditAction = Literal[
     "onboarding.completed",
 ]
 AuditResourceType = Literal[
+    "ai_job",
     "organization",
     "user",
     "bot",

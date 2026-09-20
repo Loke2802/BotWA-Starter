@@ -174,6 +174,26 @@ class WhatsAppLiveMessageProcessor:
                 max_attempts=self._max_attempts,
             ):
                 self._session.commit()
+                if receipt.status == "failed":
+                    from app.application.generative_ai.policy import (
+                        configuration as ai_configuration,
+                    )
+                    from app.infrastructure.settings import get_settings
+
+                    if (
+                        ai_configuration(
+                            self._session,
+                            get_settings(),
+                            context.organization_id,
+                            context.bot_id,
+                        )
+                        is not None
+                    ):
+                        from fastapi import HTTPException
+
+                        raise HTTPException(
+                            status_code=503, detail="message acceptance pending"
+                        )
                 logger.info(
                     "whatsapp.message.duplicate",
                     correlation_id=str(correlation_id),
@@ -234,6 +254,7 @@ class WhatsAppLiveMessageProcessor:
                         self._outbound_enabled
                         and self._recipient_is_allowed(outbound.external_recipient_id)
                         and not outbound.metadata.get("handoff_blocked")
+                        and not outbound.metadata.get("ai_queued")
                     ):
                         attempt_ids += self._enqueue_outbound(
                             receipt.id, context, outbound
@@ -242,6 +263,20 @@ class WhatsAppLiveMessageProcessor:
                     receipt.next_attempt_at = None
                     receipt.payload_ciphertext = None
             except Exception:
+                from app.application.generative_ai.policy import (
+                    configuration as ai_configuration,
+                )
+                from app.infrastructure.settings import get_settings
+
+                is_ai = (
+                    ai_configuration(
+                        self._session,
+                        get_settings(),
+                        context.organization_id,
+                        context.bot_id,
+                    )
+                    is not None
+                )
                 # The work savepoint rolls back; the receipt lock still belongs to
                 # us, so another worker cannot steal it before recording failure.
                 self._receipt_repository.mark_failed(receipt.id, "PROCESSING_FAILED")
@@ -252,7 +287,15 @@ class WhatsAppLiveMessageProcessor:
                         self._retry_max_seconds,
                     )
                 )
+                if is_ai:
+                    receipt.next_attempt_at = self._now()
                 self._session.commit()
+                if is_ai:
+                    from fastapi import HTTPException
+
+                    raise HTTPException(
+                        status_code=503, detail="message acceptance failed"
+                    ) from None
                 safe_metric("record_whatsapp_message", "inbound", "failed")
                 results.append(
                     MessageProcessingResult(
@@ -320,6 +363,36 @@ class WhatsAppLiveMessageProcessor:
         ):
             self._session.rollback()
             return False
+        if attempt.idempotency_key and attempt.idempotency_key.startswith("ai:"):
+            from app.application.generative_ai.policy import config_hash
+            from app.application.generative_ai.policy import (
+                configuration as ai_configuration,
+            )
+            from app.application.generative_ai.service import AIService, blocked
+            from app.domain.generative_ai.contracts import ProviderError
+            from app.infrastructure.models.ai_generation import AIJobModel
+            from app.infrastructure.settings import get_settings
+
+            job = self._session.scalar(
+                select(AIJobModel).where(AIJobModel.outbound_id == attempt.id)
+            )
+            config = ai_configuration(
+                self._session, get_settings(), attempt.organization_id, attempt.bot_id
+            )
+            try:
+                if (
+                    job is None
+                    or job.status != "ready"
+                    or config is None
+                    or config_hash(config) != job.config_hash
+                    or blocked(self._session, job)
+                ):
+                    raise ProviderError("AI_POLICY_CHANGED")
+                AIService.check_sources(self._session, job, job.sources)
+            except ProviderError as exc:
+                self._outbound_repository.mark_failed(attempt.id, exc.code)
+                self._session.commit()
+                return False
         configuration = self._configuration_repository.get_scoped(
             attempt.channel_configuration_id,
             attempt.organization_id,
@@ -434,6 +507,14 @@ class WhatsAppLiveMessageProcessor:
         self._sync_outbound_attempt(attempt.id)
         return self._outbound_repository.get(attempt.id) or attempt
 
+    def enqueue_ai_reply(
+        self,
+        receipt_id: UUID,
+        context: ResolvedChannelContext,
+        outbound: OutboundChannelMessage,
+    ) -> tuple[UUID, ...]:
+        return self._enqueue_outbound(receipt_id, context, outbound)
+
     def _enqueue_outbound(
         self,
         receipt_id: UUID,
@@ -448,6 +529,11 @@ class WhatsAppLiveMessageProcessor:
         for chunk in chunks:
             attempt = OutboundMessageAttemptModel(
                 id=uuid4(),
+                idempotency_key=(
+                    f"ai:{outbound.metadata['ai_job_id']}"
+                    if outbound.metadata.get("ai_job_id")
+                    else None
+                ),
                 inbound_receipt_id=receipt_id,
                 notification=bool(outbound.metadata.get("lead_notification")),
                 organization_id=context.organization_id,

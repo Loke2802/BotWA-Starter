@@ -42,7 +42,20 @@ class KnowledgeEntry(BaseModel):
         return _non_empty(value, "content")
 
 
-class KnowledgeEntryCreate(BaseModel):
+class CatalogValidation(BaseModel):
+    @field_validator("metadata", check_fields=False)
+    @classmethod
+    def validate_catalog(
+        cls, value: dict[str, object] | None
+    ) -> dict[str, object] | None:
+        from app.domain.generative_ai.contracts import CatalogItem
+
+        if value is not None and "catalog_item" in value:
+            CatalogItem.model_validate(value["catalog_item"])
+        return value
+
+
+class KnowledgeEntryCreate(CatalogValidation):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     title: str = Field(min_length=1, max_length=200)
@@ -60,7 +73,7 @@ class KnowledgeEntryCreate(BaseModel):
         return _non_empty(value, "content")
 
 
-class KnowledgeEntryUpdate(BaseModel):
+class KnowledgeEntryUpdate(CatalogValidation):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     title: str | None = Field(default=None, min_length=1, max_length=200)

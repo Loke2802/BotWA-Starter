@@ -82,7 +82,20 @@ class Bot(BaseModel):
         return validate_timezone(value)
 
 
-class BotCreate(BaseModel):
+class AISettingsValidation(BaseModel):
+    @field_validator("settings", check_fields=False)
+    @classmethod
+    def validate_ai_settings(
+        cls, value: dict[str, object] | None
+    ) -> dict[str, object] | None:
+        from app.domain.generative_ai.contracts import AIConfig
+
+        if value is not None and "generative_ai" in value:
+            AIConfig.model_validate(value["generative_ai"])
+        return value
+
+
+class BotCreate(AISettingsValidation):
     model_config = ConfigDict(frozen=True)
 
     organization_id: UUID | None = None
@@ -119,7 +132,7 @@ class BotCreate(BaseModel):
         return validate_timezone(value)
 
 
-class BotUpdate(BaseModel):
+class BotUpdate(AISettingsValidation):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     organization_id: UUID | None = None

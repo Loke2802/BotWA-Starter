@@ -3,7 +3,7 @@
 import argparse
 import os
 import signal
-from threading import Event
+from threading import Event, Thread
 from time import perf_counter
 from types import FrameType
 from uuid import uuid4
@@ -114,7 +114,22 @@ def main() -> None:
     args = parser.parse_args()
     stop_event = Event()
     install_shutdown_handlers(stop_event)
-    run_worker(args.batch_size, once=args.once, stop_event=stop_event)
+    from app.operations.ai_consumer import run_ai_lane
+
+    ai_thread = Thread(
+        target=run_ai_lane,
+        kwargs={"stop_event": stop_event, "once": args.once},
+        name="luri-ai",
+        daemon=False,
+    )
+    ai_thread.start()
+    try:
+        run_worker(args.batch_size, once=args.once, stop_event=stop_event)
+        if args.once:
+            ai_thread.join()
+    finally:
+        stop_event.set()
+        ai_thread.join(timeout=2 * get_settings().ai_timeout_seconds + 30)
 
 
 if __name__ == "__main__":

@@ -136,9 +136,7 @@ def build_context(
                 expression_policy="canonical_clause",
             )
         )
-    next_steps = {
-        "human_offer": "Preguntar si desea atención humana; no transferir."
-    }
+    next_steps = {"human_offer": "Preguntar si desea atención humana; no transferir."}
     if comparisons:
         next_steps["compare_options"] = (
             "Preguntar si desea comparar las opciones mediante los claims "

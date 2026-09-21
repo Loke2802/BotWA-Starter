@@ -53,7 +53,7 @@
   },
   "allowed_questions": [],
   "allowed_next_steps": {
-    "human_offer": "Preguntar si desea atención humana; no transferir ni afirmar que se transfirió."
+    "human_offer": "Preguntar si desea atención humana; no transferir."
   },
   "products": {
     "product_0": "Dino"

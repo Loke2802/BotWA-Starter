@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import (
     JSON,
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -73,7 +74,7 @@ class AIAttemptModel(Base):
     __tablename__ = "ai_attempt"
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     job_id: Mapped[UUID] = mapped_column(ForeignKey("ai_job.id"), index=True)
-    stage: Mapped[str] = mapped_column(String(20))
+    stage: Mapped[str] = mapped_column(String(32))
     provider: Mapped[str] = mapped_column(String(20), default="openai")
     model: Mapped[str] = mapped_column(String(100))
     parameters: Mapped[dict[str, object]] = mapped_column(JSON, default=dict)
@@ -83,3 +84,26 @@ class AIAttemptModel(Base):
     input_tokens: Mapped[int | None] = mapped_column(Integer)
     output_tokens: Mapped[int | None] = mapped_column(Integer)
     result: Mapped[str] = mapped_column(String(60), default="unknown")
+
+
+class AIResponseCheckpointModel(Base):
+    __tablename__ = "ai_response_checkpoint"
+    __table_args__ = (
+        CheckConstraint("memory_revision >= 0", name="ai_response_memory_revision"),
+        CheckConstraint(
+            "outcome IS NULL OR outcome IN ('approved', 'fallback')",
+            name="ai_response_outcome",
+        ),
+    )
+    job_id: Mapped[UUID] = mapped_column(ForeignKey("ai_job.id"), primary_key=True)
+    context_id: Mapped[UUID] = mapped_column(Uuid, unique=True, default=uuid4)
+    schema_version: Mapped[str] = mapped_column(String(10), default="1")
+    stage: Mapped[str] = mapped_column(String(32), default="discovery_pending")
+    ciphertext: Mapped[str | None] = mapped_column(Text)
+    memory_revision: Mapped[int] = mapped_column(Integer)
+    committed_revision: Mapped[int | None] = mapped_column(Integer)
+    outcome: Mapped[str | None] = mapped_column(String(32))
+    reason_code: Mapped[str | None] = mapped_column(String(60))
+    reply_digest: Mapped[str | None] = mapped_column(String(64))
+    resumed_from: Mapped[str | None] = mapped_column(String(32))
+    response_revoked: Mapped[bool] = mapped_column(Boolean, default=False)

@@ -55,7 +55,7 @@ alembic upgrade head
 alembic current
 ```
 
-El head esperado es `20260920_0025`. No ejecutar estas órdenes contra una base ajena ni producción durante revisión. CI valida una base PostgreSQL aislada y el ciclo adyacente de migración.
+La base PR #44 corresponde a `20260920_0025`. El incremento conversacional añade el head `20260921_0026`; consultar [su operación y rollback](LURI_CONVERSATIONAL_RESPONSE_OPERACION.md). No ejecutar estas órdenes contra una base ajena ni producción durante revisión. CI valida una base PostgreSQL aislada y el ciclo adyacente de migración.
 
 ## Variables nuevas
 

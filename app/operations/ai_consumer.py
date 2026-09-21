@@ -14,6 +14,8 @@ from app.api.whatsapp_live_dependencies import (
     get_whatsapp_cloud_api_client,
     get_whatsapp_live_message_processor,
 )
+from app.application.generative_ai.response_pipeline import check_memory
+from app.application.generative_ai.response_validation import digest
 from app.application.generative_ai.service import AIService, utc
 from app.application.human_handoff.service import HumanHandoffService
 from app.application.plans.service import PlanEnforcementService
@@ -21,7 +23,10 @@ from app.domain.channel.contracts import OutboundChannelMessage, ResolvedChannel
 from app.domain.generative_ai.contracts import ProviderError
 from app.infrastructure.database import SessionLocal
 from app.infrastructure.generative_ai.openai_provider import OpenAIProvider
-from app.infrastructure.models.ai_generation import AIJobModel
+from app.infrastructure.models.ai_generation import (
+    AIJobModel,
+    AIResponseCheckpointModel,
+)
 from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.whatsapp_channel_configuration import (
     WhatsAppChannelConfigurationModel,
@@ -96,9 +101,30 @@ async def dispatch_one(service: AIService) -> bool:
                 session.commit()
                 return True
         try:
-            if service._eligible(session, job) is None:
+            config = service._eligible(session, job)
+            if config is None:
                 raise ProviderError("POLICY_CHANGED")
             service.check_sources(session, job, job.sources)
+            checkpoint = session.get(AIResponseCheckpointModel, job.id)
+            if checkpoint is not None and checkpoint.committed_revision is not None:
+                check_memory(session, job, checkpoint, committed=True)
+                if checkpoint.outcome == "approved" and (
+                    not config.conversational_response.enabled
+                    or checkpoint.response_revoked
+                ):
+                    if attempt is not None:
+                        raise ProviderError("RESPONSE_DISABLED")
+                    payload = json.loads(
+                        service.cipher.decrypt(checkpoint.ciphertext or "")
+                    )
+                    job.result_ciphertext = service.cipher.encrypt(
+                        json.dumps({"reply": payload["base_reply"], "handoff": False})
+                    )
+                    checkpoint.outcome, checkpoint.reason_code = (
+                        "fallback",
+                        "RESPONSE_DISABLED",
+                    )
+                    checkpoint.reply_digest = digest(payload["base_reply"])
         except ProviderError as exc:
             job.status, job.error_code = "cancelled", exc.code
             if attempt:

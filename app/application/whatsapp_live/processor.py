@@ -371,6 +371,7 @@ class WhatsAppLiveMessageProcessor:
             from app.application.generative_ai.service import AIService, blocked
             from app.domain.generative_ai.contracts import ProviderError
             from app.infrastructure.models.ai_generation import AIJobModel
+            from app.infrastructure.models.conversation import ConversationModel
             from app.infrastructure.settings import get_settings
 
             job = self._session.scalar(
@@ -379,10 +380,21 @@ class WhatsAppLiveMessageProcessor:
             config = ai_configuration(
                 self._session, get_settings(), attempt.organization_id, attempt.bot_id
             )
+            conversation = (
+                self._session.get(
+                    ConversationModel, job.conversation_id, with_for_update=True
+                )
+                if job is not None
+                else None
+            )
             try:
                 if (
                     job is None
                     or job.status != "ready"
+                    or job.organization_id != attempt.organization_id
+                    or job.bot_id != attempt.bot_id
+                    or conversation is None
+                    or conversation.inbound_message_count != job.sequence
                     or config is None
                     or config_hash(config) != job.config_hash
                     or blocked(self._session, job)

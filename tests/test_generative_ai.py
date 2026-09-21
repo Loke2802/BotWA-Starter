@@ -536,6 +536,42 @@ def test_known_need_is_not_asked_again() -> None:
         render(result, CONFIG, {"age": {"value": "5"}}, {})
 
 
+def test_number_substring_is_not_evidence() -> None:
+    discovery = Discovery(
+        new_topic=False,
+        needs=[NeedPatch(key="age", value="5", message_ref="m", quote="tiene 15 años")],
+        search_terms=[],
+        handoff_requested=False,
+    )
+    with pytest.raises(ProviderError, match="UNSUPPORTED_NUMERIC"):
+        apply_discovery(discovery, CONFIG, {}, {"m": "tiene 15 años"})
+
+
+def test_knowledge_quote_cannot_drop_negation() -> None:
+    result = AdviserResult.model_validate(
+        {
+            "tone": "understood",
+            "question_key": None,
+            "handoff_requested": False,
+            "recommendations": [],
+            "knowledge": [{"source_ref": "k", "quote": "aceptamos devoluciones"}],
+        }
+    )
+    with pytest.raises(ProviderError, match="UNSUPPORTED_KNOWLEDGE"):
+        render(
+            result,
+            CONFIG,
+            {},
+            {
+                "k": {
+                    "content": "No aceptamos devoluciones",
+                    "version": "1",
+                    "catalog": None,
+                }
+            },
+        )
+
+
 async def test_metrics_are_content_free_and_report_usage(runtime: Runtime) -> None:
     from app.operations.ai_metrics import snapshot
 
@@ -630,6 +666,31 @@ async def test_bot_settings_update_cancels_jobs_immediately(runtime: Runtime) ->
             ),
         )
         assert session.scalars(select(AIJobModel)).one().status == "cancelled"
+
+
+async def test_new_input_between_enqueue_and_send_is_suppressed(
+    runtime: Runtime, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.application.whatsapp_live.processor import WhatsAppLiveMessageProcessor
+
+    await runtime.inbound()
+    await runtime.service.run_once()
+
+    async def defer(*args: Any, **kwargs: Any) -> bool:
+        return False
+
+    with monkeypatch.context() as patch:
+        patch.setattr(WhatsAppLiveMessageProcessor, "retry_attempt", defer)
+        await dispatch_one(runtime.service)
+    await runtime.inbound("new-correction-before-send")
+    with runtime.sessions() as session:
+        attempt = session.scalars(select(OutboundMessageAttemptModel)).one()
+        processor = get_whatsapp_live_message_processor(
+            session, cipher(), FakeWhatsAppCloudApiClient(), runtime.settings
+        )
+        assert not await processor.retry_attempt(attempt.id)
+        assert attempt.status == "failed"
+        assert attempt.last_error_code == "AI_POLICY_CHANGED"
 
 
 async def test_assistant_requests_real_handoff_without_impersonation(

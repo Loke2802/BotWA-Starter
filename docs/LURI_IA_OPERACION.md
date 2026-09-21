@@ -31,7 +31,7 @@ El asesor elige preguntas configuradas, citas autorizadas y productos con pares 
 
 Cada negocio define sus criterios; no hay reglas de juguetes hardcodeadas. Se preserva memoria de necesidades entre turnos y se puede reemplazar al cambiar de asunto; el historial permite conservar la conversación anterior. No hay búsqueda vectorial ni memoria transversal entre empresas.
 
-El catálogo utiliza entradas publicadas de conocimiento con `metadata.catalog_item`. Las fuentes no publicadas, de otro bot o con metadata inválida no son candidatos. La búsqueda es lexical, con un máximo de 12 entradas; puede no encontrar un producto existente. «No recuperado» no significa «no existe». Las políticas en texto se responden con citas literales, no con afirmaciones comerciales inventadas.
+El catálogo utiliza entradas publicadas de conocimiento con `metadata.catalog_item`. Las fuentes no publicadas, de otro bot o con metadata inválida no son candidatos. La búsqueda es lexical, con un máximo de 12 entradas; puede no encontrar un producto existente. «No recuperado» no significa «no existe». Las políticas en texto solo se responden copiando íntegra una entrada corta (hasta 800 caracteres), para evitar eliminar una negación o condición al escoger fragmentos. Las entradas largas requieren preparación editorial antes de usarlas en este recorrido.
 
 La interfaz del proveedor es independiente; el único adaptador/modelo habilitado es OpenAI `gpt-5.6-luna`. No hay routing ni fallback a otro modelo. [Documentación del modelo](https://developers.openai.com/api/docs/models/gpt-5.6-luna).
 

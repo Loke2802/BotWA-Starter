@@ -35,6 +35,10 @@ def apply_discovery(
             r"\d+(?:\.\d+)?", patch.value
         ):
             raise ProviderError("INVALID_NEED_TYPE")
+        if definition.kind == "number" and patch.value not in re.findall(
+            r"(?<![\w.-])\d+(?:\.\d+)?(?![\w.])", patch.quote
+        ):
+            raise ProviderError("UNSUPPORTED_NUMERIC_EVIDENCE")
         previous = result.get(patch.key)
         if previous and ordering.get(patch.message_ref, -1) < ordering.get(
             previous.get("message_ref", ""), -1
@@ -120,11 +124,7 @@ def render(
     for quote in result.knowledge:
         source = sources.get(quote.source_ref)
         # Product assertions cannot bypass catalog compatibility via raw quotes.
-        if (
-            source is None
-            or source.get("catalog")
-            or quote.quote not in source["content"]
-        ):
+        if source is None or source.get("catalog") or quote.quote != source["content"]:
             raise ProviderError("UNSUPPORTED_KNOWLEDGE")
         text.append(quote.quote)
         used[quote.source_ref] = source["version"]

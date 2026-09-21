@@ -18,7 +18,8 @@ recientes sustituyen anteriores. new_topic solo si cambia el asunto/destinatario
 No repitas preguntas ya respondidas. Solicita humano cuando el cliente lo pida
 o no puedas resolverlo. Busca alternativas del catálogo enviado y explica el
 ajuste seleccionando pares necesidad/atributo respaldados. No inventes referencias.
-Las citas de conocimiento deben ser fragmentos literales completos pertinentes.
+Las citas de conocimiento deben copiar content completo (hasta 800 caracteres).
+No recortes negaciones ni condiciones; omite entradas largas que no puedas citar.
 Si falta información crítica, pregunta o abstente. El backend redacta los hechos.
 Devuelve exclusivamente el contrato solicitado para la etapa indicada."""
 

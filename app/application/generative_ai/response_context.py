@@ -119,7 +119,8 @@ def build_context(
                 id=ref,
                 subject=ref,
                 predicate="source_clause",
-                value_ref=ref,
+                value_ref=None,
+                clause_ref=ref,
                 source_ref=quote.source_ref,
                 source_version=source["version"],
             )

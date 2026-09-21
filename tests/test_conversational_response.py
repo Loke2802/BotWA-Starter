@@ -320,6 +320,29 @@ async def test_semantic_rejection_uses_base_without_loop(runtime: Runtime) -> No
     assert len(provider.stages) == 4
 
 
+@pytest.mark.parametrize("failed_stage", ["conversational_render", "semantic_review"])
+async def test_new_stage_timeout_falls_back_without_repair(
+    runtime: Runtime, failed_stage: str
+) -> None:
+    provider = enable(runtime)
+    await runtime.inbound()
+
+    def timeout(stage: str) -> None:
+        if stage == failed_stage:
+            raise ProviderError("TIMEOUT", True)
+
+    provider.hook = timeout
+    await runtime.service.run_once()
+    with runtime.sessions() as session:
+        cp = session.scalars(select(AIResponseCheckpointModel)).one()
+        assert cp.outcome == "fallback" and cp.reason_code == "TIMEOUT"
+        assert session.scalars(select(AIJobModel)).one().status == "ready"
+        assert not session.scalars(
+            select(AIAttemptModel).where(AIAttemptModel.result == "reserved")
+        ).all()
+    assert provider.stages.count(failed_stage) == 1
+
+
 @pytest.mark.parametrize(
     "stage",
     [
@@ -415,6 +438,55 @@ async def test_lease_accounts_for_enabled_stages(runtime: Runtime) -> None:
         assert job and job.lease_until and job.started_at
         duration = (job.lease_until - job.started_at).total_seconds()
         assert duration == 4 * (runtime.settings.ai_timeout_seconds + 15) + 30
+
+
+async def test_flag_off_then_on_does_not_resurrect_approved_draft(
+    runtime: Runtime,
+) -> None:
+    from app.application.bots.service import BotService
+    from app.domain.bot.contracts import BotUpdate
+    from app.domain.user.contracts import User
+    from app.infrastructure.repositories.audit_repository import (
+        SqlAlchemyAuditRepository,
+    )
+    from app.infrastructure.repositories.bot_repository import BotRepository
+    from app.infrastructure.repositories.organization_repository import (
+        OrganizationRepository,
+    )
+
+    from tests.plan_support import allow_all_plan_enforcement
+
+    enable(runtime)
+    await runtime.inbound()
+    await runtime.service.run_once()
+    with runtime.sessions() as session:
+        service = BotService(
+            BotRepository(session),
+            OrganizationRepository(session),
+            session,
+            SqlAlchemyAuditRepository(session),
+            allow_all_plan_enforcement(),
+        )
+        for enabled in (False, True):
+            config = CONFIG.model_dump()
+            config["conversational_response"] = {"enabled": enabled}
+            service.update(
+                runtime.channel.bot_id,
+                BotUpdate(settings={"generative_ai": config}),
+                User(
+                    id=runtime.channel.created_by_user_id,
+                    organization_id=runtime.channel.organization_id,
+                    email="owner@example.test",
+                    role="organization_owner",
+                ),
+            )
+        assert session.scalars(select(AIJobModel)).one().status == "ready"
+        assert session.scalars(select(AIResponseCheckpointModel)).one().response_revoked
+    await dispatch_one(runtime.service)
+    with runtime.sessions() as session:
+        outbound = session.scalars(select(OutboundMessageAttemptModel)).one()
+        assert outbound.status == "sent"
+        assert "Estas opciones" in cipher().decrypt(outbound.message_ciphertext)
 
 
 def synthetic_context() -> Any:
@@ -525,6 +597,58 @@ def test_review_must_cover_every_segment_and_exact_text() -> None:
     )
     with pytest.raises(ProviderError, match="INVALID_REVIEW"):
         validate_review(context, draft, text, review)
+
+
+def test_policy_clause_has_a_resolvable_reference_and_keeps_negation() -> None:
+    policy = "No se realizan entregas fuera de la ciudad."
+    result = AdviserResult.model_validate(
+        {
+            "tone": "unknown",
+            "question_key": None,
+            "handoff_requested": False,
+            "recommendations": [],
+            "knowledge": [{"source_ref": "policy", "quote": policy}],
+        }
+    )
+    context = build_context(
+        "ctx",
+        result,
+        CONFIG,
+        {},
+        {"policy": {"version": "v1", "catalog": None, "content": policy}},
+    )
+    fact = context.business_facts[0]
+    assert fact.value_ref is None
+    assert fact.clause_ref and context.canonical_clauses[fact.clause_ref] == policy
+    draft = ConversationalDraft.model_validate(
+        {
+            "schema_version": "1",
+            "context_id": "ctx",
+            "segments": [
+                segment(text="{{clause:knowledge_0}}", claim_refs=["claim_knowledge_0"])
+            ],
+        }
+    )
+    assert validate_draft(context, draft, 3500) == policy
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"claim_refs": ["invented_claim"]},
+        {"question_ref": "question_age", "kind": "question"},
+        {"kind": "comparison", "claim_refs": ["claim_product_0_age"]},
+        {"need_refs": ["unknown_need"]},
+        {"next_step_ref": "execute_payment"},
+    ],
+)
+def test_references_cannot_expand_authority(overrides: dict[str, Any]) -> None:
+    context = synthetic_context()
+    draft = ConversationalDraft.model_validate(
+        {"schema_version": "1", "context_id": "ctx", "segments": [segment(**overrides)]}
+    )
+    with pytest.raises(ProviderError):
+        validate_draft(context, draft, 3500)
 
 
 async def test_flag_off_keeps_pr44_reply_and_call_count(runtime: Runtime) -> None:

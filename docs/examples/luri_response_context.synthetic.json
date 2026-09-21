@@ -16,6 +16,7 @@
       "subject": "product_0",
       "predicate": "attribute:age",
       "value_ref": "product_0_age",
+      "clause_ref": null,
       "source_ref": "source",
       "source_version": "v1",
       "minimum": 4.0,

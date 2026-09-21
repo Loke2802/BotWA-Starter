@@ -25,7 +25,8 @@ class BusinessFact(ResponseModel):
     id: str
     subject: str
     predicate: str
-    value_ref: str
+    value_ref: str | None
+    clause_ref: str | None = None
     source_ref: str
     source_version: str
     minimum: float | None = None

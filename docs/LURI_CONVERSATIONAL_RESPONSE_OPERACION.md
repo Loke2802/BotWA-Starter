@@ -141,3 +141,18 @@ Las decisiones cuentan selección, no necesariamente entrega: un job aprobado pu
 Pruebas nuevas: contratos y placeholders; cláusulas; revisión estricta; reserva previa; timeout/resultado ambiguo; cuatro llamadas largas dentro del lease; recuperación después de cada etapa y alrededor de outbox; memoria única; aislamiento; handoff concurrente; vigencia y regresión de salida exacta con flag apagada. Proveedores y transporte externos son falsos. El gate PostgreSQL incorpora estos recorridos con locks/transacciones reales.
 
 Pendiente deliberadamente: evaluación A/B de 30–50 conversaciones, llamadas reales, medición de naturalidad/coste reales, activación piloto, despliegue y merge. No se incorporan nuevos modelos, herramientas, pagos, reservas, infraestructura ni autonomía comercial.
+
+## Inventario de archivos
+
+| Grupo | Archivos |
+|---|---|
+| Contratos | `app/domain/generative_ai/contracts.py`, nuevo `response_contracts.py` en el mismo directorio. |
+| Aplicación IA | `app/application/generative_ai/service.py`, `policy.py`, nuevos `response_context.py`, `response_validation.py`, `response_pipeline.py`. |
+| Configuración | `app/application/bots/service.py`. |
+| Proveedor | `app/infrastructure/generative_ai/openai_provider.py`, nuevo `response_prompts.py`. |
+| Persistencia | `app/infrastructure/models/ai_generation.py`, nueva migración `alembic/versions/20260921_0026_conversational_response.py`. |
+| Entrega | `app/operations/ai_consumer.py`, `app/application/whatsapp_live/processor.py`. |
+| Observación | `app/operations/ai_metrics.py`. |
+| Pruebas | Nuevos `tests/test_conversational_response.py` y `tests/integration/test_conversational_response_postgresql.py`. |
+| CI | `.github/workflows/ci.yml`, `scripts/run_postgresql_tests.py`. |
+| Documentación | Este documento, `LURI_IA_OPERACION.md`, referencia `LURI_CONVERSATIONAL_RESPONSE_PROPUESTA_2026-09-21.md` y `examples/luri_response_context.synthetic.json`. |

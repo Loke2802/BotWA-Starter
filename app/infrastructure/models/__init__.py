@@ -1,3 +1,8 @@
+from app.infrastructure.models.ai_generation import (
+    AIAttemptModel,
+    AIJobModel,
+    AIMemoryModel,
+)
 from app.infrastructure.models.analytics import (
     AnalyticsDailySummaryModel,
     ConversationManagementEventModel,
@@ -66,6 +71,9 @@ from app.infrastructure.models.whatsapp_message_transport import (
 )
 
 __all__ = [
+    "AIJobModel",
+    "AIMemoryModel",
+    "AIAttemptModel",
     "CustomerProfileModel",
     "AutomationExecutionModel",
     "AutomationTaskExecutionModel",

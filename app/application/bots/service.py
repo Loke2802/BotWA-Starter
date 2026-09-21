@@ -147,6 +147,42 @@ class BotService:
         if "away_message" in request.model_fields_set:
             model.away_message = request.away_message
         if request.settings is not None:
+            if (model.settings or {}).get("generative_ai") != request.settings.get(
+                "generative_ai"
+            ):
+                from sqlalchemy import select
+
+                from app.infrastructure.models.ai_generation import AIJobModel
+                from app.infrastructure.models.whatsapp_message_transport import (
+                    OutboundMessageAttemptModel,
+                )
+
+                jobs = self._session.scalars(
+                    select(AIJobModel)
+                    .where(
+                        AIJobModel.organization_id == model.organization_id,
+                        AIJobModel.bot_id == model.id,
+                        AIJobModel.status.in_(("pending", "running", "retry", "ready")),
+                    )
+                    .with_for_update()
+                ).all()
+                for job in jobs:
+                    job.status, job.error_code = "cancelled", "CONFIG_CHANGED"
+                    job.token, job.lease_until = None, None
+                    job.completed_at = datetime.now(UTC)
+                    if job.outbound_id:
+                        attempt = self._session.get(
+                            OutboundMessageAttemptModel, job.outbound_id
+                        )
+                        if (
+                            attempt
+                            and attempt.status == "pending"
+                            and attempt.delivery_token is None
+                        ):
+                            attempt.status, attempt.last_error_code = (
+                                "failed",
+                                "AI_CONFIG_CHANGED",
+                            )
             model.settings = request.settings
 
         model.updated_at = datetime.now(UTC)

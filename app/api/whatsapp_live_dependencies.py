@@ -22,6 +22,7 @@ from app.application.conversation_management.managed_handler import (
 from app.application.conversation_management.service import (
     ConversationManagementService,
 )
+from app.application.generative_ai.ingress import AIIngress
 from app.application.human_handoff.service import HumanHandoffService
 from app.application.knowledge_management.provider import BotKnowledgeProvider
 from app.application.knowledge_management.retriever import (
@@ -165,6 +166,7 @@ def get_whatsapp_live_message_processor(
             handoff=handoff,
         ),
         lead_notification_recipients=notification_recipients,
+        ai_ingress=AIIngress(session, settings),
     )
     sender = WhatsAppChannelMessageSender(
         configuration_repository,

@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Literal
 from uuid import UUID, uuid4
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -138,6 +139,17 @@ class HumanHandoffService:
         """
         if reason_code not in {"outside_business_hours", "automation_rule"}:
             raise HandoffForbiddenError("automation reason is not allowed")
+        return self._request_internal(
+            organization_id, conversation_id, reason_code, "automation"
+        )
+
+    def _request_internal(
+        self,
+        organization_id: UUID,
+        conversation_id: UUID,
+        reason_code: str,
+        actor_type: Literal["automation", "system"],
+    ) -> HandoffSessionResponse:
         conversation = self._conversation(conversation_id, organization_id)
         existing = self._repository.get(conversation_id, organization_id, lock=True)
         if existing and existing.status in {"waiting_human", "human_active"}:
@@ -180,7 +192,7 @@ class HumanHandoffService:
         append_non_user_audit(
             self._audit_writer,
             organization_id=organization_id,
-            actor_type="automation",
+            actor_type=actor_type,
             action="handoff.requested",
             resource_type="handoff",
             resource_id=existing.id,
@@ -188,6 +200,33 @@ class HumanHandoffService:
         )
         self._commit()
         return _response(existing)
+
+    def request_assistant(
+        self, organization_id: UUID, bot_id: UUID, conversation_id: UUID
+    ) -> HandoffSessionResponse:
+        """System-only request; no user impersonation or expanded permissions."""
+        from sqlalchemy import select
+
+        from app.infrastructure.models.business_configuration import (
+            BusinessConfigurationModel,
+        )
+
+        conversation = self._conversation(conversation_id, organization_id)
+        if conversation.bot_id != bot_id:
+            raise HandoffForbiddenError("bot scope mismatch")
+        configuration = self._session.scalar(
+            select(BusinessConfigurationModel).where(
+                BusinessConfigurationModel.bot_id == bot_id
+            )
+        )
+        if configuration is None or not configuration.handoff_enabled:
+            raise HandoffForbiddenError("handoff disabled")
+        self._plan_enforcement.require_consuming_action(
+            organization_id, feature="human_handoff"
+        )
+        return self._request_internal(
+            organization_id, conversation_id, "assistant_requested", "system"
+        )
 
     @observe_handoff("claim")
     def claim(
@@ -399,7 +438,9 @@ class HumanHandoffService:
     def _conversation(
         self, conversation_id: UUID, organization_id: UUID
     ) -> ConversationModel:
-        row = self._session.get(ConversationModel, conversation_id)
+        row = self._session.get(
+            ConversationModel, conversation_id, with_for_update=True
+        )
         if row is None or row.organization_id != organization_id or row.bot_id is None:
             raise HandoffNotFoundError("conversation not found")
         return row

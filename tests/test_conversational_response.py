@@ -396,7 +396,9 @@ async def test_restart_reuses_completed_stages(
         assert len(session.scalars(select(OutboundMessageAttemptModel)).all()) == 1
 
 
-@pytest.mark.parametrize("change", ["memory", "source", "flag", "input"])
+@pytest.mark.parametrize(
+    "change", ["memory", "source", "flag", "input", "context_version"]
+)
 async def test_approved_response_is_rechecked_before_send(
     runtime: Runtime, change: str
 ) -> None:
@@ -404,7 +406,10 @@ async def test_approved_response_is_rechecked_before_send(
     await runtime.inbound()
     await runtime.service.run_once()
     with runtime.sessions() as session:
-        if change == "memory":
+        if change == "context_version":
+            checkpoint = session.scalars(select(AIResponseCheckpointModel)).one()
+            checkpoint.schema_version = "2"
+        elif change == "memory":
             memory = session.scalars(select(AIMemoryModel)).one()
             memory.revision += 1
         elif change == "source":

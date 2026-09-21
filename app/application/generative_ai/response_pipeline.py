@@ -35,6 +35,8 @@ def check_memory(
     *,
     committed: bool = False,
 ) -> None:
+    if checkpoint.schema_version != "1":
+        raise ProviderError("CONTEXT_VERSION_CHANGED")
     row = session.get(AIMemoryModel, job.conversation_id)
     expected = (
         checkpoint.committed_revision if committed else checkpoint.memory_revision
@@ -145,6 +147,7 @@ async def compose(
             "SCOPE_MISMATCH",
             "SOURCE_CHANGED",
             "LOST_LEASE",
+            "CONTEXT_VERSION_CHANGED",
         }:
             raise
         text, outcome = base_reply, "fallback"

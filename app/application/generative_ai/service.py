@@ -717,6 +717,7 @@ class AIService:
                 "SCOPE_MISMATCH",
                 "LOST_LEASE",
                 "SOURCE_CHANGED",
+                "CONTEXT_VERSION_CHANGED",
             }:
                 job.status, job.completed_at = "cancelled", datetime.now(UTC)
             elif error.retryable and job.attempts < self.settings.ai_max_attempts:

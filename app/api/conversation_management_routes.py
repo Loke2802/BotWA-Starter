@@ -53,6 +53,7 @@ def list_conversations(
     ],
     actor: Annotated[User, Depends(require_permission("conversation.read"))],
     bot_id: UUID | None = None,
+    channel_configuration_id: UUID | None = None,
     channel_type: str | None = Query(default=None, min_length=1, max_length=50),
     conversation_status: str | None = Query(
         default=None, alias="status", pattern="^(open|closed|archived)$"
@@ -77,6 +78,7 @@ def list_conversations(
             has_outbound=has_outbound,
             page=page,
             page_size=page_size,
+            channel_configuration_id=channel_configuration_id,
         )
     except ValueError as exc:
         _raise(exc)

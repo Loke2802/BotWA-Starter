@@ -60,6 +60,7 @@ class SqlAlchemyConversationManagementRepository(ConversationManagementRepositor
         has_outbound: bool | None,
         offset: int,
         limit: int,
+        channel_configuration_id: UUID | None = None,
     ) -> tuple[list[ConversationModel], int]:
         filters = [
             ConversationModel.organization_id == organization_id,
@@ -67,6 +68,10 @@ class SqlAlchemyConversationManagementRepository(ConversationManagementRepositor
         ]
         if bot_id is not None:
             filters.append(ConversationModel.bot_id == bot_id)
+        if channel_configuration_id is not None:
+            filters.append(
+                ConversationModel.channel_configuration_id == channel_configuration_id
+            )
         if channel_type is not None:
             filters.append(ConversationModel.channel == channel_type)
         if management_status is not None:

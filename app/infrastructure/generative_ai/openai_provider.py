@@ -6,6 +6,7 @@ import httpx
 from pydantic import BaseModel, SecretStr, ValidationError
 
 from app.domain.generative_ai.contracts import Generation, ProviderError, Usage
+from app.infrastructure.generative_ai.response_prompts import PROMPTS
 
 MODEL = "gpt-5.6-luna"
 PROMPT_VERSION = "luri-adviser-1"
@@ -76,7 +77,9 @@ class OpenAIProvider:
                             "model": MODEL,
                             "store": False,
                             "tools": [],
-                            "instructions": INSTRUCTIONS,
+                            "instructions": PROMPTS.get(
+                                stage, (PROMPT_VERSION, INSTRUCTIONS)
+                            )[1],
                             "input": f"Etapa: {stage}\nDatos: {context}",
                             "reasoning": {"effort": "low"},
                             "max_output_tokens": self.max_output_tokens,

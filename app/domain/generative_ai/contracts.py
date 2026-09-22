@@ -18,10 +18,15 @@ class NeedDefinition(StrictModel):
     comparison: Literal["equals", "contains", "range", "at_most"] = "equals"
 
 
+class ResponseConfig(StrictModel):
+    enabled: bool = False
+
+
 class AIConfig(StrictModel):
     enabled: bool = False
     needs: list[NeedDefinition] = Field(default_factory=list, max_length=20)
     daily_jobs: int = Field(default=50, ge=1, le=500)
+    conversational_response: ResponseConfig = Field(default_factory=ResponseConfig)
 
     @model_validator(mode="after")
     def unique_keys(self) -> "AIConfig":

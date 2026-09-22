@@ -35,4 +35,7 @@ def configuration(
 
 
 def config_hash(config: AIConfig) -> str:
-    return hashlib.sha256(config.model_dump_json().encode()).hexdigest()
+    # Preserve PR44 hashes for queued jobs and configuration without the new flag.
+    return hashlib.sha256(
+        config.model_dump_json(exclude={"conversational_response"}).encode()
+    ).hexdigest()

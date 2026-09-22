@@ -394,6 +394,8 @@ class WhatsAppLiveMessageProcessor:
                     or job.organization_id != attempt.organization_id
                     or job.bot_id != attempt.bot_id
                     or conversation is None
+                    or conversation.organization_id != job.organization_id
+                    or conversation.bot_id != job.bot_id
                     or conversation.inbound_message_count != job.sequence
                     or config is None
                     or config_hash(config) != job.config_hash
@@ -401,6 +403,25 @@ class WhatsAppLiveMessageProcessor:
                 ):
                     raise ProviderError("AI_POLICY_CHANGED")
                 AIService.check_sources(self._session, job, job.sources)
+                from app.application.generative_ai.response_pipeline import check_memory
+                from app.application.generative_ai.response_validation import digest
+                from app.infrastructure.models.ai_generation import (
+                    AIResponseCheckpointModel,
+                )
+
+                checkpoint = self._session.get(AIResponseCheckpointModel, job.id)
+                if checkpoint and checkpoint.committed_revision is not None:
+                    check_memory(self._session, job, checkpoint, committed=True)
+                    if checkpoint.outcome == "approved" and (
+                        not config.conversational_response.enabled
+                        or checkpoint.response_revoked
+                    ):
+                        raise ProviderError("RESPONSE_DISABLED")
+                    if (
+                        digest(self._secret_cipher.decrypt(attempt.message_ciphertext))
+                        != checkpoint.reply_digest
+                    ):
+                        raise ProviderError("RESPONSE_CHANGED")
             except ProviderError as exc:
                 self._outbound_repository.mark_failed(attempt.id, exc.code)
                 self._session.commit()

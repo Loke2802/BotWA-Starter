@@ -152,11 +152,30 @@ class BotService:
             ):
                 from sqlalchemy import select
 
-                from app.infrastructure.models.ai_generation import AIJobModel
+                from app.infrastructure.models.ai_generation import (
+                    AIJobModel,
+                    AIResponseCheckpointModel,
+                )
                 from app.infrastructure.models.whatsapp_message_transport import (
                     OutboundMessageAttemptModel,
                 )
 
+                old_ai = (model.settings or {}).get("generative_ai", {})
+                new_ai = request.settings.get("generative_ai", {})
+                response_only = (
+                    isinstance(old_ai, dict)
+                    and isinstance(new_ai, dict)
+                    and {
+                        k: v
+                        for k, v in old_ai.items()
+                        if k != "conversational_response"
+                    }
+                    == {
+                        k: v
+                        for k, v in new_ai.items()
+                        if k != "conversational_response"
+                    }
+                )
                 jobs = self._session.scalars(
                     select(AIJobModel)
                     .where(
@@ -167,6 +186,13 @@ class BotService:
                     .with_for_update()
                 ).all()
                 for job in jobs:
+                    if response_only:
+                        checkpoint = self._session.get(
+                            AIResponseCheckpointModel, job.id
+                        )
+                        if checkpoint is not None:
+                            checkpoint.response_revoked = True
+                        continue
                     job.status, job.error_code = "cancelled", "CONFIG_CHANGED"
                     job.token, job.lease_until = None, None
                     job.completed_at = datetime.now(UTC)

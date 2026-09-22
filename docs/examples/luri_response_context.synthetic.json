@@ -1,0 +1,70 @@
+{
+  "schema_version": "1",
+  "context_id": "ctx",
+  "customer_needs": [
+    {
+      "id": "need_age",
+      "key": "age",
+      "value_ref": "need_age",
+      "evidence_ref": "customer-message",
+      "status": "evidence_backed"
+    }
+  ],
+  "business_facts": [
+    {
+      "id": "product_0_age",
+      "subject": "product_0",
+      "predicate": "attribute:age",
+      "value_ref": "product_0_age",
+      "clause_ref": null,
+      "source_ref": "source",
+      "source_version": "v1",
+      "minimum": 4.0,
+      "maximum": 7.0
+    }
+  ],
+  "authorized_claims": [
+    {
+      "id": "claim_product_0_age",
+      "subject_refs": [
+        "product_0"
+      ],
+      "predicate": "need_matches_attribute",
+      "fact_refs": [
+        "product_0_age"
+      ],
+      "need_refs": [
+        "need_age"
+      ],
+      "allowed_value_refs": [
+        "product_0_age"
+      ],
+      "required_clause_refs": [
+        "product_0_age"
+      ],
+      "expression_policy": "canonical_clause"
+    }
+  ],
+  "validated_relationships": [
+    "claim_product_0_age"
+  ],
+  "authorized_comparisons": [],
+  "uncertainties": {
+    "insufficient_information": "No hay información autorizada suficiente para afirmar más."
+  },
+  "allowed_questions": [],
+  "allowed_next_steps": {
+    "human_offer": "Preguntar si desea atención humana; no transferir."
+  },
+  "products": {
+    "product_0": "Dino"
+  },
+  "canonical_values": {
+    "need_age": "5",
+    "product_0_age": "4 a 7 años"
+  },
+  "canonical_clauses": {
+    "product_0_age": "Dino — Edad: 4 a 7 años"
+  },
+  "style": "luri-clear-warm-professional-v1"
+}

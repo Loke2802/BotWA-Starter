@@ -148,6 +148,39 @@ def test_records_encrypted_messages_with_scoped_deduplication_and_lifecycle(
     )
     assert total == 1
     assert items[0].masked_customer_identifier == "***9999"
+    assert (
+        items[0].channel_configuration_id
+        == message.resolved_context.channel_configuration_id
+    )
+    filtered, filtered_total = managed.list(
+        organization_id,
+        actor(organization_id),
+        bot_id=bot_id,
+        channel_type="whatsapp",
+        management_status="open",
+        external_customer_id=None,
+        has_inbound=True,
+        has_outbound=False,
+        page=1,
+        page_size=20,
+        channel_configuration_id=message.resolved_context.channel_configuration_id,
+    )
+    assert filtered_total == 1
+    assert filtered[0].id == conversation.id
+    _, missing_total = managed.list(
+        organization_id,
+        actor(organization_id),
+        bot_id=bot_id,
+        channel_type="whatsapp",
+        management_status="open",
+        external_customer_id=None,
+        has_inbound=True,
+        has_outbound=False,
+        page=1,
+        page_size=20,
+        channel_configuration_id=uuid4(),
+    )
+    assert missing_total == 0
     assert conversation.message_count == 1
 
     records, total = managed.list_messages(

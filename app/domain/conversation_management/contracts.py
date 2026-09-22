@@ -24,6 +24,7 @@ class ConversationSummary(BaseModel):
     organization_id: UUID
     bot_id: UUID
     channel_type: str
+    channel_configuration_id: UUID | None = None
     status: ConversationStatus
     masked_customer_identifier: str
     started_at: datetime
@@ -35,7 +36,6 @@ class ConversationSummary(BaseModel):
 
 
 class ConversationDetail(ConversationSummary):
-    channel_configuration_id: UUID | None = None
     external_conversation_metadata: dict[str, str | int | float | bool | None] = Field(
         default_factory=dict
     )

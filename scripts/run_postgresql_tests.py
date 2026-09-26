@@ -27,6 +27,7 @@ POSTGRESQL_TESTS = (
     "tests/integration/test_prd021_postgresql_security.py",
     "tests/integration/test_prd022_postgresql_observability.py",
     "tests/test_contacts_inbound.py::test_postgresql_contact_creation_race_creates_one_contact",
+    "tests/integration/test_ai_memory_retention_postgresql.py",
 )
 
 

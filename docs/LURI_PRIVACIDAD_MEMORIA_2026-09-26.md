@@ -29,3 +29,6 @@ Head esperado: `20260926_0027`, sobre `20260921_0026`. El downgrade adyacente el
 Las pruebas cubren vista previa, aislamiento de tenant, repetición de limpieza, bloqueo de trabajo activo y ausencia de memoria/historial antiguos en el contexto del siguiente trabajo. La suite PostgreSQL incluye estos dos últimos casos. No se realizaron llamadas a OpenAI ni se ejecutó el comando contra una base remota.
 
 Para cumplir los 90 días de conversaciones/contactos y solicitudes de eliminación se necesita el siguiente incremento: inventario integral de relaciones, bloqueo de ingreso y trabajos, previsualización de borrado, ejecución idempotente, tratamiento de copias/restauraciones y pruebas de aislamiento PostgreSQL. No se debe presentar este PR como cierre de esa obligación.
+
+
+Incremento posterior en el mismo worktree: `LURI_PRIVACIDAD_ELIMINACION_2026-09-26.md` documenta la operación supervisada por contacto para 90 días y solicitudes verificadas. No constituye retención automática ni cobertura de históricos ambiguos o copias externas.

@@ -20,6 +20,10 @@ ficha completa, registro de llamadas/reuniones/notas, historial de acciones, imp
 por moneda y sugerencias revisables de la IA existente. Validado localmente; esquema
 `0029`, sin DigitalOcean ni despliegue.
 
+[Agenda comercial](docs/LURI_CRM_AGENDA_COMERCIAL_2026-10-06.md): acciones de hoy
+según la zona de la empresa, vencidas y próximas, con filtros y acceso a la ficha.
+Reutiliza el seguimiento y conserva su historial; comprobada localmente.
+
 ## Antecedente - Phase 3 / PRD-001 a PRD-023 CLOSED
 
 Quality Gates (validación técnica PRD-023):

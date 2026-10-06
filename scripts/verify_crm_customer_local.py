@@ -2,6 +2,7 @@
 
 import argparse
 import json
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -71,6 +72,31 @@ def main() -> None:
                     {"role": role, "foreign_denied": True, "own_report_empty": True}
                 )
                 continue
+            for bucket in ("today", "future"):
+                agenda = client.get(
+                    f"{ownbase}/follow-up?due={bucket}", headers=headers
+                )
+                assert agenda.status_code == 200
+                result = agenda.json()
+                assert result["total"] == result["summary"][bucket]
+                start = datetime.fromisoformat(result["day_start"])
+                end = datetime.fromisoformat(result["day_end"])
+                assert start < end
+                for row in result["items"]:
+                    assert row["stage_kind"] == "open" and row["next_action"]
+                    date = datetime.fromisoformat(row["next_action"]["due_at"])
+                    assert (start <= date < end) if bucket == "today" else date >= end
+                    if role == "viewer":
+                        assert (
+                            row["next_action"]["description"] == "Contenido restringido"
+                        )
+                assert (
+                    client.get(
+                        f"/organizations/{foreign}/crm/follow-up?due={bucket}",
+                        headers=headers,
+                    ).status_code
+                    == 403
+                )
             if role == "organization_owner":
                 me = client.get("/auth/me", headers=headers).json()["user"]
                 payload = {
@@ -181,6 +207,7 @@ def main() -> None:
                 {
                     "role": role,
                     "workspace": True,
+                    "agenda_company_day_and_permissions": True,
                     "activities_deduplicated_or_write_denied": True,
                     "report_permissions": True,
                     "ai_disabled_abstains_or_denied": True,

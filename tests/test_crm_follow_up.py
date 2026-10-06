@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from app.api.dependencies import require_authenticated_user
@@ -8,6 +8,95 @@ from app.infrastructure.models.organization import OrganizationModel
 
 from tests.crm_opportunity_support import opportunity_service, payload, seed
 from tests.test_crm_opportunities import crm_opportunities as crm_opportunities
+
+
+@pytest.mark.parametrize(
+    "zone,instant,start,end",
+    [
+        (
+            "America/Lima",
+            "2026-10-06T02:00:00+00:00",
+            "2026-10-05T05:00:00+00:00",
+            "2026-10-06T05:00:00+00:00",
+        ),
+        (
+            "Europe/Madrid",
+            "2026-03-29T12:00:00+00:00",
+            "2026-03-28T23:00:00+00:00",
+            "2026-03-29T22:00:00+00:00",
+        ),
+    ],
+)
+def test_agenda_day_boundaries(crm_opportunities, zone, instant, start, end):  # type: ignore[no-untyped-def]
+    _, session, actor, other, contact, conversation = crm_opportunities
+    org = session.get(OrganizationModel, actor.organization_id)
+    assert org
+    org.settings = {**org.settings, "timezone": zone}
+    session.commit()
+    svc = opportunity_service(session)
+    data = payload(actor, contact, conversation)
+    dates = [
+        datetime.fromisoformat(start) - timedelta(seconds=1),
+        datetime.fromisoformat(start),
+        datetime.fromisoformat(end) - timedelta(seconds=1),
+        datetime.fromisoformat(end),
+    ]
+    ids = []
+    for i, date in enumerate(dates):
+        row = svc.create(
+            actor.organization_id,
+            actor,
+            OpportunityCreate.model_validate(
+                {
+                    **data,
+                    "next_action": {
+                        "description": "Acción por fecha",
+                        "due_at": date.isoformat(),
+                    },
+                }
+            ),
+            f"agenda-{i}",
+        )
+        ids.append(row.id)
+    queue = FollowUpService(session, svc.cipher)
+    now = datetime.fromisoformat(instant)
+    today = queue.list(
+        actor.organization_id, actor, due="today", as_of=now, page_size=1
+    )
+    assert today.day_start == datetime.fromisoformat(start)
+    assert today.day_end == datetime.fromisoformat(end)
+    assert today.total == 2 and today.has_next and today.items[0].id == ids[1]
+    assert today.summary.future == 1
+    tomorrow = queue.list(actor.organization_id, actor, due="future", as_of=now)
+    assert [item.id for item in tomorrow.items] == [ids[3]]
+    assert (
+        queue.list(
+            actor.organization_id,
+            actor,
+            due="today",
+            assigned_user_id=other.id,
+            as_of=now,
+        ).total
+        == 0
+    )
+    update = {
+        k: v for k, v in data.items() if k not in {"contact_id", "conversation_id"}
+    }
+    svc.update(
+        actor.organization_id,
+        ids[1],
+        actor,
+        OpportunityUpdate.model_validate(
+            {
+                **update,
+                "version": 1,
+                "complete_previous_action": True,
+                "next_action": {"description": "Mañana", "due_at": end},
+            }
+        ),
+    )
+    assert queue.list(actor.organization_id, actor, due="today", as_of=now).total == 1
+    assert queue.list(actor.organization_id, actor, due="future", as_of=now).total == 2
 
 
 def test_queue_counts_deadline_buckets_current_actions_and_closed(crm_opportunities):  # type: ignore[no-untyped-def]
@@ -90,6 +179,8 @@ def test_queue_counts_deadline_buckets_current_actions_and_closed(crm_opportunit
         "overdue": 1,
         "upcoming": 1,
         "without_action": 1,
+        "today": 0,
+        "future": 1,
     }
     assert result["total"] == 3
     assert result["timezone"] == "America/Lima"

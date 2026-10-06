@@ -1,7 +1,8 @@
 """Read-only commercial queue. Current pending actions only; tenant scope in SQL."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time, timedelta
 from uuid import UUID
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import and_, case, func, select
 from sqlalchemy.orm import Session
@@ -45,8 +46,26 @@ class FollowUpService:
         instant = as_of or datetime.now(UTC)
         if instant.utcoffset() is None:
             raise ValueError("timezone required")
-        if due not in {"all", "overdue", "upcoming", "without_action"}:
+        if due not in {
+            "all",
+            "overdue",
+            "upcoming",
+            "without_action",
+            "today",
+            "future",
+        }:
             raise ValueError("unknown follow-up filter")
+        timezone = str(organization.settings.get("timezone") or "UTC")
+        try:
+            zone = ZoneInfo(timezone)
+        except ZoneInfoNotFoundError:
+            # Legacy configurations may lack a valid zone; keep UI and SQL aligned.
+            timezone, zone = "UTC", ZoneInfo("UTC")
+        local_date = instant.astimezone(zone).date()
+        day_start = datetime.combine(local_date, time.min, zone).astimezone(UTC)
+        day_end = datetime.combine(
+            local_date + timedelta(days=1), time.min, zone
+        ).astimezone(UTC)
         op, action, stage = OpportunityModel, OpportunityActivityModel, CrmStageModel
         query = (
             select(op)
@@ -76,6 +95,8 @@ class FollowUpService:
             "overdue": action.due_at < instant,
             "upcoming": action.due_at >= instant,
             "without_action": action.id.is_(None),
+            "today": and_(action.due_at >= day_start, action.due_at < day_end),
+            "future": action.due_at >= day_end,
         }
         # Counters share the stage/owner scope; selecting a due bucket does not
         # change the other counters. One instant drives all deadline comparisons.
@@ -93,6 +114,8 @@ class FollowUpService:
             overdue=values[1],
             upcoming=values[2],
             without_action=values[3],
+            today=values[4],
+            future=values[5],
         )
         if due != "all":
             query = query.where(predicates[due])
@@ -117,6 +140,8 @@ class FollowUpService:
             page_size=page_size,
             has_next=page * page_size < total,
             as_of=instant,
-            timezone=str(organization.settings.get("timezone") or "UTC"),
+            day_start=day_start,
+            day_end=day_end,
+            timezone=timezone,
             summary=summary,
         )

@@ -120,7 +120,9 @@ class OpportunityList(BaseModel):
     has_next: bool
 
 
-FollowUpFilter = Literal["all", "overdue", "upcoming", "without_action"]
+FollowUpFilter = Literal[
+    "all", "overdue", "upcoming", "without_action", "today", "future"
+]
 
 
 class FollowUpSummary(BaseModel):
@@ -128,10 +130,14 @@ class FollowUpSummary(BaseModel):
     overdue: int
     upcoming: int
     without_action: int
+    today: int = 0
+    future: int = 0
 
 
 class FollowUpList(OpportunityList):
     as_of: datetime
+    day_start: datetime
+    day_end: datetime
     timezone: str
     summary: FollowUpSummary
 

@@ -1,4 +1,4 @@
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from app.core.conversation.context_builder import ConversationContextBuilder
 from app.core.conversation.state_manager import ConversationStateManager
@@ -74,7 +74,7 @@ def test_build_default_channel_is_http() -> None:
 
 
 def test_build_with_repo_loads_history() -> None:
-    from datetime import UTC, datetime
+    from datetime import UTC, datetime, timedelta
 
     from app.infrastructure.database import Base
     from app.infrastructure.models.conversation import ConversationModel
@@ -108,7 +108,7 @@ def test_build_with_repo_loads_history() -> None:
     now = datetime.now(UTC)
     msg_repo.add(
         MessageModel(
-            id=uuid4(),
+            id=UUID(int=2),
             conversation_id=conv_id,
             role="user",
             content="Primer mensaje",
@@ -117,11 +117,11 @@ def test_build_with_repo_loads_history() -> None:
     )
     msg_repo.add(
         MessageModel(
-            id=uuid4(),
+            id=UUID(int=1),
             conversation_id=conv_id,
             role="assistant",
             content="Respuesta",
-            created_at=now,
+            created_at=now + timedelta(seconds=1),
         )
     )
     session.commit()

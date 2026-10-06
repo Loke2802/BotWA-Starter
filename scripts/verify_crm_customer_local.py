@@ -183,7 +183,7 @@ def main() -> None:
             assert report.status_code == 200, report.text
             assert (
                 sum(row["count"] for row in report.json()["items"])
-                == workspace.json()["opportunities"]["total"]
+                == client.get(f"{base}/opportunities", headers=headers).json()["total"]
             )
             if role == "viewer":
                 assert all(

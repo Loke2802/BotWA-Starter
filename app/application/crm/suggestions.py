@@ -13,6 +13,7 @@ from app.domain.generative_ai.contracts import NeedPatch
 from app.domain.user.contracts import User
 from app.infrastructure.models.ai_generation import AIJobModel, AIMemoryModel
 from app.infrastructure.models.message import MessageModel
+from app.infrastructure.repositories.crm_identity import canonical
 from app.infrastructure.settings import Settings
 from app.security.authorization import require_scoped_permission
 
@@ -30,7 +31,9 @@ class CommercialSuggestionService:
         self.commercial.repository.organization(org)
         self.commercial.repository.contact(org, contact)
         conversation = self.commercial.repository.conversation(org, conversation_id)
-        if conversation.contact_id != contact:
+        if conversation.contact_id is None or canonical(
+            self.commercial.session, org, conversation.contact_id
+        ) != canonical(self.commercial.session, org, contact):
             from app.domain.crm.contracts import CrmNotFound
 
             raise CrmNotFound()
@@ -136,4 +139,28 @@ class CommercialSuggestionService:
             next_action=missing
             or "Confirmar las necesidades y preparar una propuesta con el cliente.",
             evidence=[p.quote for p in verified.values()],
+        )
+
+    def for_opportunity(
+        self, org: UUID, opportunity: UUID, conversation: UUID, actor: User
+    ) -> CommercialSuggestion:
+        current = self.commercial.get(org, opportunity, actor)
+        result = self.suggest(org, current.contact_id, conversation, actor)
+        if current.stage_kind != "open":
+            result.available = False
+            result.explanation = (
+                "La oportunidad está cerrada. Revisa su estado manualmente."
+            )
+        return result.model_copy(
+            update={
+                "opportunity_id": current.id,
+                "expected_version": current.version,
+                "current_need": current.need,
+                "current_stage_code": current.stage_code,
+                "current_action": (
+                    current.next_action.description
+                    if current.next_action
+                    else current.no_action_reason
+                ),
+            }
         )

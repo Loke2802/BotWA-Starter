@@ -9,8 +9,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.api.crm_routes import Actor
 from app.api.whatsapp_configuration_dependencies import get_whatsapp_secret_cipher
 from app.application.crm.customer_workspace import CustomerWorkspaceService
+from app.application.crm.duplicates import DuplicateService
 from app.application.crm.follow_up import FollowUpService
 from app.application.crm.report import CommercialReportService
+from app.application.crm.sales_metrics import SalesMetricsService
 from app.application.crm.service import OpportunityService
 from app.application.crm.suggestions import CommercialSuggestionService
 from app.domain.crm.contracts import (
@@ -35,6 +37,13 @@ from app.domain.crm.customer_contracts import (
     CustomerActionList,
     CustomerActivity,
     CustomerWorkspace,
+)
+from app.domain.crm.growth_contracts import (
+    DuplicateList,
+    MergeInput,
+    MergePreview,
+    MergeResult,
+    SalesMetrics,
 )
 from app.infrastructure.database import get_session
 from app.infrastructure.settings import get_settings
@@ -349,6 +358,81 @@ def customer_action_history(
     try:
         return CustomerWorkspaceService(service).actions(
             organization_id, contact_id, actor, page
+        )
+    except (ValueError, SQLAlchemyError) as exc:
+        raise fail(exc) from exc
+
+
+@router.get("/crm/duplicates", response_model=DuplicateList)
+def duplicate_candidates(
+    organization_id: UUID,
+    actor: Actor,
+    service: Service,
+    page: int = Query(default=1, ge=1),
+) -> DuplicateList:
+    try:
+        return DuplicateService(service).candidates(organization_id, actor, page)
+    except (ValueError, SQLAlchemyError) as exc:
+        raise fail(exc) from exc
+
+
+@router.get("/crm/merge-preview", response_model=MergePreview)
+def merge_preview(
+    organization_id: UUID,
+    actor: Actor,
+    service: Service,
+    source_id: UUID,
+    target_id: UUID,
+) -> MergePreview:
+    try:
+        return DuplicateService(service).preview(
+            organization_id, actor, source_id, target_id
+        )
+    except (ValueError, SQLAlchemyError) as exc:
+        raise fail(exc) from exc
+
+
+@router.post("/crm/customer-merges", response_model=MergeResult)
+def merge_customers(
+    organization_id: UUID, actor: Actor, service: Service, data: MergeInput
+) -> MergeResult:
+    try:
+        return DuplicateService(service).merge(organization_id, actor, data)
+    except (ValueError, SQLAlchemyError) as exc:
+        raise fail(exc) from exc
+
+
+@router.get("/crm/sales-metrics", response_model=SalesMetrics)
+def sales_metrics(
+    organization_id: UUID,
+    actor: Actor,
+    service: Service,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    assigned_user_id: UUID | None = None,
+) -> SalesMetrics:
+    try:
+        return SalesMetricsService(service).report(
+            organization_id, actor, date_from, date_to, assigned_user_id
+        )
+    except (ValueError, SQLAlchemyError) as exc:
+        raise fail(exc) from exc
+
+
+@router.get(
+    "/crm/opportunities/{opportunity_id}/suggestions/{conversation_id}",
+    response_model=CommercialSuggestion,
+)
+def opportunity_suggestion(
+    organization_id: UUID,
+    opportunity_id: UUID,
+    conversation_id: UUID,
+    actor: Actor,
+    service: Service,
+) -> CommercialSuggestion:
+    try:
+        return CommercialSuggestionService(service, get_settings()).for_opportunity(
+            organization_id, opportunity_id, conversation_id, actor
         )
     except (ValueError, SQLAlchemyError) as exc:
         raise fail(exc) from exc

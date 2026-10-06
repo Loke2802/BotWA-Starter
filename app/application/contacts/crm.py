@@ -15,9 +15,11 @@ from app.domain.contacts.crm_contracts import (
 )
 from app.domain.user.contracts import User
 from app.infrastructure.models.contact import ContactModel
+from app.infrastructure.models.crm_contact_merge import ContactMergeModel
 from app.infrastructure.models.customer_profile import CustomerProfileModel
 from app.infrastructure.models.user import UserModel
 from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
+from app.infrastructure.repositories.crm_identity import canonical
 from app.security.authorization import has_permission, require_scoped_permission
 from app.security.secret_cipher import SecretCipher
 from sqlalchemy import Select, func, select
@@ -89,6 +91,14 @@ class CrmService:
     ) -> CustomerList:
         require_scoped_permission(actor, "contacts.read", org)
         query = self._query(org).where(ContactModel.status == status)
+        if status == "active":
+            query = query.where(
+                ContactModel.id.not_in(
+                    select(ContactMergeModel.source_id).where(
+                        ContactMergeModel.organization_id == org
+                    )
+                )
+            )
         if classification:
             query = query.where(
                 func.coalesce(CustomerProfileModel.classification, "lead")
@@ -101,10 +111,17 @@ class CrmService:
         if identifier:
             require_scoped_permission(actor, "contacts.read_sensitive", org)
             identity = self.hasher.identify(org, "whatsapp", identifier)
+            matched = self.session.scalar(
+                select(ContactModel.id).where(
+                    ContactModel.organization_id == org,
+                    ContactModel.channel_type == "whatsapp",
+                    ContactModel.external_identifier_hash
+                    == identity.external_identifier_hash,
+                )
+            )
             query = query.where(
-                ContactModel.channel_type == "whatsapp",
-                ContactModel.external_identifier_hash
-                == identity.external_identifier_hash,
+                ContactModel.id
+                == (canonical(self.session, org, matched) if matched else uuid4())
             )
         total = (
             self.session.scalar(select(func.count()).select_from(query.subquery())) or 0
@@ -124,7 +141,14 @@ class CrmService:
 
     def summary(self, org: UUID, actor: User) -> CrmSummary:
         require_scoped_permission(actor, "contacts.read", org)
-        query = self._query(org).where(ContactModel.status == "active")
+        query = self._query(org).where(
+            ContactModel.status == "active",
+            ContactModel.id.not_in(
+                select(ContactMergeModel.source_id).where(
+                    ContactMergeModel.organization_id == org
+                )
+            ),
+        )
         counts = {}
         for classification in ("lead", "customer", "inactive"):
             filtered = query.where(
@@ -195,7 +219,8 @@ class CrmService:
                 if sensitive and c.notes_ciphertext
                 else None
             ),
-            can_edit=has_permission(actor, "contacts.update"),
+            can_edit=has_permission(actor, "contacts.update")
+            and canonical(self.session, org, contact_id) == contact_id,
             can_read_sensitive=sensitive,
         )
 
@@ -274,6 +299,8 @@ class CrmService:
         require_scoped_permission(actor, "contacts.update", org)
         if data.notes is not None:
             require_scoped_permission(actor, "contacts.read_sensitive", org)
+        if canonical(self.session, org, contact_id) != contact_id:
+            raise CrmConflict("Este cliente fue unido; edita la ficha principal.")
         self._validate_assignee(org, data.assigned_user_id)
         # Serialize creation/update of the optional profile on the existing contact.
         contact = self.session.scalar(

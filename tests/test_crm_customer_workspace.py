@@ -7,11 +7,13 @@ import pytest
 from app.api.dependencies import require_authenticated_user
 from app.application.crm.service import OpportunityService
 from app.application.crm.suggestions import CommercialSuggestionService
+from app.domain.crm.contracts import OpportunityCreate
 from app.domain.user.contracts import User
 from app.infrastructure.models.ai_generation import AIJobModel, AIMemoryModel
 from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.crm_customer_activity import CrmCustomerActivityModel
 from app.infrastructure.models.crm_opportunity import OpportunityModel
+from app.infrastructure.models.user import UserModel
 from app.operations.ai_consumer import dispatch_one
 from app.security.authorization import AuthorizationError
 from sqlalchemy import func, select
@@ -287,6 +289,40 @@ async def test_suggestions_reuse_existing_ai_with_evidence_and_no_new_calls(
                 conversation.id,
                 actor.model_copy(update={"role": "viewer"}),
             )
+        session.add(
+            UserModel(
+                id=actor.id,
+                organization_id=job.organization_id,
+                email=actor.email,
+                password_hash="synthetic-only",
+                role=actor.role,
+                status="active",
+            )
+        )
+        session.commit()
+        existing = commercial.create(
+            job.organization_id,
+            actor,
+            OpportunityCreate(
+                contact_id=conversation.contact_id,
+                title="Oportunidad existente",
+                stage_code="offer",
+                assigned_user_id=actor.id,
+                no_action_reason="Esperar",
+                amount="125.00",
+                currency="PEN",
+            ),
+            "ai-existing",
+        )
+        update = service.for_opportunity(
+            job.organization_id, existing.id, conversation.id, actor
+        )
+        assert update.available and update.expected_version == 1
+        assert (
+            update.current_stage_code == "offer" and update.current_action == "Esperar"
+        )
+        assert commercial.get(job.organization_id, existing.id, actor).version == 1
+        assert len(runtime.provider.calls) == calls
         memory = session.get(AIMemoryModel, conversation.id)
         assert memory
         values = json.loads(cipher().decrypt(memory.ciphertext))

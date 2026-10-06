@@ -17,8 +17,10 @@ from pathlib import Path
 from uuid import uuid4
 
 from app.application.crm.customer_workspace import CustomerWorkspaceService
+from app.application.crm.duplicates import DuplicateService
 from app.domain.crm.contracts import OpportunityCreate, OpportunityUpdate
 from app.domain.crm.customer_contracts import ActivityInput
+from app.domain.crm.growth_contracts import MergeInput
 from app.infrastructure.models.managed_automation import (
     ManagedAutomationDefinitionModel,
 )
@@ -29,6 +31,7 @@ from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 from tests.crm_opportunity_support import opportunity_service, payload, seed
+from tests.test_crm_growth import target
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -102,7 +105,7 @@ def main() -> None:
     migrate(databases["source"], "20260921_0026")
     engine = create_engine(url(databases["source"]))
     with Session(engine) as session:
-        actor, other, contact, conversation = seed(session)
+        actor, other, contact, conversation = seed(session, legacy=True)
         accounts = {}
         for role in ["organization_owner", "operator", "viewer"]:
             user = UserModel(
@@ -276,6 +279,17 @@ def main() -> None:
         activity = CustomerWorkspaceService(service).record_activity(
             actor.organization_id, contact, actor, activity_data, "recovery-activity"
         )
+        merge_source = target(session, actor.organization_id, service.cipher)
+        merge_target = target(session, actor.organization_id, service.cipher)
+        review = DuplicateService(service).preview(
+            actor.organization_id, actor, merge_source.id, merge_target.id
+        )
+        merge_request = MergeInput(
+            source_id=merge_source.id,
+            target_id=merge_target.id,
+            review_token=review.token,
+        )
+        DuplicateService(service).merge(actor.organization_id, actor, merge_request)
     after = fingerprint(restored_before)
     post_dump = f"/tmp/{prefix}_after.dump"
     docker("pg_dump", "-U", "botwa", "-Fc", "-f", post_dump, databases["before"])
@@ -317,6 +331,17 @@ def main() -> None:
             ).id
             == activity.id
         )
+        assert (
+            DuplicateService(service)
+            .merge(actor.organization_id, actor, merge_request)
+            .replayed
+        )
+        assert (
+            CustomerWorkspaceService(service)
+            .workspace(actor.organization_id, merge_request.source_id, actor, 1, 1)
+            .contact_id
+            == merge_request.target_id
+        )
     # The application rollback strategy preserves the schema. This checks
     # that a destructive downgrade is refused rather than deleting CRM data.
     env = {**os.environ, "BOTWA_DATABASE_URL": url(databases["after"])}
@@ -339,6 +364,7 @@ def main() -> None:
         "existing_rows_unchanged_after_upgrade": True,
         "post_restore_equal": True,
         "customer_activity_restored_and_replay_deduplicated": True,
+        "reviewed_merge_restored_and_replay_deduplicated": True,
         "history_and_idempotency_after_restore": True,
         "destructive_downgrade_refused_without_changes": True,
         "invalid_legacy_configuration_blocks_upgrade_without_changes": True,

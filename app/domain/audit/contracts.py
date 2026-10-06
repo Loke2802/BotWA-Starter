@@ -63,6 +63,7 @@ AuditAction = Literal[
     "crm.conversation_linked",
     "crm.stages_updated",
     "crm.activity_recorded",
+    "crm.customers_merged",
     "contact.archived",
     "contact.reactivated",
     "business_calendar.created",

@@ -8,7 +8,9 @@ from app.domain.contacts.contracts import ContactIdentityNormalizer
 from app.domain.contacts.crm_contracts import CustomerCreate
 from app.domain.user.contracts import User
 from app.infrastructure.models.bot import BotModel
+from app.infrastructure.models.contact import ContactModel
 from app.infrastructure.models.conversation import ConversationModel
+from app.infrastructure.models.customer_profile import CustomerProfileModel
 from app.infrastructure.models.organization import OrganizationModel
 from app.infrastructure.models.user import UserModel
 from app.security.secret_cipher import EnvironmentSecretCipher
@@ -23,7 +25,7 @@ def opportunity_service(session: Session) -> OpportunityService:
     )
 
 
-def seed(session: Session) -> tuple[User, User, UUID, UUID]:
+def seed(session: Session, *, legacy: bool = False) -> tuple[User, User, UUID, UUID]:
     actors = [
         User(
             id=uuid4(),
@@ -62,11 +64,36 @@ def seed(session: Session) -> tuple[User, User, UUID, UUID]:
         service.cipher,
         ContactIdentityHasher(service.digest_key, ContactIdentityNormalizer()),
     )
-    contact = crm.create(
-        actor.organization_id,
-        actor,
-        CustomerCreate(display_name="Synthetic client", whatsapp="+12025550147"),
-    )
+    if legacy:
+        # Historical fixtures must not invoke application code for a newer schema.
+        identity = ContactIdentityHasher(
+            service.digest_key, ContactIdentityNormalizer()
+        ).identify(actor.organization_id, "whatsapp", "+12025550147")
+        legacy_contact = ContactModel(
+            id=uuid4(),
+            organization_id=actor.organization_id,
+            channel_type="whatsapp",
+            external_identifier_hash=identity.external_identifier_hash,
+            external_identifier_ciphertext=service.cipher.encrypt(
+                identity.normalized_identifier
+            ),
+            display_name_ciphertext=service.cipher.encrypt("Synthetic client"),
+        )
+        session.add(legacy_contact)
+        session.flush()
+        session.add(
+            CustomerProfileModel(
+                contact_id=legacy_contact.id, organization_id=actor.organization_id
+            )
+        )
+        session.commit()
+        contact_id = legacy_contact.id
+    else:
+        contact_id = crm.create(
+            actor.organization_id,
+            actor,
+            CustomerCreate(display_name="Synthetic client", whatsapp="+12025550147"),
+        ).id
     bot = BotModel(
         id=uuid4(),
         organization_id=actor.organization_id,
@@ -80,7 +107,7 @@ def seed(session: Session) -> tuple[User, User, UUID, UUID]:
         id=uuid4(),
         organization_id=actor.organization_id,
         bot_id=bot.id,
-        contact_id=contact.id,
+        contact_id=contact_id,
         company_id=str(actor.organization_id),
         customer_id="synthetic",
         channel="whatsapp",
@@ -89,7 +116,7 @@ def seed(session: Session) -> tuple[User, User, UUID, UUID]:
     )
     session.add(conversation)
     session.commit()
-    return actor, other, contact.id, conversation.id
+    return actor, other, contact_id, conversation.id
 
 
 def payload(

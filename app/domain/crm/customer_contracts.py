@@ -49,6 +49,11 @@ class CustomerConversation(BaseModel):
     created_at: datetime
 
 
+class MergedOrigin(BaseModel):
+    id: UUID
+    name: str
+
+
 class CustomerWorkspace(BaseModel):
     contact_id: UUID
     timezone: str
@@ -60,6 +65,7 @@ class CustomerWorkspace(BaseModel):
     conversation_page: int
     conversations_has_next: bool
     stages: list[Stage]
+    merged_origins: list[MergedOrigin] = Field(default_factory=list)
 
 
 class CommercialMetric(BaseModel):
@@ -87,6 +93,11 @@ class CommercialSuggestion(BaseModel):
     stage_code: str | None = None
     next_action: str | None = None
     evidence: list[str] = Field(default_factory=list)
+    opportunity_id: UUID | None = None
+    expected_version: int | None = None
+    current_need: str | None = None
+    current_stage_code: str | None = None
+    current_action: str | None = None
 
 
 class CustomerAction(BaseModel):

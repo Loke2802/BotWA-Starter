@@ -1,0 +1,14 @@
+{
+  "environment": "authenticated localhost PostgreSQL",
+  "roles": [
+    "organization_owner",
+    "operator",
+    "viewer",
+    "other_company"
+  ],
+  "merge_replay": true,
+  "history_and_notes_preserved": true,
+  "metrics_from_closing_history": true,
+  "cross_customer_ai_denied": true,
+  "no_external_calls": true
+}

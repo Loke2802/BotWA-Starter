@@ -2,6 +2,10 @@
 
 ## Luri CRM — incremento 1 (06/10/2026, rama local)
 
+[Duplicados, métricas históricas e IA sobre oportunidades](docs/LURI_CRM_DUPLICADOS_METRICAS_IA_2026-10-06.md):
+unión revisada con originales conservados, cierres y tiempo por etapa, sugerencias
+para editar ventas existentes. Migración `0030`; validación local sin DigitalOcean.
+
 [Entrega y comprobación del recorrido](docs/LURI_CRM_INCREMENTO_1.md):
 conversación → ficha existente → oportunidad → responsable, etapa y próxima acción.
 Implementado en rama independiente; no acredita despliegue ni validación externa.

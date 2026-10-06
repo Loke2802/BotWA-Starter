@@ -5,6 +5,7 @@
     {
       "role": "organization_owner",
       "workspace": true,
+      "agenda_company_day_and_permissions": true,
       "activities_deduplicated_or_write_denied": true,
       "report_permissions": true,
       "ai_disabled_abstains_or_denied": true,
@@ -13,6 +14,7 @@
     {
       "role": "operator",
       "workspace": true,
+      "agenda_company_day_and_permissions": true,
       "activities_deduplicated_or_write_denied": true,
       "report_permissions": true,
       "ai_disabled_abstains_or_denied": true,
@@ -21,6 +23,7 @@
     {
       "role": "viewer",
       "workspace": true,
+      "agenda_company_day_and_permissions": true,
       "activities_deduplicated_or_write_denied": true,
       "report_permissions": true,
       "ai_disabled_abstains_or_denied": true,

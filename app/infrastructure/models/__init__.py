@@ -34,6 +34,7 @@ from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.conversation_state_history import (
     ConversationStateHistoryModel,
 )
+from app.infrastructure.models.crm_contact_merge import ContactMergeModel
 from app.infrastructure.models.crm_customer_activity import CrmCustomerActivityModel
 from app.infrastructure.models.crm_opportunity import (
     CrmStageModel,
@@ -79,6 +80,7 @@ from app.infrastructure.models.whatsapp_message_transport import (
 )
 
 __all__ = [
+    "ContactMergeModel",
     "CrmCustomerActivityModel",
     "CrmStageModel",
     "OpportunityModel",

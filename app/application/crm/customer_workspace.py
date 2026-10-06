@@ -19,6 +19,7 @@ from app.domain.crm.customer_contracts import (
     CustomerActivity,
     CustomerConversation,
     CustomerWorkspace,
+    MergedOrigin,
 )
 from app.domain.user.contracts import User
 from app.infrastructure.models.conversation import ConversationModel
@@ -28,6 +29,7 @@ from app.infrastructure.models.crm_opportunity import (
     OpportunityModel,
 )
 from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
+from app.infrastructure.repositories.crm_identity import canonical, family
 from app.security.authorization import has_permission
 
 
@@ -45,7 +47,7 @@ class CustomerWorkspaceService:
         permitted = has_permission(actor, "conversation.read")
         query = select(ConversationModel).where(
             ConversationModel.organization_id == org,
-            ConversationModel.contact_id == contact,
+            ConversationModel.contact_id.in_(family(self.session, org, contact)),
             ConversationModel.management_status.is_not(None),
             ConversationModel.bot_id.is_not(None),
         )
@@ -69,7 +71,7 @@ class CustomerWorkspaceService:
             else []
         )
         return CustomerWorkspace(
-            contact_id=contact,
+            contact_id=canonical(self.session, org, contact),
             timezone=str(organization.settings.get("timezone") or "UTC"),
             can_write=has_permission(actor, "crm.opportunities.write")
             and has_permission(actor, "crm.opportunities.read_content"),
@@ -87,6 +89,19 @@ class CustomerWorkspaceService:
             conversation_page=conversation_page,
             conversations_has_next=conversation_page * 10 < total,
             stages=self.commercial.stages(org, actor),
+            merged_origins=[
+                MergedOrigin(
+                    id=origin,
+                    name=(
+                        self.commercial.cipher.decrypt(row.display_name_ciphertext)
+                        if row.display_name_ciphertext
+                        else "Sin nombre"
+                    ),
+                )
+                for origin in family(self.session, org, contact)
+                if origin != canonical(self.session, org, contact)
+                for row in [self.commercial.repository.contact(org, origin)]
+            ],
         )
 
     def _record(self, row: CrmCustomerActivityModel, actor: User) -> CustomerActivity:
@@ -113,7 +128,7 @@ class CustomerWorkspaceService:
         self.commercial.repository.contact(org, contact)
         query = select(CrmCustomerActivityModel).where(
             CrmCustomerActivityModel.organization_id == org,
-            CrmCustomerActivityModel.contact_id == contact,
+            CrmCustomerActivityModel.contact_id.in_(family(self.session, org, contact)),
         )
         total = int(
             self.session.scalar(select(func.count()).select_from(query.subquery())) or 0
@@ -159,7 +174,9 @@ class CustomerWorkspaceService:
                 opportunity = self.commercial.repository.opportunity(
                     org, data.opportunity_id
                 )
-                if opportunity.contact_id != contact:
+                if canonical(self.session, org, opportunity.contact_id) != canonical(
+                    self.session, org, contact
+                ):
                     raise CrmConflict("La oportunidad debe pertenecer a este cliente.")
             if data.occurred_at.astimezone(UTC) > datetime.now(UTC):
                 raise ValueError(
@@ -167,7 +184,11 @@ class CustomerWorkspaceService:
                 )
             row = CrmCustomerActivityModel(
                 organization_id=org,
-                contact_id=contact,
+                contact_id=(
+                    opportunity.contact_id
+                    if data.opportunity_id
+                    else canonical(self.session, org, contact)
+                ),
                 opportunity_id=data.opportunity_id,
                 actor_user_id=actor.id,
                 kind=data.kind,
@@ -209,7 +230,7 @@ class CustomerWorkspaceService:
             )
             .where(
                 OpportunityModel.organization_id == org,
-                OpportunityModel.contact_id == contact,
+                OpportunityModel.contact_id.in_(family(self.session, org, contact)),
             )
         )
         total = int(

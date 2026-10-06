@@ -15,6 +15,7 @@ from app.infrastructure.models.crm_opportunity import (
 )
 from app.infrastructure.models.organization import OrganizationModel
 from app.infrastructure.models.user import UserModel
+from app.infrastructure.repositories.crm_identity import family
 
 
 class OpportunityRepository:
@@ -24,8 +25,10 @@ class OpportunityRepository:
     def contact(
         self, org: UUID, contact_id: UUID, *, lock: bool = False
     ) -> ContactModel:
-        query = select(ContactModel).where(
-            ContactModel.id == contact_id, ContactModel.organization_id == org
+        query = (
+            select(ContactModel)
+            .execution_options(populate_existing=True)
+            .where(ContactModel.id == contact_id, ContactModel.organization_id == org)
         )
         row = self.session.scalar(query.with_for_update() if lock else query)
         if row is None:
@@ -114,7 +117,9 @@ class OpportunityRepository:
     ) -> tuple[list[OpportunityModel], int]:
         query = select(OpportunityModel).where(OpportunityModel.organization_id == org)
         if contact_id:
-            query = query.where(OpportunityModel.contact_id == contact_id)
+            query = query.where(
+                OpportunityModel.contact_id.in_(family(self.session, org, contact_id))
+            )
         if assigned_user_id:
             query = query.where(OpportunityModel.assigned_user_id == assigned_user_id)
         if stage_code:

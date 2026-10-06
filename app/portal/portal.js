@@ -89,6 +89,8 @@ async function login(event) {
 }
 
 function signOut() {
+  window.LuriCustomerQuality.reset();
+  window.LuriSalesMetrics.reset();
   window.LuriCommercialReport.reset();
   window.LuriBoard.reset();
   window.LuriStages.reset();
@@ -270,6 +272,8 @@ async function renderConfiguration() {
 let renderGeneration = 0;
 async function renderView() {
   const ticket = ++renderGeneration;
+  window.LuriCustomerQuality.close();
+  window.LuriSalesMetrics.close();
   window.LuriCommercialReport.close();
   window.LuriBoard.close();
   window.LuriStages.close();
@@ -284,6 +288,8 @@ async function renderView() {
     overview: () => renderOverview(organizationId),
     conversations: () => renderConversations(organizationId),
     contacts: () => renderContacts(organizationId),
+    "customer-quality": () => window.LuriCustomerQuality.render(organizationId, api, state.user, state.permissions, renderView),
+    "sales-metrics": () => window.LuriSalesMetrics.render(organizationId, api, state.user, state.permissions, renderView),
     "commercial-report": () => window.LuriCommercialReport.render(organizationId, api, state.user, state.permissions, renderView),
     "board": () => window.LuriBoard.render(organizationId, api, state.user, state.permissions, renderView),
     "stages": () => window.LuriStages.render(organizationId, api, state.user, state.permissions, renderView),
@@ -296,6 +302,8 @@ async function renderView() {
     if (ticket !== renderGeneration || !state.token || state.activeOrganization !== organizationId) return;
     content.innerHTML = markup;
     if (state.view === "contacts") window.LuriCRM.mount(content);
+    if (state.view === "customer-quality") window.LuriCustomerQuality.mount(content);
+    if (state.view === "sales-metrics") window.LuriSalesMetrics.mount(content);
     if (state.view === "commercial-report") window.LuriCommercialReport.mount(content);
     if (state.view === "board") window.LuriBoard.mount(content);
     if (state.view === "stages") window.LuriStages.mount(content);
@@ -319,6 +327,8 @@ document.querySelector("#new-organization-name").addEventListener("input", (even
 });
 organizationForm.addEventListener("submit", createOrganization);
 picker.addEventListener("change", async (event) => {
+  window.LuriCustomerQuality.reset();
+  window.LuriSalesMetrics.reset();
   window.LuriCommercialReport.reset();
   window.LuriBoard.reset();
   window.LuriStages.reset();

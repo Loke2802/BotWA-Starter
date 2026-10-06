@@ -44,6 +44,7 @@ def database():  # type: ignore[no-untyped-def]
         with engine.begin() as connection:
             for org in [actor.organization_id, other.organization_id]:
                 for table in (
+                    "crm_contact_merge",
                     "crm_customer_activity",
                     "crm_opportunity_history",
                     "crm_opportunity_conversation",
@@ -250,3 +251,74 @@ def test_simultaneous_customer_activity_replay_and_tenant_constraints(database):
         with pytest.raises(IntegrityError):
             session.commit()
         session.rollback()
+
+
+def test_simultaneous_reviewed_merge_preserves_constrained_links(database):  # type: ignore[no-untyped-def]
+    from app.application.crm.duplicates import DuplicateService
+    from app.domain.crm.growth_contracts import MergeInput
+    from app.infrastructure.models.crm_contact_merge import ContactMergeModel
+    from tests.test_crm_growth import target
+
+    engine, actor, _, contact, conversation = database
+    with Session(engine) as session:
+        svc = opportunity_service(session)
+        principal = target(session, actor.organization_id, svc.cipher)
+        created = svc.create(
+            actor.organization_id,
+            actor,
+            OpportunityCreate.model_validate(payload(actor, contact, conversation)),
+            "merge-concurrent-op",
+        )
+        CustomerWorkspaceService(svc).record_activity(
+            actor.organization_id,
+            contact,
+            actor,
+            ActivityInput(
+                kind="call",
+                description="Actividad concurrente conservada",
+                occurred_at=datetime.now(UTC) - timedelta(minutes=1),
+                opportunity_id=created.id,
+            ),
+            "merge-concurrent-call",
+        )
+        preview = DuplicateService(svc).preview(
+            actor.organization_id, actor, contact, principal.id
+        )
+        request = MergeInput(
+            source_id=contact, target_id=principal.id, review_token=preview.token
+        )
+    barrier = Barrier(2)
+
+    def merge():  # type: ignore[no-untyped-def]
+        with Session(engine) as session:
+            barrier.wait(timeout=10)
+            return (
+                DuplicateService(opportunity_service(session))
+                .merge(actor.organization_id, actor, request)
+                .replayed
+            )
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = [pool.submit(merge) for _ in range(2)]
+        assert sorted(f.result(timeout=30) for f in results) == [False, True]
+    with Session(engine) as session:
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(ContactMergeModel)
+                .where(ContactMergeModel.organization_id == actor.organization_id)
+            )
+            == 1
+        )
+        link = session.get(OpportunityConversationModel, (created.id, conversation))
+        assert link and link.contact_id == principal.id
+        journal = session.scalar(
+            select(CrmCustomerActivityModel).where(
+                CrmCustomerActivityModel.organization_id == actor.organization_id
+            )
+        )
+        assert (
+            journal
+            and journal.contact_id == principal.id
+            and journal.opportunity_id == created.id
+        )

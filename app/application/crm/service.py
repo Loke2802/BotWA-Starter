@@ -35,6 +35,7 @@ from app.infrastructure.models.whatsapp_channel_configuration import (
     WhatsAppChannelConfigurationModel,
 )
 from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
+from app.infrastructure.repositories.crm_identity import canonical
 from app.infrastructure.repositories.crm_opportunity_repository import (
     OpportunityRepository,
 )
@@ -161,7 +162,9 @@ class OpportunityService:
         organization = self.repository.organization(org)
         return CommercialContext(
             conversation_id=row.id,
-            contact_id=row.contact_id,
+            contact_id=(
+                canonical(self.session, org, row.contact_id) if row.contact_id else None
+            ),
             channel_type=row.channel,
             channel_configuration_id=row.channel_configuration_id,
             account_name=account.display_name if account else None,
@@ -306,6 +309,14 @@ class OpportunityService:
         conversation = self.repository.conversation(
             row.organization_id, conversation_id
         )
+        if (
+            conversation.contact_id != row.contact_id
+            and conversation.contact_id
+            and canonical(self.session, row.organization_id, conversation.contact_id)
+            == row.contact_id
+        ):
+            conversation.contact_id = row.contact_id
+            self.session.flush()
         if conversation.contact_id != row.contact_id:
             raise CrmConflict(
                 "La conversación y la oportunidad deben tener el mismo contacto."
@@ -355,7 +366,7 @@ class OpportunityService:
             row = OpportunityModel(
                 id=uuid4(),
                 organization_id=org,
-                contact_id=data.contact_id,
+                contact_id=canonical(self.session, org, data.contact_id),
                 version=1,
                 created_by_user_id=actor.id,
                 idempotency_key=key,

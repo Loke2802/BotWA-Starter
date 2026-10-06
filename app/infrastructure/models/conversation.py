@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import Uuid
 
@@ -16,6 +16,11 @@ if TYPE_CHECKING:
 
 class ConversationModel(Base):
     __tablename__ = "conversation"
+    __table_args__ = (
+        UniqueConstraint(
+            "id", "organization_id", "contact_id", name="uq_conversation_crm_contact"
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     company_id: Mapped[str] = mapped_column(String(255), nullable=False)

@@ -1,0 +1,77 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>Pruebas CRM incremento 1</title>
+<link rel="stylesheet" href="../app/portal/portal.css">
+<main style="padding:24px"><h1>Pruebas CRM incremento 1</h1><p>Datos y API simulados. No envía mensajes ni llama IA.</p><pre id="results" role="status">Ejecutando…</pre><div id="portal-notice" hidden></div><div id="fixture"></div></main>
+<script src="../app/portal/crm.js"></script><script src="../app/portal/opportunities.js"></script><script src="../app/portal/conversations.js"></script>
+<script>
+(async()=>{
+  const root=document.querySelector('#fixture'),results=document.querySelector('#results'),report=[];
+  const user={id:'user',role:'operator'}, perms=['conversation.read','contacts.read','crm.opportunities.read','crm.opportunities.read_content','crm.opportunities.write'];
+  const summary={id:'conversation',masked_customer_identifier:'***0147',status:'open',message_count:0};
+  const customer={id:'contact',display_name:'Cliente <img src=x onerror=alert(1)>',classification:'lead',version:1,can_edit:false,can_read_sensitive:false,status:'active'};
+  const stages=[{code:'new',name:'Consulta nueva',kind:'open'},{code:'offer',name:'Oferta presentada',kind:'open'},{code:'won',name:'Ganada',kind:'won'},{code:'lost',name:'Perdida',kind:'lost'}];
+  let items=[],calls=[],linked=new Set(),failCreate=false,view=0;
+  const wait=async predicate=>{for(let i=0;i<150;i++){if(predicate())return;await new Promise(r=>setTimeout(r,10));}throw Error('Tiempo agotado');};
+  const assert=(value,message)=>{if(!value)throw Error(message);};
+  async function api(path,options={}){
+    calls.push({path,...options});
+    if(path.endsWith('/commercial-context'))return {conversation_id:'conversation',contact_id:'contact',channel_type:'whatsapp',channel_configuration_id:'account-id',account_name:'WhatsApp piloto',timezone:'America/Lima',can_write:view===0};
+    if(path.includes('/crm/customers/'))return customer;
+    if(path.endsWith('/crm/summary'))return {can_create:false,can_archive:false};
+    if(path.endsWith('/crm/assignees'))return [{id:'user',name:'Responsable ficticio'}];
+    if(path.endsWith('/crm/stages'))return stages;
+    if(path.includes('/crm/opportunities')){
+      if(options.method==='POST'){
+        const data=JSON.parse(options.body); const found=items.find(x=>x.key===options.headers['Idempotency-Key']);
+        if(!found){items.push({...data,id:'opportunity-1',version:1,stage_kind:'open',key:options.headers['Idempotency-Key'],next_action:{...data.next_action,id:'action',status:'pending'}});linked.add('opportunity-1');}
+        if(failCreate)throw Error('Respuesta perdida');return items[0];
+      }
+      if(options.method==='PATCH'){const update=JSON.parse(options.body);items[0]={...items[0],...update,version:2};return items[0];}
+      if(options.method==='PUT'){linked.add(path.split('/')[5]);return items[0];}
+      if(path.includes('/history'))return [{version:1,actor_user_id:'user',occurred_at:'2026-10-06T15:00:00Z',snapshot:items[0]}];
+      if(!path.includes('?'))return items[0];
+      const rows=path.includes('conversation_id=')?items.filter(i=>linked.has(i.id)):items;
+      return {items:rows,total:rows.length,page:1,has_next:false};
+    }
+    if(path.endsWith('/conversation'))return summary;
+    return {items:[summary],total:1,page:1,has_next:false,has_previous:false};
+  }
+  async function setup(permissions=perms){
+    window.LuriConversations.reset();window.LuriCRM.reset();root.innerHTML=await window.LuriConversations.render('company',api,user,permissions);window.LuriConversations.mount(root);
+    root.querySelector('[data-conversation-id]').click();await wait(()=>root.querySelector('[data-commercial="contact"]'));
+  }
+  function set(name,value){root.querySelector(`#commercial-form [name="${name}"]`).value=value;}
+  async function test(name,fn){await fn();report.push('PASS '+name);results.textContent=report.join('\n');}
+  try{
+    await test('Conversación abre ficha existente, oculta PII y escapa HTML',async()=>{
+      await setup();assert(!root.querySelector('img'),'no HTML ejecutable en datos');assert(root.textContent.includes('WhatsApp piloto'),'cuenta visible');
+      root.querySelector('[data-commercial="contact"]').click();await wait(()=>document.querySelector('dialog[open]'));
+      assert(document.querySelector('dialog').textContent.includes('Tu rol no permite'),'restricción PII');document.querySelector('#crm-close').click();
+    });
+    await test('Creación, respuesta perdida y recarga reutilizan clave sin duplicar',async()=>{
+      root.querySelector('[data-commercial="new"]').click();set('title','Propuesta ficticia');set('assigned_user_id','user');set('description','Llamar al cliente');set('due_at','2026-10-08T10:00');
+      failCreate=true;root.querySelector('#commercial-form').requestSubmit();await wait(()=>root.querySelector('#commercial-form-error').textContent.includes('Respuesta perdida'));
+      const first=calls.find(c=>c.method==='POST').headers['Idempotency-Key'];
+      await setup();root.querySelector('[data-commercial="new"]').click();set('title','Propuesta ficticia');set('assigned_user_id','user');set('description','Llamar al cliente');set('due_at','2026-10-08T10:00');
+      failCreate=false;root.querySelector('#commercial-form').requestSubmit();root.querySelector('#commercial-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+      await wait(()=>root.querySelector('#commercial-feedback')?.textContent.includes('guardada correctamente'));
+      const creates=calls.filter(c=>c.method==='POST');assert(creates.length===2,'doble clic bloqueado');assert(creates[1].headers['Idempotency-Key']===first,'clave conservada');assert(items.length===1,'sin duplicados');
+      assert(root.textContent.includes('Llamar al cliente'),'acción visible tras guardar');assert(root.textContent.includes('Vinculada a esta conversación'),'vínculo visible');
+    });
+    await test('Edición envía versión y etapa; conserva historial',async()=>{
+      root.querySelector('[data-commercial="edit"]').click();await wait(()=>root.querySelector('#commercial-form'));set('stage_code','offer');root.querySelector('[name="stage_code"]').dispatchEvent(new Event('change'));root.querySelector('#commercial-form').requestSubmit();
+      await wait(()=>root.querySelector('#commercial-feedback')?.textContent.includes('guardada correctamente'));
+      const update=JSON.parse(calls.find(c=>c.method==='PATCH').body);assert(update.version===1&&update.stage_code==='offer','concurrencia y etapa');
+      root.querySelector('[data-commercial="history"]').click();await wait(()=>root.querySelector('#commercial-editor').textContent.includes('Versión 1'));
+    });
+    await test('Vincular usa oportunidad y conversación sin crear otra venta',async()=>{
+      linked.clear();await setup();root.querySelector('[data-commercial="link"]').click();await wait(()=>root.textContent.includes('Vinculada a esta conversación'));
+      assert(calls.some(c=>c.method==='PUT'&&c.path.endsWith('/opportunity-1/conversations/conversation')),'ruta de vinculación');assert(items.length===1,'no crea oportunidad');
+    });
+    await test('Cambio de empresa descarta respuestas antiguas y controles de escritura',async()=>{
+      view=1;await setup(['conversation.read','contacts.read','crm.opportunities.read']);assert(!root.querySelector('[data-commercial="new"]'),'sin escritura');assert(!root.querySelector('[data-commercial="edit"]'),'sin edición');
+      window.LuriConversations.reset();window.LuriCRM.reset();root.innerHTML='Otra empresa';await new Promise(r=>setTimeout(r,50));assert(root.textContent==='Otra empresa','vista aislada');
+    });
+    results.textContent=report.join('\n')+'\nCOMPLETE: 5 PASS';
+  }catch(error){results.textContent=report.join('\n')+'\nFAIL '+error.stack;}
+})();
+</script></html>

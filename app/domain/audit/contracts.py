@@ -59,6 +59,9 @@ AuditAction = Literal[
     "knowledge.archived",
     "knowledge.deleted",
     "contact.updated",
+    "crm.opportunity_saved",
+    "crm.conversation_linked",
+    "crm.stages_updated",
     "contact.archived",
     "contact.reactivated",
     "business_calendar.created",
@@ -81,6 +84,7 @@ AuditAction = Literal[
 ]
 AuditResourceType = Literal[
     "ai_job",
+    "crm_opportunity",
     "organization",
     "user",
     "bot",

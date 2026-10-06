@@ -14,6 +14,7 @@ POSTGRESQL_TESTS = (
     "tests/integration/test_generative_ai_postgresql.py",
     "tests/integration/test_transport_postgresql.py",
     "tests/integration/test_crm_postgresql.py",
+    "tests/integration/test_crm_opportunities_postgresql.py",
     "tests/integration/test_prd012_postgresql_smoke.py",
     "tests/integration/test_prd012_worker_postgresql.py",
     "tests/integration/test_prd013_postgresql_smoke.py",

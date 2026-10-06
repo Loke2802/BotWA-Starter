@@ -9,6 +9,7 @@ def test_portal_shell_and_assets_are_served() -> None:
     stylesheet = client.get("/portal/assets/portal.css")
     script = client.get("/portal/assets/portal.js")
     conversations = client.get("/portal/assets/conversations.js")
+    opportunities = client.get("/portal/assets/opportunities.js")
 
     assert page.status_code == 200
     assert "Bienvenido a Luri" in page.text
@@ -19,3 +20,5 @@ def test_portal_shell_and_assets_are_served() -> None:
     assert "startWorkspace" in script.text
     assert conversations.status_code == 200
     assert "/portal/assets/conversations.js" in page.text
+    assert opportunities.status_code == 200
+    assert "/portal/assets/opportunities.js" in page.text

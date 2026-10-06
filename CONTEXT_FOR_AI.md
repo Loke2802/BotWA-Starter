@@ -1,6 +1,25 @@
 # BotWA Starter - Context For AI Assistants
 
-**Last updated:** 2026-09-16
+## Evolución de Luri a CRM — 06/10/2026
+
+Leer [LURI-CTX-001](docs/LURI-CTX-001_CONTEXTO_MAESTRO_CRM_2026-10-06.md),
+[auditoría inicial](docs/LURI_CRM_AUDITORIA_Y_DISENO_2026-10-06.md) y
+[incremento implementado](docs/LURI_CRM_INCREMENTO_1.md).
+Kalivur es la empresa madre; Kalivur Marketing Pro es el piloto comercial
+propuesto; Luri es el producto de asistentes IA y empleada digital de Kalivur.
+
+Esta rama amplía el CRM básico de PR #45 con oportunidades, etapas configurables,
+acciones fechadas e historial; mantiene IA, perfiles y handoff. Potencial, etapa
+comercial y atención siguen siendo dimensiones independientes. No verifica pagos,
+activa IA ni envía mensajes comerciales. Las afirmaciones anteriores sobre CRM
+ausente deben interpretarse como antecedentes, no estado de esta rama.
+
+Base local: `026ca10`; checkout principal y cambios previos intactos. No desplegado.
+La documentación de entrega distingue pruebas locales, simulaciones y pendientes
+de staging/proveedores externos. No asumir que origin/master guardado es el remoto
+actual ni retroceder versiones desplegadas.
+
+**Historical baseline last updated:** 2026-09-16
 **Project phase:** Phase 3 - PRD-001 through PRD-023 CLOSED; no next PRD defined
 **Purpose:** Align AI assistants with the current official state of BotWA before suggesting or making changes.
 

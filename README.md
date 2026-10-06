@@ -1,6 +1,13 @@
 ﻿# BotWA Starter
 
-## Estado actual - Phase 3 / PRD-001 a PRD-023 CLOSED
+## Luri CRM — incremento 1 (06/10/2026, rama local)
+
+[Entrega y comprobación del recorrido](docs/LURI_CRM_INCREMENTO_1.md):
+conversación → ficha existente → oportunidad → responsable, etapa y próxima acción.
+Implementado en rama independiente; no acredita despliegue ni validación externa.
+Requisitos: [LURI-CTX-001](docs/LURI-CTX-001_CONTEXTO_MAESTRO_CRM_2026-10-06.md).
+
+## Antecedente - Phase 3 / PRD-001 a PRD-023 CLOSED
 
 Quality Gates (validación técnica PRD-023):
 

@@ -103,5 +103,12 @@ window.LuriCRM = (() => {
       finally{setBusy(false);}
     });
   }
-  return {render,mount,close,reset};
+  async function openFromConversation(org, api, id, refresh) {
+    close(); const ticket=generation, base=`/organizations/${org}/crm`;
+    const [summary, assignees]=await Promise.all([api(`${base}/summary`),api(`${base}/assignees`)]);
+    if(ticket!==generation)return;
+    context={org,base,api,refresh,summary,assignees};
+    await open(id);
+  }
+  return {render,mount,close,reset,openFromConversation};
 })();

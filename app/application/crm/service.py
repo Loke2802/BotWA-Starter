@@ -68,6 +68,7 @@ class OpportunityService:
 
     def stages(self, org: UUID, actor: User) -> list[Stage]:
         self._read(org, actor)
+        self.repository.organization(org)
         rows = self.repository.stages(org)
         return (
             [
@@ -102,6 +103,19 @@ class OpportunityService:
             self.repository.organization(org, lock=True)
             self._initialize_stages(org)
             existing = {s.code: s for s in self.repository.stages(org)}
+            if data.expected_stages is not None:
+                expected = {s.code: s.model_dump() for s in data.expected_stages}
+                actual = {
+                    s.code: Stage(
+                        code=s.code, name=s.name, kind=s.kind, position=s.position
+                    ).model_dump()
+                    for s in existing.values()
+                }
+                if expected != actual:
+                    raise CrmConflict(
+                        "Las etapas cambiaron en otra sesión. "
+                        "Actualiza antes de guardar."
+                    )
             if not set(existing).issubset({s.code for s in data.stages}):
                 raise CrmConflict("Conserva los códigos de las etapas existentes.")
             for stage in data.stages:
@@ -169,6 +183,7 @@ class OpportunityService:
         page_size: int = 20,
     ) -> OpportunityList:
         self._read(org, actor)
+        self.repository.organization(org)
         if contact_id:
             self.repository.contact(org, contact_id)
         if conversation_id:

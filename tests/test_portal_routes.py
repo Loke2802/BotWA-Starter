@@ -26,3 +26,8 @@ def test_portal_shell_and_assets_are_served() -> None:
     assert follow_up.status_code == 200
     assert "/portal/assets/follow-up.js" in page.text
     assert 'data-view="follow-up"' in page.text
+
+    for asset, view in [("board.js", "board"), ("stages.js", "stages")]:
+        assert client.get(f"/portal/assets/{asset}").status_code == 200
+        assert f"/portal/assets/{asset}" in page.text
+        assert f'data-view="{view}"' in page.text

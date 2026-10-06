@@ -1,0 +1,47 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>Pruebas tablero y etapas CRM</title>
+<link rel="stylesheet" href="../app/portal/portal.css"><main style="padding:24px"><h1>Pruebas tablero y etapas CRM</h1><p>API ficticia.</p><pre id="results">Ejecutando…</pre><div id="fixture"></div></main>
+<script src="../app/portal/opportunities.js"></script><script src="../app/portal/board.js"></script><script src="../app/portal/stages.js"></script>
+<script>
+(async()=>{
+ const root=document.querySelector('#fixture'),output=document.querySelector('#results'),report=[];
+ const permissions=['contacts.read','crm.opportunities.read','crm.opportunities.read_content','crm.opportunities.write','crm.stages.manage'];
+ let stages=[{code:'new',name:'Consulta nueva',kind:'open',position:0},{code:'won',name:'Ganada',kind:'won',position:1},{code:'lost',name:'Perdida',kind:'lost',position:2}];
+ let item={id:'op',contact_id:'contact',title:'Propuesta <img src=x>',stage_code:'new',stage_kind:'open',assigned_user_id:'owner',version:1,next_action:{description:'Llamar',due_at:'2026-10-05T15:00:00Z'},no_action_reason:null};
+ let viewer=false,calls=[],draws=0,rejectStages=false;
+ const assert=(v,m)=>{if(!v)throw Error(m);};
+ const wait=async f=>{for(let i=0;i<150;i++){if(f())return;await new Promise(r=>setTimeout(r,10));}throw Error('Tiempo agotado');};
+ async function api(path,options={}){
+  calls.push({path,...options});
+  if(path.endsWith('/stages')){
+   if(options.method==='PUT'){if(rejectStages){const e=new Error('Stale stages');e.status=409;throw e;}const data=JSON.parse(options.body);assert(data.expected_stages.length===stages.length,'Enviar copia original');stages=data.stages;}
+   return stages;
+  }
+  if(path.endsWith('/assignees'))return [{id:'owner',name:'Responsable ficticio'}];
+  if(path.includes('/follow-up?'))return {timezone:'America/Lima',as_of:'2026-10-06T15:00:00Z'};
+  if(path.includes('/opportunities?')){
+   const query=new URLSearchParams(path.split('?')[1]);const match=query.get('stage_code')===item.stage_code;
+   const row=viewer?{...item,title:'Oportunidad',next_action:item.next_action?{...item.next_action,description:'Contenido restringido'}:null,close_reason:null}:item;
+   return {items:match?[row]:[],total:match?1:0,page:Number(query.get('page')),has_next:match&&query.get('page')==='1'};
+  }
+  if(path.endsWith('/history'))return [{version:item.version,actor_user_id:'owner',occurred_at:'2026-10-06T15:00:00Z',snapshot:item}];
+  if(options.method==='PATCH'){const data=JSON.parse(options.body);assert(data.version===item.version,'Enviar versión');item={...item,...data,version:item.version+1,stage_kind:stages.find(s=>s.code===data.stage_code).kind};return item;}
+  if(path.includes('/opportunities/'))return item;
+  throw Error('Ruta no esperada '+path);
+ }
+ async function board(){root.innerHTML=await LuriBoard.render('company',api,{id:'owner'},viewer?['contacts.read','crm.opportunities.read']:permissions,board);LuriBoard.mount(root);draws++;}
+ async function config(){root.innerHTML=await LuriStages.render('company',api,{id:'owner'},permissions,config);LuriStages.mount(root);draws++;}
+ async function test(name,fn){await fn();report.push('PASS '+name);output.textContent=report.join('\n');}
+ try{
+  await test('Columnas con totales, fechas y escape HTML',async()=>{await board();assert(root.querySelectorAll('.board-column').length===3,'Tres columnas');assert(!root.querySelector('img'),'HTML escapado');assert(root.textContent.includes('Acción vencida'),'Vencida visible');});
+  await test('Paginación independiente por etapa',async()=>{const n=draws;root.querySelector('[data-board="next"][data-stage="new"]').click();await wait(()=>draws>n);assert(calls.some(c=>c.path.includes('stage_code=new&page=2')),'Página dos');assert(calls.some(c=>c.path.includes('stage_code=won&page=1')),'Otra columna conserva página');});
+  await test('Cambio a ganada usa editor, motivo y versión',async()=>{root.querySelector('[data-commercial="edit"]').click();await wait(()=>root.querySelector('#commercial-form'));const f=root.querySelector('#commercial-form');f.elements.stage_code.value='won';f.elements.stage_code.dispatchEvent(new Event('change'));assert(f.elements.close_reason.required&&!f.elements.due_at.required,'Motivo de cierre requerido');f.elements.close_reason.value='Aceptación confirmada';const n=draws;f.requestSubmit();await wait(()=>draws>n);assert(item.stage_code==='won'&&item.version===2&&item.next_action===null,'Cierre coherente');assert(root.querySelector('[aria-label="Ganada"]').textContent.includes('Aceptación confirmada'),'Tarjeta en ganada');});
+  await test('Viewer consulta sin controles de escritura',async()=>{viewer=true;LuriBoard.reset();await board();assert(!root.querySelector('[data-commercial="edit"]'),'Sin edición');assert(!root.textContent.includes('Aceptación confirmada'),'Sin motivo privado');viewer=false;});
+  await test('Configuración renombra, ordena y añade sin cambiar códigos previos',async()=>{LuriBoard.close();await config();const input=root.querySelector('[data-stage-name="0"]');input.value='Primer contacto';input.dispatchEvent(new Event('input',{bubbles:true}));root.querySelector('[data-stages="down"][data-index="0"]').click();root.querySelector('[data-stages="add"]').click();const n=draws;root.querySelector('#stages-form').requestSubmit();await wait(()=>draws>n);assert(stages[1].code==='new'&&stages[1].name==='Primer contacto'&&stages[1].position===1,'Nombre/orden conservan código');assert(stages.length===4&&stages[3].kind==='open','Añadir abierta');});
+  await test('Conflicto de etapas conserva borrador y avisa',async()=>{rejectStages=true;const input=root.querySelector('[data-stage-name="0"]');input.value='Borrador';input.dispatchEvent(new Event('input',{bubbles:true}));root.querySelector('#stages-form').requestSubmit();await wait(()=>root.textContent.includes('cambiaron en otra sesión'));assert(stages[0].name!=='Borrador'&&input.value==='Borrador','No sobrescribir ni perder borrador');rejectStages=false;});
+  await test('Código duplicado no envía cambios y sigue corregible',async()=>{await config();root.querySelector('[data-stages="add"]').click();const input=root.querySelector('[data-stage-code]');input.value=stages[0].code;input.dispatchEvent(new Event('input',{bubbles:true}));const n=calls.filter(c=>c.method==='PUT').length;root.querySelector('#stages-form').requestSubmit();await wait(()=>root.textContent.includes('código distinto'));assert(calls.filter(c=>c.method==='PUT').length===n,'No enviar duplicado');assert(root.querySelector('[data-stage-code]'),'Código nuevo sigue editable');});
+  await test('Sin permiso no consulta configuración',async()=>{calls=[];assert((await LuriStages.render('company',api,{},[],config)).includes('No tienes permiso')&&calls.length===0,'Permiso previo a lectura');});
+  await test('Cambio de empresa descarta respuestas tardías',async()=>{let done;const delayed=new Promise(r=>done=r);const old=LuriBoard.render('old',async path=>{await delayed;return api(path);},{},permissions,board);LuriBoard.reset();done();assert(await old==='','Sin empresa anterior');LuriStages.reset();});
+  output.textContent+='\n9 pruebas aprobadas. Sin envíos ni IA.';
+ }catch(error){output.textContent+='\nFAIL '+error.message;throw error;}
+})();
+</script></html>

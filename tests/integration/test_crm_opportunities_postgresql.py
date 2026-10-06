@@ -6,7 +6,12 @@ from threading import Barrier
 from uuid import UUID
 
 import pytest
-from app.domain.crm.contracts import CrmConflict, OpportunityCreate, OpportunityUpdate
+from app.domain.crm.contracts import (
+    CrmConflict,
+    OpportunityCreate,
+    OpportunityUpdate,
+    StageConfiguration,
+)
 from app.infrastructure.models.crm_opportunity import (
     OpportunityConversationModel,
     OpportunityModel,
@@ -156,3 +161,40 @@ def test_postgresql_rejects_cross_tenant_assignee_and_link(database):  # type: i
         with pytest.raises(IntegrityError):
             session.commit()
         session.rollback()
+
+
+def test_simultaneous_stage_configuration_rejects_stale_snapshot(database):  # type: ignore[no-untyped-def]
+    engine, actor, _, _, _ = database
+    org = actor.organization_id
+    assert org is not None
+    with Session(engine) as session:
+        service = opportunity_service(session)
+        original = service.stages(org, actor)
+        service.configure_stages(org, actor, StageConfiguration(stages=original))
+    barrier = Barrier(2)
+
+    def save(name: str) -> str:
+        changed = [s.model_copy(deep=True) for s in original]
+        changed[0].name = name
+        with Session(engine) as session:
+            barrier.wait(timeout=10)
+            try:
+                opportunity_service(session).configure_stages(
+                    org,
+                    actor,
+                    StageConfiguration(stages=changed, expected_stages=original),
+                )
+                return "saved"
+            except CrmConflict:
+                return "conflict"
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [
+            pool.submit(save, name) for name in ("Primera sesión", "Segunda sesión")
+        ]
+        assert sorted(f.result(timeout=20) for f in futures) == ["conflict", "saved"]
+    with Session(engine) as session:
+        assert opportunity_service(session).stages(org, actor)[0].name in {
+            "Primera sesión",
+            "Segunda sesión",
+        }

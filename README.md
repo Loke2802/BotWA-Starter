@@ -11,6 +11,10 @@ Requisitos: [LURI-CTX-001](docs/LURI-CTX-001_CONTEXTO_MAESTRO_CRM_2026-10-06.md)
 comercial, esquema reconciliado (`0028`), recuperación de backups y validación
 autenticada de roles. No requiere DigitalOcean; no acredita despliegue.
 
+[Tablero y etapas comerciales](docs/LURI_CRM_TABLERO_Y_ETAPAS_2026-10-06.md):
+columnas por etapa, edición e historial reutilizados y configuración con conflictos
+de sesiones. Implementado y comprobado localmente; sin despliegue.
+
 ## Antecedente - Phase 3 / PRD-001 a PRD-023 CLOSED
 
 Quality Gates (validación técnica PRD-023):

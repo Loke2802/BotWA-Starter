@@ -373,3 +373,113 @@ def test_stage_configuration_and_missing_key(crm_opportunities):  # type: ignore
         ).status_code
         == 201
     )
+
+
+def test_stage_snapshot_persists_and_rejects_stale(crm_opportunities):  # type: ignore[no-untyped-def]
+    client, session, actor, other, contact, conversation = crm_opportunities
+    base = f"/organizations/{actor.organization_id}/crm"
+    original = client.get(f"{base}/stages").json()
+    changed = [dict(s) for s in original]
+    changed[0]["name"] = "Primer contacto del equipo"
+    changed[0]["position"], changed[1]["position"] = 1, 0
+    changed.append(
+        {"code": "negotiation", "name": "Negociación", "kind": "open", "position": 6}
+    )
+    response = client.put(
+        f"{base}/stages", json={"stages": changed, "expected_stages": original}
+    )
+    assert response.status_code == 200, response.text
+    saved = response.json()
+    assert saved[0]["code"] == "need"
+    assert client.get(f"{base}/stages").json() == saved
+    stale = client.put(
+        f"{base}/stages", json={"stages": original, "expected_stages": original}
+    )
+    assert stale.status_code == 409
+    assert client.get(f"{base}/stages").json() == saved
+    assert (
+        client.put(
+            f"/organizations/{other.organization_id}/crm/stages",
+            json={"stages": saved, "expected_stages": saved},
+        ).status_code
+        == 403
+    )
+    duplicate = [dict(s) for s in saved]
+    duplicate[0]["position"] = duplicate[1]["position"]
+    assert (
+        client.put(
+            f"{base}/stages", json={"stages": duplicate, "expected_stages": saved}
+        ).status_code
+        == 422
+    )
+    created = client.post(
+        f"{base}/opportunities",
+        json={**payload(actor, contact, conversation), "stage_code": "negotiation"},
+        headers={"Idempotency-Key": "configured-stage"},
+    )
+    assert created.status_code == 201, created.text
+    assert (
+        client.get(f"{base}/opportunities?stage_code=negotiation").json()["total"] == 1
+    )
+    assert client.get(f"{base}/opportunities?stage_code=new").json()["total"] == 0
+    session.expire_all()
+    assert (
+        session.scalar(
+            select(func.count())
+            .select_from(AuditEventModel)
+            .where(AuditEventModel.action == "crm.stages_updated")
+        )
+        == 1
+    )
+
+
+def test_board_move_close_and_reopen_preserves_history(crm_opportunities):  # type: ignore[no-untyped-def]
+    client, _, actor, other, contact, conversation = crm_opportunities
+    base = f"/organizations/{actor.organization_id}/crm"
+    data = payload(actor, contact, conversation)
+    item = client.post(
+        f"{base}/opportunities", json=data, headers={"Idempotency-Key": "board-flow"}
+    ).json()
+    update = {
+        k: v for k, v in data.items() if k not in {"contact_id", "conversation_id"}
+    }
+    close = {
+        **update,
+        "version": 1,
+        "stage_code": "won",
+        "next_action": None,
+        "close_reason": "Aceptación confirmada",
+    }
+    assert (
+        client.patch(
+            f"{base}/opportunities/{item['id']}", json={**close, "close_reason": None}
+        ).status_code
+        == 400
+    )
+    result = client.patch(f"{base}/opportunities/{item['id']}", json=close)
+    assert result.status_code == 200, result.text
+    assert (
+        client.get(f"{base}/opportunities?stage_code=won").json()["items"][0]["id"]
+        == item["id"]
+    )
+    assert client.get(f"{base}/opportunities?stage_code=new").json()["total"] == 0
+    assert (
+        client.patch(f"{base}/opportunities/{item['id']}", json=close).status_code
+        == 409
+    )
+    assert (
+        client.get(
+            f"/organizations/{other.organization_id}/crm/opportunities?stage_code=won"
+        ).status_code
+        == 403
+    )
+    reopened = client.patch(
+        f"{base}/opportunities/{item['id']}",
+        json={**update, "version": 2, "stage_code": "offer"},
+    )
+    assert reopened.status_code == 200, reopened.text
+    assert reopened.json()["closed_at"] is None
+    assert [
+        h["snapshot"]["stage_code"]
+        for h in client.get(f"{base}/opportunities/{item['id']}/history").json()
+    ] == ["offer", "won", "new"]

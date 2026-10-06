@@ -1,0 +1,31 @@
+{
+  "environment": "local synthetic only",
+  "deployed": false,
+  "suite": {
+    "passed": 1065,
+    "skipped": 66,
+    "warnings": 1,
+    "seconds": 298.57
+  },
+  "postgresql": {
+    "passed": 4,
+    "skipped": 0
+  },
+  "browser_fixtures": {
+    "board_stages": 9,
+    "follow_up": 8,
+    "opportunities": 5,
+    "conversations": 7,
+    "total": 29
+  },
+  "quality": {
+    "ruff": "passed",
+    "black": "passed",
+    "mypy": "passed",
+    "node_syntax": "passed",
+    "git_diff_check": "passed"
+  },
+  "regression_fixed": "MessageRepository chronological ordering",
+  "live_demo": "http://127.0.0.1:8766/portal",
+  "external_whatsapp_ai_validated": false
+}

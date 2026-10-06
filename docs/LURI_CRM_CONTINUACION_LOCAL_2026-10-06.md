@@ -4,6 +4,9 @@ Entrega sobre `codex/luri-crm-increment-1`, después de `e18742e`. Conserva el
 incremento anterior y los cambios del checkout original. No requiere DigitalOcean.
 No hay despliegue, envíos a WhatsApp ni llamadas a modelos externos.
 
+Actualización posterior: [tablero y configuración de etapas](LURI_CRM_TABLERO_Y_ETAPAS_2026-10-06.md).
+Los resultados siguientes corresponden a esta entrega anterior.
+
 ## 1. Esquema y migraciones
 
 La revisión inicial encontró 141 operaciones propuestas al comparar todas las

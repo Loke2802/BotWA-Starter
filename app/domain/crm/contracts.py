@@ -27,11 +27,16 @@ class Stage(BaseModel):
 class StageConfiguration(BaseModel):
     model_config = ConfigDict(extra="forbid")
     stages: list[Stage] = Field(min_length=3, max_length=30)
+    expected_stages: list[Stage] | None = Field(
+        default=None, min_length=3, max_length=30
+    )
 
     @model_validator(mode="after")
     def complete(self) -> "StageConfiguration":
         if len({s.code for s in self.stages}) != len(self.stages):
             raise ValueError("duplicate stage code")
+        if len({s.position for s in self.stages}) != len(self.stages):
+            raise ValueError("duplicate stage position")
         if {s.kind for s in self.stages} != {"open", "won", "lost"}:
             raise ValueError("open, won and lost stages are required")
         return self

@@ -153,3 +153,8 @@ button:focus-visible,textarea:focus-visible { outline:3px solid #14b8a6; outline
  .view-heading { flex-wrap:wrap; gap:15px; }
  .sidebar-footer { display:flex; justify-content:space-between; margin-top:12px; padding-top:10px; }
 }
+
+.commercial-board { display:flex; gap:1rem; overflow-x:auto; align-items:flex-start; padding-bottom:1rem; }
+.board-column { flex:0 0 300px; max-width:90vw; }
+.stage-row { margin-bottom:1rem; padding:1rem; border:1px solid #cbd5e1; border-radius:8px; }
+.stage-row small { display:block; margin:.5rem 0; }

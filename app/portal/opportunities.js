@@ -46,6 +46,8 @@ window.LuriOpportunities = (() => {
       <label>Título<input name="title" value="${esc(item?.title || draft?.title)}" required maxlength="200"></label>
       <label>Etapa<select name="stage_code">${data.stages.filter(s=>item || s.kind==="open").map(s=>`<option value="${esc(s.code)}" ${s.code===(item?.stage_code || draft?.stage_code) ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select></label>
       <label>Responsable<select name="assigned_user_id" required><option value="">Seleccionar responsable</option>${data.assignees.map(u=>`<option value="${esc(u.id)}" ${u.id===(item?.assigned_user_id || draft?.assigned_user_id) ? "selected" : ""}>${esc(u.name)}</option>`).join("")}</select></label>
+      <label>Importe<input name="amount" type="number" min="0" step="0.01" max="9999999999999999.99" value="${esc(item?.amount ?? draft?.amount)}"></label>
+      <label>Moneda<input name="currency" pattern="[A-Z]{3}" maxlength="3" placeholder="PEN" value="${esc(item?.currency ?? draft?.currency)}"></label>
       <label>Necesidad<textarea name="need" maxlength="4000">${esc(item?.need || draft?.need)}</textarea></label>
       <label><input type="checkbox" name="defer_action" ${item?.no_action_reason || draft?.no_action_reason ? "checked" : ""}> Sin acción programada por ahora</label>
       <label>Motivo sin acción<input name="no_action_reason" maxlength="1000" value="${esc(item?.no_action_reason || draft?.no_action_reason)}"></label>
@@ -77,7 +79,7 @@ window.LuriOpportunities = (() => {
       if (name === "contact") await window.LuriCRM.openFromConversation(c.org, c.api, c.commercial.info.contact_id, refresh);
       if (name === "new") form(c);
       if (name === "edit") {const item=await c.api(`${base}/crm/opportunities/${id}`); if(alive(c))form(c,item);}
-      if (name === "link") {await c.api(`${base}/crm/opportunities/${id}/conversations/${c.selected}`, {method:"PUT"}); if(alive(c))await refresh();}
+      if (name === "link") {await c.api(`${base}/crm/opportunities/${id}/conversations/${c.selected || c.commercial.info.contact_id}`, {method:"PUT"}); if(alive(c))await refresh();}
       if (name === "previous" || name === "next") {c.commercialPage=(c.commercialPage || 1)+(name==="next"?1:-1); await refresh();}
       if (name === "history") {
         const rows=await c.api(`${base}/crm/opportunities/${id}/history?page_size=20`);
@@ -93,9 +95,9 @@ window.LuriOpportunities = (() => {
     const payload={title:f.get("title"), need:f.get("need")||null, stage_code:stage.code, assigned_user_id:f.get("assigned_user_id"),
       next_action:stage.kind==="open" && !f.has("defer_action") ? {description:f.get("description"),due_at:new Date(f.get("due_at")).toISOString()} : null,
       no_action_reason:stage.kind==="open" && f.has("defer_action") ? f.get("no_action_reason") : null,
-      close_reason:stage.kind==="open" ? null : f.get("close_reason"), amount:item?.amount ?? null, currency:item?.currency ?? null};
+      close_reason:stage.kind==="open" ? null : f.get("close_reason"), amount:f.get("amount") || null, currency:f.get("currency") || null};
     if(item){payload.version=item.version;payload.complete_previous_action=f.has("complete_previous_action");}
-    else {payload.contact_id=c.commercial.info.contact_id;payload.conversation_id=c.selected;c.commercialDraft=payload;}
+    else {payload.contact_id=c.commercial.info.contact_id;payload.conversation_id=c.selected || null;c.commercialDraft=payload;}
     c.busy=true; const formNode=event.target; formNode.querySelectorAll("button").forEach(b=>b.disabled=true);
     c.root.querySelector("#commercial-feedback").textContent="Guardando oportunidad…";
     c.root.querySelector("#commercial-form-error").textContent="";
@@ -104,17 +106,17 @@ window.LuriOpportunities = (() => {
       let key=null;
       if(!item){
         const hash=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(JSON.stringify(payload)))),b=>b.toString(16).padStart(2,"0")).join("");
-        const storage=`luri.opportunity.${c.user.id}.${c.org}.${c.selected}`;
+        const storage=`luri.opportunity.${c.user.id}.${c.org}.${c.selected || c.commercial.info.contact_id}`;
         const old=JSON.parse(sessionStorage.getItem(storage)||"null"); key=old?.hash===hash?old.key:crypto.randomUUID();
         sessionStorage.setItem(storage,JSON.stringify({hash,key}));
       }
       if(!alive(c))return;
       await c.api(`/organizations/${c.org}/crm/opportunities${item?'/'+item.id:''}`, {method:item?"PATCH":"POST",headers:key?{"Idempotency-Key":key}:{},body:JSON.stringify(payload)});
       saved=true;c.commercialDraft=null;
-      if(!item)sessionStorage.removeItem(`luri.opportunity.${c.user.id}.${c.org}.${c.selected}`);
+      if(!item)sessionStorage.removeItem(`luri.opportunity.${c.user.id}.${c.org}.${c.selected || c.commercial.info.contact_id}`);
       if(alive(c)){await refresh();c.root.querySelector("#commercial-feedback").textContent="Oportunidad guardada correctamente.";}
     } catch(error){if(alive(c) && !saved)c.root.querySelector("#commercial-feedback").textContent="";if(alive(c)) (c.root.querySelector("#commercial-form-error")||c.root.querySelector("#commercial-feedback")).textContent=saved?"Guardada, pero no se pudo actualizar la vista. Pulsa Actualizar.":item && error.status===409 ? "Esta oportunidad cambió en otra sesión. Pulsa Actualizar y revisa el historial antes de volver a editar." : item ? error.message : `${error.message} Reintentar la misma creación conserva la clave y evita duplicados.`;}
     finally{c.busy=false;if(alive(c))formNode.querySelectorAll("button").forEach(b=>b.disabled=false);}
   }
-  return {load,markup,action,submit};
+  return {load,markup,action,submit,form};
 })();

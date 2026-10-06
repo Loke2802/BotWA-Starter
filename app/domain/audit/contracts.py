@@ -62,6 +62,7 @@ AuditAction = Literal[
     "crm.opportunity_saved",
     "crm.conversation_linked",
     "crm.stages_updated",
+    "crm.activity_recorded",
     "contact.archived",
     "contact.reactivated",
     "business_calendar.created",

@@ -94,6 +94,7 @@ window.LuriCRM = (() => {
       }catch(error){modal.querySelector('#crm-error').textContent=error.message;}
       finally{setBusy(false);}
     };
+    if(id && window.LuriCustomerWorkspace) await window.LuriCustomerWorkspace.attach(modal,current,id,()=>ticket===generation);
     modal.querySelector('#crm-archive')?.addEventListener('click',async()=>{
       const action=item.status==='archived'?'reactivate':'archive';
       if(!window.confirm(action==='archive'?'¿Archivar este contacto? Se conservarán sus datos y podrás reactivarlo.':'¿Reactivar este contacto?'))return;

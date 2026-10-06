@@ -27,7 +27,14 @@ def test_portal_shell_and_assets_are_served() -> None:
     assert "/portal/assets/follow-up.js" in page.text
     assert 'data-view="follow-up"' in page.text
 
-    for asset, view in [("board.js", "board"), ("stages.js", "stages")]:
+    for asset, view in [
+        ("board.js", "board"),
+        ("stages.js", "stages"),
+        ("commercial-report.js", "commercial-report"),
+    ]:
         assert client.get(f"/portal/assets/{asset}").status_code == 200
         assert f"/portal/assets/{asset}" in page.text
         assert f'data-view="{view}"' in page.text
+
+    assert client.get("/portal/assets/customer-workspace.js").status_code == 200
+    assert "/portal/assets/customer-workspace.js" in page.text

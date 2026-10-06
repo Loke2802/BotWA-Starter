@@ -89,6 +89,7 @@ async function login(event) {
 }
 
 function signOut() {
+  window.LuriCommercialReport.reset();
   window.LuriBoard.reset();
   window.LuriStages.reset();
   window.LuriFollowUp.reset();
@@ -269,6 +270,7 @@ async function renderConfiguration() {
 let renderGeneration = 0;
 async function renderView() {
   const ticket = ++renderGeneration;
+  window.LuriCommercialReport.close();
   window.LuriBoard.close();
   window.LuriStages.close();
   window.LuriFollowUp.close();
@@ -282,6 +284,7 @@ async function renderView() {
     overview: () => renderOverview(organizationId),
     conversations: () => renderConversations(organizationId),
     contacts: () => renderContacts(organizationId),
+    "commercial-report": () => window.LuriCommercialReport.render(organizationId, api, state.user, state.permissions, renderView),
     "board": () => window.LuriBoard.render(organizationId, api, state.user, state.permissions, renderView),
     "stages": () => window.LuriStages.render(organizationId, api, state.user, state.permissions, renderView),
     "follow-up": () => window.LuriFollowUp.render(organizationId, api, state.user, state.permissions, renderView),
@@ -293,6 +296,7 @@ async function renderView() {
     if (ticket !== renderGeneration || !state.token || state.activeOrganization !== organizationId) return;
     content.innerHTML = markup;
     if (state.view === "contacts") window.LuriCRM.mount(content);
+    if (state.view === "commercial-report") window.LuriCommercialReport.mount(content);
     if (state.view === "board") window.LuriBoard.mount(content);
     if (state.view === "stages") window.LuriStages.mount(content);
     if (state.view === "follow-up") window.LuriFollowUp.mount(content);
@@ -315,6 +319,7 @@ document.querySelector("#new-organization-name").addEventListener("input", (even
 });
 organizationForm.addEventListener("submit", createOrganization);
 picker.addEventListener("change", async (event) => {
+  window.LuriCommercialReport.reset();
   window.LuriBoard.reset();
   window.LuriStages.reset();
   window.LuriFollowUp.reset();
@@ -336,3 +341,13 @@ if (state.token) {
     document.querySelector("#login-error").textContent = error.message;
   });
 }
+
+
+document.addEventListener("luri-open-conversation",async event=>{
+  const {org,id}=event.detail;
+  if(org!==state.activeOrganization||!state.permissions.includes("conversation.read"))return;
+  state.view="conversations";
+  document.querySelectorAll('.nav-item').forEach(item=>item.classList.toggle('active',item.dataset.view==='conversations'));
+  await renderView();
+  if(org===state.activeOrganization&&state.view==='conversations')await window.LuriConversations.open(id);
+});

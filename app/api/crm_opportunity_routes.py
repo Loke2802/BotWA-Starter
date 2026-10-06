@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -7,8 +8,11 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.crm_routes import Actor
 from app.api.whatsapp_configuration_dependencies import get_whatsapp_secret_cipher
+from app.application.crm.customer_workspace import CustomerWorkspaceService
 from app.application.crm.follow_up import FollowUpService
+from app.application.crm.report import CommercialReportService
 from app.application.crm.service import OpportunityService
+from app.application.crm.suggestions import CommercialSuggestionService
 from app.domain.crm.contracts import (
     CommercialContext,
     CrmConflict,
@@ -22,6 +26,15 @@ from app.domain.crm.contracts import (
     OpportunityUpdate,
     Stage,
     StageConfiguration,
+)
+from app.domain.crm.customer_contracts import (
+    ActivityInput,
+    ActivityList,
+    CommercialReport,
+    CommercialSuggestion,
+    CustomerActionList,
+    CustomerActivity,
+    CustomerWorkspace,
 )
 from app.infrastructure.database import get_session
 from app.infrastructure.settings import get_settings
@@ -221,5 +234,121 @@ def history(
 ) -> list[HistoryRecord]:
     try:
         return service.history(organization_id, opportunity_id, actor, page, page_size)
+    except (ValueError, SQLAlchemyError) as exc:
+        raise fail(exc) from exc
+
+
+@router.get("/crm/customers/{contact_id}/workspace", response_model=CustomerWorkspace)
+def customer_workspace(
+    organization_id: UUID,
+    contact_id: UUID,
+    actor: Actor,
+    service: Service,
+    page: int = Query(default=1, ge=1),
+    conversation_page: int = Query(default=1, ge=1),
+) -> CustomerWorkspace:
+    try:
+        return CustomerWorkspaceService(service).workspace(
+            organization_id, contact_id, actor, page, conversation_page
+        )
+    except (ValueError, SQLAlchemyError) as exc:
+        raise fail(exc) from exc
+
+
+@router.get("/crm/customers/{contact_id}/activities", response_model=ActivityList)
+def customer_activities(
+    organization_id: UUID,
+    contact_id: UUID,
+    actor: Actor,
+    service: Service,
+    page: int = Query(default=1, ge=1),
+) -> ActivityList:
+    try:
+        return CustomerWorkspaceService(service).activities(
+            organization_id, contact_id, actor, page
+        )
+    except (ValueError, SQLAlchemyError) as exc:
+        raise fail(exc) from exc
+
+
+@router.post(
+    "/crm/customers/{contact_id}/activities",
+    response_model=CustomerActivity,
+    status_code=201,
+)
+def record_customer_activity(
+    organization_id: UUID,
+    contact_id: UUID,
+    data: ActivityInput,
+    actor: Actor,
+    service: Service,
+    key: Annotated[
+        str,
+        Header(
+            alias="Idempotency-Key",
+            min_length=1,
+            max_length=128,
+            pattern=r"^[A-Za-z0-9_-]+$",
+        ),
+    ],
+) -> CustomerActivity:
+    try:
+        return CustomerWorkspaceService(service).record_activity(
+            organization_id, contact_id, actor, data, key
+        )
+    except (ValueError, SQLAlchemyError) as exc:
+        raise fail(exc) from exc
+
+
+@router.get("/crm/commercial-report", response_model=CommercialReport)
+def commercial_report(
+    organization_id: UUID,
+    actor: Actor,
+    service: Service,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    assigned_user_id: UUID | None = None,
+) -> CommercialReport:
+    try:
+        return CommercialReportService(service).report(
+            organization_id, actor, date_from, date_to, assigned_user_id
+        )
+    except (ValueError, SQLAlchemyError) as exc:
+        raise fail(exc) from exc
+
+
+@router.get(
+    "/crm/customers/{contact_id}/suggestions/{conversation_id}",
+    response_model=CommercialSuggestion,
+)
+def commercial_suggestion(
+    organization_id: UUID,
+    contact_id: UUID,
+    conversation_id: UUID,
+    actor: Actor,
+    service: Service,
+) -> CommercialSuggestion:
+    try:
+        return CommercialSuggestionService(service, get_settings()).suggest(
+            organization_id, contact_id, conversation_id, actor
+        )
+    except (ValueError, SQLAlchemyError) as exc:
+        raise fail(exc) from exc
+
+
+@router.get(
+    "/crm/customers/{contact_id}/action-history", response_model=CustomerActionList
+)
+def customer_action_history(
+    organization_id: UUID,
+    contact_id: UUID,
+    actor: Actor,
+    service: Service,
+    page: int = Query(default=1, ge=1),
+) -> CustomerActionList:
+    try:
+        return CustomerWorkspaceService(service).actions(
+            organization_id, contact_id, actor, page
+        )
     except (ValueError, SQLAlchemyError) as exc:
         raise fail(exc) from exc

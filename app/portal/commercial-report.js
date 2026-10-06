@@ -1,0 +1,19 @@
+/* Counts use creation cohorts and current stages; currencies are never added together. */
+window.LuriCommercialReport=(()=>{
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+ let generation=0,current,filters={from:'',to:'',assigned:''};
+ function close(){generation++;current?.controller?.abort();current=null;}
+ function reset(){close();filters={from:'',to:'',assigned:''};}
+ async function render(org,api,user,permissions,refresh){
+  const ticket=++generation;if(!permissions.includes('contacts.read')||!permissions.includes('crm.opportunities.read'))return '<p>No tienes permiso para consultar el resumen comercial.</p>';
+  const query=new URLSearchParams();if(filters.from)query.set('date_from',new Date(filters.from+'T00:00:00').toISOString());
+  if(filters.to){const end=new Date(filters.to+'T00:00:00');end.setDate(end.getDate()+1);query.set('date_to',end.toISOString());}
+  if(filters.assigned)query.set('assigned_user_id',filters.assigned);
+  const [report,assignees]=await Promise.all([api(`/organizations/${org}/crm/commercial-report?${query}`),api(`/organizations/${org}/crm/assignees`)]);if(ticket!==generation)return '';
+  current={refresh,isCurrent:()=>ticket===generation};const names=Object.fromEntries(assignees.map(u=>[u.id,u.name]));
+  const labels={open:'Abiertas',won:'Ganadas',lost:'Perdidas'},counts={open:0,won:0,lost:0};report.items.forEach(row=>counts[row.kind]+=row.count);
+  return `<div class="view-heading"><div><h3>Resumen comercial</h3><p>Oportunidades creadas en el periodo, agrupadas por su etapa actual. Importes separados por moneda.</p></div><button data-report="refresh" class="secondary-button">Actualizar</button></div><form id="commercial-report-filters" class="crm-filters"><label>Desde<input type="date" name="from" value="${esc(filters.from)}"></label><label>Hasta inclusive<input type="date" name="to" value="${esc(filters.to)}"></label><label>Responsable<select name="assigned"><option value="">Todo el equipo</option>${assignees.map(u=>`<option value="${esc(u.id)}" ${u.id===filters.assigned?'selected':''}>${esc(u.name)}</option>`).join('')}</select></label><button class="secondary-button">Aplicar periodo</button></form><p>El periodo se introduce en la zona de tu dispositivo (${esc(Intl.DateTimeFormat().resolvedOptions().timeZone)}). Empresa: ${esc(report.timezone)}. Un importe vacío significa que no se ha registrado.</p><div class="metric-grid">${Object.keys(labels).map(kind=>`<article class="metric-card"><span>${labels[kind]}</span><strong>${counts[kind]}</strong></article>`).join('')}</div><section class="panel"><div class="table-wrap"><table><thead><tr><th>Responsable</th><th>Estado comercial</th><th>Oportunidades</th><th>Moneda</th><th>Importe</th></tr></thead><tbody>${report.items.map(row=>`<tr><td>${esc(names[row.assigned_user_id]||'Integrante del equipo')}</td><td>${labels[row.kind]}</td><td>${row.count}</td><td>${esc(row.currency||'Sin importe')}</td><td>${report.can_read_amounts?(row.amount===null?'Sin registrar':esc(row.amount)):'Restringido por tu rol'}</td></tr>`).join('')||'<tr><td colspan="5">Sin oportunidades en este periodo.</td></tr>'}</tbody></table></div><p id="report-feedback" role="alert"></p></section>`;
+ }
+ function mount(root){const c=current;if(!c?.isCurrent())return;c.controller=new AbortController();const options={signal:c.controller.signal};root.querySelector('[data-report]').addEventListener('click',()=>c.refresh(),options);root.querySelector('#commercial-report-filters').addEventListener('submit',event=>{event.preventDefault();const data=new FormData(event.target);const next={from:data.get('from'),to:data.get('to'),assigned:data.get('assigned')};if(next.from&&next.to&&next.from>next.to){root.querySelector('#report-feedback').textContent='La fecha inicial debe ser anterior o igual a la final.';return;}filters=next;c.refresh();},options);}
+ return {render,mount,close,reset};
+})();

@@ -135,5 +135,5 @@ window.LuriConversations = (() => {
     }, {signal:events.signal});
     root.addEventListener("submit", event => {if (event.target.id === "conversation-reply") send(c, event); if (event.target.id === "commercial-form") window.LuriOpportunities.submit(c, event, () => loadDetail(c));}, {signal:events.signal});
   }
-  return {render, mount, reset};
+  return {render, mount, reset, open:id=>context && action(context,null,id)};
 })();

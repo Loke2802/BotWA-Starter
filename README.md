@@ -15,6 +15,11 @@ autenticada de roles. No requiere DigitalOcean; no acredita despliegue.
 columnas por etapa, edición e historial reutilizados y configuración con conflictos
 de sesiones. Implementado y comprobado localmente; sin despliegue.
 
+[Ficha, actividades, resumen e IA comercial](docs/LURI_CRM_FICHA_ACTIVIDADES_RESUMEN_IA_2026-10-06.md):
+ficha completa, registro de llamadas/reuniones/notas, historial de acciones, importes
+por moneda y sugerencias revisables de la IA existente. Validado localmente; esquema
+`0029`, sin DigitalOcean ni despliegue.
+
 ## Antecedente - Phase 3 / PRD-001 a PRD-023 CLOSED
 
 Quality Gates (validación técnica PRD-023):

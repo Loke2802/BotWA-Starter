@@ -1,0 +1,35 @@
+{
+  "environment": "authenticated localhost with PostgreSQL",
+  "no_external_ai_calls": true,
+  "roles": [
+    {
+      "role": "organization_owner",
+      "workspace": true,
+      "activities_deduplicated_or_write_denied": true,
+      "report_permissions": true,
+      "ai_disabled_abstains_or_denied": true,
+      "foreign_denied": true
+    },
+    {
+      "role": "operator",
+      "workspace": true,
+      "activities_deduplicated_or_write_denied": true,
+      "report_permissions": true,
+      "ai_disabled_abstains_or_denied": true,
+      "foreign_denied": true
+    },
+    {
+      "role": "viewer",
+      "workspace": true,
+      "activities_deduplicated_or_write_denied": true,
+      "report_permissions": true,
+      "ai_disabled_abstains_or_denied": true,
+      "foreign_denied": true
+    },
+    {
+      "role": "other_company",
+      "foreign_denied": true,
+      "own_report_empty": true
+    }
+  ]
+}

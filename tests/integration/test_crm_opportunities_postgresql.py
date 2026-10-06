@@ -2,16 +2,20 @@
 
 import os
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime, timedelta
 from threading import Barrier
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
+from app.application.crm.customer_workspace import CustomerWorkspaceService
 from app.domain.crm.contracts import (
     CrmConflict,
     OpportunityCreate,
     OpportunityUpdate,
     StageConfiguration,
 )
+from app.domain.crm.customer_contracts import ActivityInput
+from app.infrastructure.models.crm_customer_activity import CrmCustomerActivityModel
 from app.infrastructure.models.crm_opportunity import (
     OpportunityConversationModel,
     OpportunityModel,
@@ -40,6 +44,7 @@ def database():  # type: ignore[no-untyped-def]
         with engine.begin() as connection:
             for org in [actor.organization_id, other.organization_id]:
                 for table in (
+                    "crm_customer_activity",
                     "crm_opportunity_history",
                     "crm_opportunity_conversation",
                     "crm_activity",
@@ -198,3 +203,50 @@ def test_simultaneous_stage_configuration_rejects_stale_snapshot(database):  # t
             "Primera sesión",
             "Segunda sesión",
         }
+
+
+def test_simultaneous_customer_activity_replay_and_tenant_constraints(database):  # type: ignore[no-untyped-def]
+    engine, actor, other, contact, _ = database
+    org = actor.organization_id
+    assert org is not None
+    barrier = Barrier(2)
+    data = ActivityInput(
+        kind="call",
+        description="Llamada concurrente sintética",
+        occurred_at=datetime.now(UTC) - timedelta(minutes=1),
+    )
+
+    def save():  # type: ignore[no-untyped-def]
+        with Session(engine) as session:
+            barrier.wait(timeout=10)
+            return (
+                CustomerWorkspaceService(opportunity_service(session))
+                .record_activity(org, contact, actor, data, "concurrent-activity")
+                .id
+            )
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(save) for _ in range(2)]
+        ids = [f.result(timeout=20) for f in futures]
+    assert ids[0] == ids[1]
+    with Session(engine) as session:
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(CrmCustomerActivityModel)
+                .where(CrmCustomerActivityModel.organization_id == org)
+            )
+            == 1
+        )
+        row = session.get(CrmCustomerActivityModel, ids[0])
+        assert row
+        row.organization_id = other.organization_id
+        with pytest.raises(IntegrityError):
+            session.commit()
+        session.rollback()
+        row = session.get(CrmCustomerActivityModel, ids[0])
+        assert row
+        row.opportunity_id = uuid4()
+        with pytest.raises(IntegrityError):
+            session.commit()
+        session.rollback()

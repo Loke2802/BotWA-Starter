@@ -16,7 +16,9 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 
+from app.application.crm.customer_workspace import CustomerWorkspaceService
 from app.domain.crm.contracts import OpportunityCreate, OpportunityUpdate
+from app.domain.crm.customer_contracts import ActivityInput
 from app.infrastructure.models.managed_automation import (
     ManagedAutomationDefinitionModel,
 )
@@ -265,6 +267,15 @@ def main() -> None:
             ).id
             == created.id
         )
+        activity_data = ActivityInput(
+            kind="call",
+            description="Llamada sintética recuperable",
+            occurred_at=datetime.now(UTC) - timedelta(minutes=1),
+            opportunity_id=created.id,
+        )
+        activity = CustomerWorkspaceService(service).record_activity(
+            actor.organization_id, contact, actor, activity_data, "recovery-activity"
+        )
     after = fingerprint(restored_before)
     post_dump = f"/tmp/{prefix}_after.dump"
     docker("pg_dump", "-U", "botwa", "-Fc", "-f", post_dump, databases["before"])
@@ -294,6 +305,18 @@ def main() -> None:
             ).id
             == created.id
         )
+        journal = CustomerWorkspaceService(service)
+        assert journal.activities(actor.organization_id, contact, actor, 1).total == 1
+        assert (
+            journal.record_activity(
+                actor.organization_id,
+                contact,
+                actor,
+                activity_data,
+                "recovery-activity",
+            ).id
+            == activity.id
+        )
     # The application rollback strategy preserves the schema. This checks
     # that a destructive downgrade is refused rather than deleting CRM data.
     env = {**os.environ, "BOTWA_DATABASE_URL": url(databases["after"])}
@@ -304,7 +327,7 @@ def main() -> None:
         capture_output=True,
         text=True,
     )
-    assert downgrade.returncode != 0 and "CRM" in downgrade.stderr
+    assert downgrade.returncode != 0 and "preserve the schema" in downgrade.stderr
     assert fingerprint(restored_after) == after, "Refused downgrade changed data"
     report = {
         "tested_at": datetime.now(UTC).isoformat(),
@@ -315,6 +338,7 @@ def main() -> None:
         "pre_restore_equal": True,
         "existing_rows_unchanged_after_upgrade": True,
         "post_restore_equal": True,
+        "customer_activity_restored_and_replay_deduplicated": True,
         "history_and_idempotency_after_restore": True,
         "destructive_downgrade_refused_without_changes": True,
         "invalid_legacy_configuration_blocks_upgrade_without_changes": True,

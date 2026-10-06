@@ -1,8 +1,10 @@
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Index, String, Text
+from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, Index, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.schema import conv
 from sqlalchemy.types import Uuid
 
 from app.infrastructure.database import Base
@@ -11,6 +13,13 @@ from app.infrastructure.database import Base
 class KnowledgeEntryModel(Base):
     __tablename__ = "knowledge_entry"
     __table_args__ = (
+        CheckConstraint(
+            "source_type = 'manual'", name=conv("ck_knowledge_entry_source_type")
+        ),
+        CheckConstraint(
+            "status IN ('draft', 'published', 'archived')",
+            name=conv("ck_knowledge_entry_status"),
+        ),
         Index(
             "ix_knowledge_entry_organization_bot_status",
             "organization_id",
@@ -42,7 +51,7 @@ class KnowledgeEntryModel(Base):
     )
     metadata_data: Mapped[dict[str, object]] = mapped_column(
         "metadata",
-        JSON,
+        JSON().with_variant(JSONB, "postgresql"),
         nullable=False,
         default=dict,
     )

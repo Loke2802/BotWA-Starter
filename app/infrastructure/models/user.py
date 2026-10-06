@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import Uuid
 
@@ -11,6 +11,8 @@ from app.infrastructure.database import Base
 class UserModel(Base):
     __tablename__ = "app_user"
     __table_args__ = (
+        Index("ix_app_user_email", "email"),
+        Index("ix_prd018_user_org_status", "organization_id", "status"),
         UniqueConstraint("id", "organization_id", name="uq_user_id_organization"),
     )
 

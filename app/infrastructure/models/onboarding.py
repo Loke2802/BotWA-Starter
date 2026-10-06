@@ -3,6 +3,7 @@ from uuid import UUID
 
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.schema import conv
 from sqlalchemy.types import Uuid
 
 from app.infrastructure.database import Base
@@ -17,18 +18,18 @@ class OrganizationOnboardingModel(Base):
         ),
         CheckConstraint(
             "version > 0",
-            name="organization_onboarding_version_positive",
+            name=conv("ck_organization_onboarding_organization_onboarding_vers_1091"),
         ),
         CheckConstraint(
             "(status = 'completed' AND completed_at IS NOT NULL "
             "AND completed_by_user_id IS NOT NULL) OR "
             "(status = 'in_progress' AND completed_at IS NULL "
             "AND completed_by_user_id IS NULL)",
-            name="organization_onboarding_completion_shape",
+            name=conv("ck_organization_onboarding_organization_onboarding_comp_ad62"),
         ),
         CheckConstraint(
             "completed_at IS NULL OR completed_at >= started_at",
-            name="organization_onboarding_completion_order",
+            name=conv("ck_organization_onboarding_organization_onboarding_comp_ff4a"),
         ),
     )
 

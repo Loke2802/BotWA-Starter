@@ -1,7 +1,15 @@
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import JSON, DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    UniqueConstraint,
+)
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import Uuid
 
@@ -11,6 +19,7 @@ from app.infrastructure.database import Base
 class BotModel(Base):
     __tablename__ = "bot"
     __table_args__ = (
+        Index("ix_prd018_bot_org_status", "organization_id", "status"),
         UniqueConstraint(
             "organization_id",
             "slug",
@@ -42,7 +51,7 @@ class BotModel(Base):
     welcome_message: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     away_message: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     settings: Mapped[dict[str, object]] = mapped_column(
-        JSON,
+        JSON().with_variant(JSONB, "postgresql"),
         nullable=False,
         default=dict,
     )

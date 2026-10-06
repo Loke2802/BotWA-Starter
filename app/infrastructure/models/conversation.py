@@ -4,8 +4,20 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    text,
+)
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.schema import conv
 from sqlalchemy.types import Uuid
 
 from app.infrastructure.database import Base
@@ -17,6 +29,46 @@ if TYPE_CHECKING:
 class ConversationModel(Base):
     __tablename__ = "conversation"
     __table_args__ = (
+        Index(
+            "ix_conversation_external_customer",
+            "organization_id",
+            "bot_id",
+            "channel",
+            "external_customer_id",
+        ),
+        Index(
+            "ix_conversation_organization_bot_last_message",
+            "organization_id",
+            "bot_id",
+            "last_message_at",
+        ),
+        Index(
+            "ix_conversation_organization_bot_status",
+            "organization_id",
+            "bot_id",
+            "management_status",
+        ),
+        Index(
+            "uq_conversation_managed_identity",
+            "organization_id",
+            "bot_id",
+            "channel",
+            "external_customer_id",
+            unique=True,
+            postgresql_where=text(
+                "((organization_id IS NOT NULL) AND (bot_id IS NOT NULL) AND "
+                "(external_customer_id IS NOT NULL))"
+            ),
+            sqlite_where=text(
+                "((organization_id IS NOT NULL) AND (bot_id IS NOT NULL) AND "
+                "(external_customer_id IS NOT NULL))"
+            ),
+        ),
+        CheckConstraint(
+            "management_status IS NULL OR (management_status IN ('open', "
+            "'closed', 'archived'))",
+            name=conv("ck_conversation_conversation_management_status"),
+        ),
         UniqueConstraint(
             "id", "organization_id", "contact_id", name="uq_conversation_crm_contact"
         ),
@@ -55,7 +107,7 @@ class ConversationModel(Base):
         String(255), nullable=True
     )
     extra_data: Mapped[dict[str, object] | None] = mapped_column(
-        JSON, nullable=True, default=dict
+        JSON().with_variant(JSONB, "postgresql"), nullable=True, default=dict
     )
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)

@@ -2,7 +2,9 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, Integer, String
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.schema import conv
 from sqlalchemy.types import Uuid
 
 from app.infrastructure.database import Base
@@ -18,7 +20,9 @@ class PlanDefinitionModel(Base):
     plan_code: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     display_name: Mapped[str] = mapped_column(String(200), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False)
-    configuration: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    configuration: Mapped[dict[str, object]] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql"), nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )
@@ -30,7 +34,10 @@ class PlanDefinitionModel(Base):
 class OrganizationPlanAssignmentModel(Base):
     __tablename__ = "organization_plan_assignment"
     __table_args__ = (
-        CheckConstraint("version > 0", name="ck_plan_assignment_version_positive"),
+        CheckConstraint(
+            "version > 0",
+            name=conv("ck_organization_plan_assignment_ck_plan_assignment_vers_f7cb"),
+        ),
     )
 
     organization_id: Mapped[UUID] = mapped_column(

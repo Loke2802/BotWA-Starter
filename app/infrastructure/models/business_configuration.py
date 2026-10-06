@@ -1,8 +1,10 @@
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.schema import conv
 from sqlalchemy.types import Uuid
 
 from app.infrastructure.database import Base
@@ -10,13 +12,15 @@ from app.infrastructure.database import Base
 
 class BusinessConfigurationModel(Base):
     __tablename__ = "business_configuration"
+    __table_args__ = (
+        UniqueConstraint("bot_id", name=conv("uq_business_configuration_bot_id")),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     bot_id: Mapped[UUID] = mapped_column(
         Uuid,
         ForeignKey("bot.id"),
         nullable=False,
-        unique=True,
         index=True,
     )
     business_name: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -31,22 +35,22 @@ class BusinessConfigurationModel(Base):
         default="America/Lima",
     )
     business_hours: Mapped[dict[str, object]] = mapped_column(
-        JSON,
+        JSON().with_variant(JSONB, "postgresql"),
         nullable=False,
         default=dict,
     )
     services: Mapped[list[dict[str, object]]] = mapped_column(
-        JSON,
+        JSON().with_variant(JSONB, "postgresql"),
         nullable=False,
         default=list,
     )
     payment_methods: Mapped[list[str]] = mapped_column(
-        JSON,
+        JSON().with_variant(JSONB, "postgresql"),
         nullable=False,
         default=list,
     )
     policies: Mapped[list[dict[str, object]]] = mapped_column(
-        JSON,
+        JSON().with_variant(JSONB, "postgresql"),
         nullable=False,
         default=list,
     )
@@ -58,7 +62,7 @@ class BusinessConfigurationModel(Base):
     )
     handoff_message: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     handoff_keywords: Mapped[list[str]] = mapped_column(
-        JSON,
+        JSON().with_variant(JSONB, "postgresql"),
         nullable=False,
         default=list,
     )

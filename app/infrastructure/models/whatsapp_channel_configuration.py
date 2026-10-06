@@ -12,6 +12,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.schema import conv
 from sqlalchemy.types import Uuid
 
 from app.infrastructure.database import Base
@@ -30,7 +31,7 @@ class WhatsAppChannelConfigurationModel(Base):
         ),
         CheckConstraint(
             "status IN ('draft', 'active', 'inactive')",
-            name="whatsapp_channel_configuration_status",
+            name=conv("ck_whatsapp_channel_configuration_status"),
         ),
         Index(
             "ix_whatsapp_channel_configuration_organization_bot_status",

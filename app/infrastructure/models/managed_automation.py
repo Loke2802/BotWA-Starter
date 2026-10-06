@@ -13,6 +13,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.schema import conv
 from sqlalchemy.types import Uuid
 
 from app.infrastructure.database import Base
@@ -21,20 +22,30 @@ from app.infrastructure.database import Base
 class ManagedAutomationDefinitionModel(Base):
     __tablename__ = "managed_automation_definition"
     __table_args__ = (
+        Index("ix_managed_automation_definition_org_bot", "organization_id", "bot_id"),
+        Index(
+            "ix_managed_automation_definition_org_trigger",
+            "organization_id",
+            "trigger_type",
+        ),
         CheckConstraint(
             "status IN ('draft', 'active', 'inactive', 'archived')",
-            name="managed_automation_definition_status",
+            name=conv("ck_managed_automation_definition_managed_automation_def_a165"),
         ),
         CheckConstraint(
             "trigger_type = 'conversation.inbound_received'",
-            name="managed_automation_definition_trigger",
+            name=conv("ck_managed_automation_trigger_type"),
         ),
         CheckConstraint(
             "action_type = 'request_handoff'",
-            name="managed_automation_definition_action",
+            name=conv("ck_managed_automation_action_type"),
         ),
         Index(
-            "ix_managed_automation_definition_org_status", "organization_id", "status"
+            "ix_managed_automation_definition_org_status",
+            "organization_id",
+            "status",
+            "created_at",
+            "id",
         ),
     )
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
@@ -79,6 +90,15 @@ class ManagedAutomationDefinitionModel(Base):
 class ManagedAutomationEventReceiptModel(Base):
     __tablename__ = "managed_automation_event_receipt"
     __table_args__ = (
+        Index(
+            "ix_managed_automation_event_org_created", "organization_id", "created_at"
+        ),
+        Index(
+            "ix_managed_automation_event_source",
+            "organization_id",
+            "source_type",
+            "source_event_id",
+        ),
         UniqueConstraint(
             "organization_id",
             "source_type",
@@ -112,6 +132,18 @@ class ManagedAutomationEventReceiptModel(Base):
 class ManagedAutomationExecutionModel(Base):
     __tablename__ = "managed_automation_execution"
     __table_args__ = (
+        Index(
+            "ix_managed_automation_execution_definition_created",
+            "automation_definition_id",
+            "created_at",
+        ),
+        Index(
+            "ix_managed_automation_execution_org_status", "organization_id", "status"
+        ),
+        CheckConstraint(
+            "attempt_count >= 0 AND attempt_count <= 3",
+            name=conv("ck_managed_automation_execution_managed_automation_exec_b3d3"),
+        ),
         UniqueConstraint(
             "automation_definition_id",
             "definition_version",
@@ -121,9 +153,14 @@ class ManagedAutomationExecutionModel(Base):
         CheckConstraint(
             "status IN "
             "('pending','running','succeeded','failed','skipped','cancelled')",
-            name="managed_automation_execution_status",
+            name=conv("ck_managed_automation_execution_managed_automation_exec_af25"),
         ),
-        Index("ix_managed_automation_execution_claim", "status", "available_at"),
+        Index(
+            "ix_managed_automation_execution_claim",
+            "status",
+            "available_at",
+            "lease_expires_at",
+        ),
     )
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     organization_id: Mapped[UUID] = mapped_column(

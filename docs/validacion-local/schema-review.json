@@ -1,0 +1,1119 @@
+{
+  "scope": "Local migrated PostgreSQL; all model modules loaded; read-only review",
+  "count": 114,
+  "by_operation": {
+    "remove_constraint": 36,
+    "add_constraint": 30,
+    "remove_index": 20,
+    "add_index": 26,
+    "remove_fk": 2
+  },
+  "crm_findings": [],
+  "findings": [
+    {
+      "operation": "remove_constraint",
+      "table": "analytics_daily_summary",
+      "name": "ck_analytics_daily_summary_ck_analytics_daily_summary_a_68ec",
+      "definition": "conversations_started >= 0 AND conversations_closed >= 0 AND handoffs_created >= 0 AND handoffs_resolved >= 0 AND handoff_resolution_seconds_sum >= 0 AND handoff_resolution_count >= 0 AND automation_executions_created >= 0 AND automation_succeeded >= 0 AND automation_failed >= 0 AND automation_skipped >= 0 AND automation_cancelled >= 0 AND contacts_created >= 0",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_constraint",
+      "table": "analytics_daily_summary",
+      "name": "ck_analytics_daily_summary_analytics_daily_summary_nonnegative",
+      "definition": "conversations_started >= 0 AND conversations_closed >= 0 AND handoffs_created >= 0 AND handoffs_resolved >= 0 AND handoff_resolution_seconds_sum >= 0 AND handoff_resolution_count >= 0 AND automation_executions_created >= 0 AND automation_succeeded >= 0 AND automation_failed >= 0 AND automation_skipped >= 0 AND automation_cancelled >= 0 AND contacts_created >= 0",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE analytics_daily_summary ADD CONSTRAINT ck_analytics_daily_summary_analytics_daily_summary_nonnegative CHECK (conversations_started >= 0 AND conversations_closed >= 0 AND handoffs_created >= 0 AND handoffs_resolved >= 0 AND handoff_resolution_seconds_sum >= 0 AND handoff_resolution_count >= 0 AND automation_executions_created >= 0 AND automation_succeeded >= 0 AND automation_failed >= 0 AND automation_skipped >= 0 AND automation_cancelled >= 0 AND contacts_created >= 0)"
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "audit_event",
+      "name": "ck_audit_event_ck_audit_event_actor_shape",
+      "definition": "actor_type::text = 'user'::text AND actor_user_id IS NOT NULL AND actor_role IS NOT NULL OR (actor_type::text = ANY (ARRAY['system'::character varying, 'automation'::character varying]::text[])) AND actor_user_id IS NULL AND actor_role IS NULL",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "audit_event",
+      "name": "ck_audit_event_ck_audit_event_actor_type",
+      "definition": "actor_type::text = ANY (ARRAY['user'::character varying, 'system'::character varying, 'automation'::character varying]::text[])",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "audit_event",
+      "name": "ck_audit_event_ck_audit_event_result",
+      "definition": "result::text = 'success'::text",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_constraint",
+      "table": "audit_event",
+      "name": "ck_audit_event_audit_event_actor_shape",
+      "definition": "(actor_type = 'user' AND actor_user_id IS NOT NULL AND actor_role IS NOT NULL) OR (actor_type IN ('system','automation') AND actor_user_id IS NULL AND actor_role IS NULL)",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE audit_event ADD CONSTRAINT ck_audit_event_audit_event_actor_shape CHECK ((actor_type = 'user' AND actor_user_id IS NOT NULL AND actor_role IS NOT NULL) OR (actor_type IN ('system','automation') AND actor_user_id IS NULL AND actor_role IS NULL))"
+    },
+    {
+      "operation": "add_constraint",
+      "table": "audit_event",
+      "name": "ck_audit_event_audit_event_actor_type",
+      "definition": "actor_type IN ('user','system','automation')",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE audit_event ADD CONSTRAINT ck_audit_event_audit_event_actor_type CHECK (actor_type IN ('user','system','automation'))"
+    },
+    {
+      "operation": "add_constraint",
+      "table": "audit_event",
+      "name": "ck_audit_event_audit_event_result",
+      "definition": "result = 'success'",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE audit_event ADD CONSTRAINT ck_audit_event_audit_event_result CHECK (result = 'success')"
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "billing_price",
+      "name": "uq_billing_price_provider",
+      "definition": "",
+      "columns": [
+        "provider",
+        "provider_price_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_constraint",
+      "table": "billing_price",
+      "name": "uq_billing_price_provider_price",
+      "definition": "",
+      "columns": [
+        "provider",
+        "provider_price_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE billing_price ADD CONSTRAINT uq_billing_price_provider_price UNIQUE (provider, provider_price_id)"
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "billing_provider_event",
+      "name": "uq_billing_provider_event_provider",
+      "definition": "",
+      "columns": [
+        "provider",
+        "provider_event_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "billing_provider_event",
+      "name": "ck_billing_provider_event_billing_provider_event_attemp_e53c",
+      "definition": "attempts > 0",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_constraint",
+      "table": "billing_provider_event",
+      "name": "ck_billing_provider_event_billing_provider_event_attempts_positive",
+      "definition": "attempts > 0",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE billing_provider_event ADD CONSTRAINT ck_billing_provider_event_billing_provider_event_attemp_e53c CHECK (attempts > 0)"
+    },
+    {
+      "operation": "remove_index",
+      "table": "bot",
+      "name": "ix_prd018_bot_org_status",
+      "definition": "",
+      "columns": [
+        "organization_id",
+        "status"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "business_calendar_date_exception",
+      "name": "ck_business_calendar_date_exception_business_date_excep_6916",
+      "definition": "mode::text = ANY (ARRAY['closed_all_day'::character varying, 'open_all_day'::character varying, 'replace'::character varying, 'add_open'::character varying, 'close_partial'::character varying]::text[])",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "business_calendar_date_exception",
+      "name": "ck_business_calendar_date_exception_business_date_excep_d9ad",
+      "definition": "version > 0",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_constraint",
+      "table": "business_calendar_date_exception",
+      "name": "ck_business_calendar_date_exception_business_date_exception_mode",
+      "definition": "mode IN ('closed_all_day','open_all_day','replace','add_open','close_partial')",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE business_calendar_date_exception ADD CONSTRAINT ck_business_calendar_date_exception_business_date_excep_6916 CHECK (mode IN ('closed_all_day','open_all_day','replace','add_open','close_partial'))"
+    },
+    {
+      "operation": "add_constraint",
+      "table": "business_calendar_date_exception",
+      "name": "ck_business_calendar_date_exception_business_date_exception_version_positive",
+      "definition": "version > 0",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE business_calendar_date_exception ADD CONSTRAINT ck_business_calendar_date_exception_business_date_excep_d9ad CHECK (version > 0)"
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "business_calendar_override",
+      "name": "ck_business_calendar_override_business_override_version_12bb",
+      "definition": "version > 0",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_constraint",
+      "table": "business_calendar_override",
+      "name": "ck_business_calendar_override_business_override_version_positive",
+      "definition": "version > 0",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE business_calendar_override ADD CONSTRAINT ck_business_calendar_override_business_override_version_12bb CHECK (version > 0)"
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "business_calendar_weekly_interval",
+      "name": "ck_business_calendar_weekly_interval_business_weekly_in_68d2",
+      "definition": "start_minute < end_minute",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "business_calendar_weekly_interval",
+      "name": "ck_business_calendar_weekly_interval_business_weekly_in_82f0",
+      "definition": "start_minute >= 0 AND start_minute < 1440",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "business_calendar_weekly_interval",
+      "name": "ck_business_calendar_weekly_interval_business_weekly_in_b9de",
+      "definition": "weekday >= 1 AND weekday <= 7",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "business_calendar_weekly_interval",
+      "name": "ck_business_calendar_weekly_interval_business_weekly_in_f4f4",
+      "definition": "end_minute > 0 AND end_minute <= 1440",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_constraint",
+      "table": "business_calendar_weekly_interval",
+      "name": "ck_business_calendar_weekly_interval_business_weekly_interval_end",
+      "definition": "end_minute > 0 AND end_minute <= 1440",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE business_calendar_weekly_interval ADD CONSTRAINT ck_business_calendar_weekly_interval_business_weekly_in_f4f4 CHECK (end_minute > 0 AND end_minute <= 1440)"
+    },
+    {
+      "operation": "add_constraint",
+      "table": "business_calendar_weekly_interval",
+      "name": "ck_business_calendar_weekly_interval_business_weekly_interval_order",
+      "definition": "start_minute < end_minute",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE business_calendar_weekly_interval ADD CONSTRAINT ck_business_calendar_weekly_interval_business_weekly_in_68d2 CHECK (start_minute < end_minute)"
+    },
+    {
+      "operation": "add_constraint",
+      "table": "business_calendar_weekly_interval",
+      "name": "ck_business_calendar_weekly_interval_business_weekly_interval_start",
+      "definition": "start_minute >= 0 AND start_minute < 1440",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE business_calendar_weekly_interval ADD CONSTRAINT ck_business_calendar_weekly_interval_business_weekly_in_82f0 CHECK (start_minute >= 0 AND start_minute < 1440)"
+    },
+    {
+      "operation": "add_constraint",
+      "table": "business_calendar_weekly_interval",
+      "name": "ck_business_calendar_weekly_interval_business_weekly_interval_weekday",
+      "definition": "weekday BETWEEN 1 AND 7",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE business_calendar_weekly_interval ADD CONSTRAINT ck_business_calendar_weekly_interval_business_weekly_in_b9de CHECK (weekday BETWEEN 1 AND 7)"
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "business_configuration",
+      "name": "uq_business_configuration_bot_id",
+      "definition": "",
+      "columns": [
+        "bot_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_index",
+      "table": "business_configuration",
+      "name": "ix_business_configuration_bot_id",
+      "definition": "",
+      "columns": [
+        "bot_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_index",
+      "table": "business_configuration",
+      "name": "ix_business_configuration_bot_id",
+      "definition": "",
+      "columns": [
+        "bot_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE UNIQUE INDEX ix_business_configuration_bot_id ON business_configuration (bot_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "contact",
+      "name": "ix_contact_organization_id",
+      "definition": "",
+      "columns": [
+        "organization_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_contact_organization_id ON contact (organization_id)"
+    },
+    {
+      "operation": "remove_index",
+      "table": "conversation",
+      "name": "ix_conversation_external_customer",
+      "definition": "",
+      "columns": [
+        "organization_id",
+        "bot_id",
+        "channel",
+        "external_customer_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_index",
+      "table": "conversation",
+      "name": "ix_conversation_organization_bot_last_message",
+      "definition": "",
+      "columns": [
+        "organization_id",
+        "bot_id",
+        "last_message_at"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_index",
+      "table": "conversation",
+      "name": "ix_conversation_organization_bot_status",
+      "definition": "",
+      "columns": [
+        "organization_id",
+        "bot_id",
+        "management_status"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_index",
+      "table": "conversation",
+      "name": "uq_conversation_managed_identity",
+      "definition": "",
+      "columns": [
+        "organization_id",
+        "bot_id",
+        "channel",
+        "external_customer_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_index",
+      "table": "conversation",
+      "name": "ix_conversation_bot_id",
+      "definition": "",
+      "columns": [
+        "bot_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_conversation_bot_id ON conversation (bot_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "conversation",
+      "name": "ix_conversation_channel_configuration_id",
+      "definition": "",
+      "columns": [
+        "channel_configuration_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_conversation_channel_configuration_id ON conversation (channel_configuration_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "conversation",
+      "name": "ix_conversation_external_customer_id",
+      "definition": "",
+      "columns": [
+        "external_customer_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_conversation_external_customer_id ON conversation (external_customer_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "conversation",
+      "name": "ix_conversation_last_message_at",
+      "definition": "",
+      "columns": [
+        "last_message_at"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_conversation_last_message_at ON conversation (last_message_at)"
+    },
+    {
+      "operation": "add_index",
+      "table": "conversation",
+      "name": "ix_conversation_management_status",
+      "definition": "",
+      "columns": [
+        "management_status"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_conversation_management_status ON conversation (management_status)"
+    },
+    {
+      "operation": "add_index",
+      "table": "conversation",
+      "name": "ix_conversation_organization_id",
+      "definition": "",
+      "columns": [
+        "organization_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_conversation_organization_id ON conversation (organization_id)"
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "conversation",
+      "name": "ck_conversation_conversation_management_status",
+      "definition": "management_status IS NULL OR (management_status::text = ANY (ARRAY['open'::character varying, 'closed'::character varying, 'archived'::character varying]::text[]))",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "conversation_management_event",
+      "name": "ck_conversation_management_event_ck_conversation_manage_460b",
+      "definition": "from_status::text = ANY (ARRAY['open'::character varying, 'closed'::character varying, 'archived'::character varying]::text[])",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "conversation_management_event",
+      "name": "ck_conversation_management_event_ck_conversation_manage_c862",
+      "definition": "to_status::text = ANY (ARRAY['open'::character varying, 'closed'::character varying, 'archived'::character varying]::text[])",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "conversation_management_event",
+      "name": "ck_conversation_management_event_ck_conversation_manage_cf92",
+      "definition": "actor_type::text = ANY (ARRAY['user'::character varying, 'system'::character varying, 'automation'::character varying]::text[])",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_constraint",
+      "table": "conversation_management_event",
+      "name": "ck_conversation_management_event_conversation_management_event_actor_type",
+      "definition": "actor_type IN ('user','system','automation')",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE conversation_management_event ADD CONSTRAINT ck_conversation_management_event_conversation_managemen_5edf CHECK (actor_type IN ('user','system','automation'))"
+    },
+    {
+      "operation": "add_constraint",
+      "table": "conversation_management_event",
+      "name": "ck_conversation_management_event_conversation_management_event_from_status",
+      "definition": "from_status IN ('open','closed','archived')",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE conversation_management_event ADD CONSTRAINT ck_conversation_management_event_conversation_managemen_3b33 CHECK (from_status IN ('open','closed','archived'))"
+    },
+    {
+      "operation": "add_constraint",
+      "table": "conversation_management_event",
+      "name": "ck_conversation_management_event_conversation_management_event_to_status",
+      "definition": "to_status IN ('open','closed','archived')",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE conversation_management_event ADD CONSTRAINT ck_conversation_management_event_conversation_managemen_cbb6 CHECK (to_status IN ('open','closed','archived'))"
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "handoff_cycle",
+      "name": "ck_handoff_cycle_ck_handoff_cycle_handoff_cycle_activat_9eec",
+      "definition": "activated_at IS NULL OR activated_at >= requested_at",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "handoff_cycle",
+      "name": "ck_handoff_cycle_ck_handoff_cycle_handoff_cycle_resolution_type",
+      "definition": "resolution_type IS NULL OR (resolution_type::text = ANY (ARRAY['resolved'::character varying, 'returned_to_bot'::character varying]::text[]))",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "handoff_cycle",
+      "name": "ck_handoff_cycle_ck_handoff_cycle_handoff_cycle_resolve_24f2",
+      "definition": "resolved_at IS NULL OR resolved_at >= requested_at",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_constraint",
+      "table": "handoff_cycle",
+      "name": "ck_handoff_cycle_handoff_cycle_activated_after_request",
+      "definition": "activated_at IS NULL OR activated_at >= requested_at",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE handoff_cycle ADD CONSTRAINT ck_handoff_cycle_handoff_cycle_activated_after_request CHECK (activated_at IS NULL OR activated_at >= requested_at)"
+    },
+    {
+      "operation": "add_constraint",
+      "table": "handoff_cycle",
+      "name": "ck_handoff_cycle_handoff_cycle_resolution_type",
+      "definition": "resolution_type IS NULL OR resolution_type IN ('resolved','returned_to_bot')",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE handoff_cycle ADD CONSTRAINT ck_handoff_cycle_handoff_cycle_resolution_type CHECK (resolution_type IS NULL OR resolution_type IN ('resolved','returned_to_bot'))"
+    },
+    {
+      "operation": "add_constraint",
+      "table": "handoff_cycle",
+      "name": "ck_handoff_cycle_handoff_cycle_resolved_after_request",
+      "definition": "resolved_at IS NULL OR resolved_at >= requested_at",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE handoff_cycle ADD CONSTRAINT ck_handoff_cycle_handoff_cycle_resolved_after_request CHECK (resolved_at IS NULL OR resolved_at >= requested_at)"
+    },
+    {
+      "operation": "add_index",
+      "table": "handoff_event",
+      "name": "ix_handoff_event_handoff_session_id",
+      "definition": "",
+      "columns": [
+        "handoff_session_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_handoff_event_handoff_session_id ON handoff_event (handoff_session_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "handoff_event",
+      "name": "ix_handoff_event_organization_id",
+      "definition": "",
+      "columns": [
+        "organization_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_handoff_event_organization_id ON handoff_event (organization_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "handoff_session",
+      "name": "ix_handoff_session_bot_id",
+      "definition": "",
+      "columns": [
+        "bot_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_handoff_session_bot_id ON handoff_session (bot_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "handoff_session",
+      "name": "ix_handoff_session_organization_id",
+      "definition": "",
+      "columns": [
+        "organization_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_handoff_session_organization_id ON handoff_session (organization_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "handoff_session",
+      "name": "ix_handoff_session_status",
+      "definition": "",
+      "columns": [
+        "status"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_handoff_session_status ON handoff_session (status)"
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "inbound_message_receipt",
+      "name": "ck_inbound_message_receipt_status",
+      "definition": "status::text = ANY (ARRAY['received'::character varying, 'processing'::character varying, 'processed'::character varying, 'failed'::character varying]::text[])",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_constraint",
+      "table": "inbound_message_receipt",
+      "name": "ck_inbound_message_receipt_inbound_message_receipt_status",
+      "definition": "status IN ('received', 'processing', 'processed', 'failed')",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE inbound_message_receipt ADD CONSTRAINT ck_inbound_message_receipt_inbound_message_receipt_status CHECK (status IN ('received', 'processing', 'processed', 'failed'))"
+    },
+    {
+      "operation": "remove_index",
+      "table": "integration_connection",
+      "name": "ix_integration_connection_org_bot",
+      "definition": "",
+      "columns": [
+        "organization_id",
+        "bot_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "knowledge_entry",
+      "name": "ck_knowledge_entry_source_type",
+      "definition": "source_type::text = 'manual'::text",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "knowledge_entry",
+      "name": "ck_knowledge_entry_status",
+      "definition": "status::text = ANY (ARRAY['draft'::character varying, 'published'::character varying, 'archived'::character varying]::text[])",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_index",
+      "table": "managed_automation_definition",
+      "name": "ix_managed_automation_definition_org_bot",
+      "definition": "",
+      "columns": [
+        "organization_id",
+        "bot_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_index",
+      "table": "managed_automation_definition",
+      "name": "ix_managed_automation_definition_org_trigger",
+      "definition": "",
+      "columns": [
+        "organization_id",
+        "trigger_type"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_index",
+      "table": "managed_automation_definition",
+      "name": "ix_managed_automation_definition_org_status",
+      "definition": "",
+      "columns": [
+        "organization_id",
+        "status",
+        "created_at",
+        "id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_index",
+      "table": "managed_automation_definition",
+      "name": "ix_managed_automation_definition_org_status",
+      "definition": "",
+      "columns": [
+        "organization_id",
+        "status"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_managed_automation_definition_org_status ON managed_automation_definition (organization_id, status)"
+    },
+    {
+      "operation": "add_index",
+      "table": "managed_automation_definition",
+      "name": "ix_managed_automation_definition_bot_id",
+      "definition": "",
+      "columns": [
+        "bot_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_managed_automation_definition_bot_id ON managed_automation_definition (bot_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "managed_automation_definition",
+      "name": "ix_managed_automation_definition_organization_id",
+      "definition": "",
+      "columns": [
+        "organization_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_managed_automation_definition_organization_id ON managed_automation_definition (organization_id)"
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "managed_automation_definition",
+      "name": "ck_managed_automation_definition_managed_automation_def_a165",
+      "definition": "status::text = ANY (ARRAY['draft'::character varying, 'active'::character varying, 'inactive'::character varying, 'archived'::character varying]::text[])",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_constraint",
+      "table": "managed_automation_definition",
+      "name": "ck_managed_automation_definition_managed_automation_definition_action",
+      "definition": "action_type = 'request_handoff'",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE managed_automation_definition ADD CONSTRAINT ck_managed_automation_definition_managed_automation_def_e977 CHECK (action_type = 'request_handoff')"
+    },
+    {
+      "operation": "add_constraint",
+      "table": "managed_automation_definition",
+      "name": "ck_managed_automation_definition_managed_automation_definition_status",
+      "definition": "status IN ('draft', 'active', 'inactive', 'archived')",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE managed_automation_definition ADD CONSTRAINT ck_managed_automation_definition_managed_automation_def_a165 CHECK (status IN ('draft', 'active', 'inactive', 'archived'))"
+    },
+    {
+      "operation": "add_constraint",
+      "table": "managed_automation_definition",
+      "name": "ck_managed_automation_definition_managed_automation_definition_trigger",
+      "definition": "trigger_type = 'conversation.inbound_received'",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE managed_automation_definition ADD CONSTRAINT ck_managed_automation_definition_managed_automation_def_0bf0 CHECK (trigger_type = 'conversation.inbound_received')"
+    },
+    {
+      "operation": "remove_index",
+      "table": "managed_automation_event_receipt",
+      "name": "ix_managed_automation_event_org_created",
+      "definition": "",
+      "columns": [
+        "organization_id",
+        "created_at"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_index",
+      "table": "managed_automation_event_receipt",
+      "name": "ix_managed_automation_event_source",
+      "definition": "",
+      "columns": [
+        "organization_id",
+        "source_type",
+        "source_event_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_index",
+      "table": "managed_automation_event_receipt",
+      "name": "ix_managed_automation_event_receipt_bot_id",
+      "definition": "",
+      "columns": [
+        "bot_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_managed_automation_event_receipt_bot_id ON managed_automation_event_receipt (bot_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "managed_automation_event_receipt",
+      "name": "ix_managed_automation_event_receipt_organization_id",
+      "definition": "",
+      "columns": [
+        "organization_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_managed_automation_event_receipt_organization_id ON managed_automation_event_receipt (organization_id)"
+    },
+    {
+      "operation": "remove_index",
+      "table": "managed_automation_execution",
+      "name": "ix_managed_automation_execution_definition_created",
+      "definition": "",
+      "columns": [
+        "automation_definition_id",
+        "created_at"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_index",
+      "table": "managed_automation_execution",
+      "name": "ix_managed_automation_execution_org_status",
+      "definition": "",
+      "columns": [
+        "organization_id",
+        "status"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_index",
+      "table": "managed_automation_execution",
+      "name": "ix_managed_automation_execution_claim",
+      "definition": "",
+      "columns": [
+        "status",
+        "available_at",
+        "lease_expires_at"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_index",
+      "table": "managed_automation_execution",
+      "name": "ix_managed_automation_execution_claim",
+      "definition": "",
+      "columns": [
+        "status",
+        "available_at"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_managed_automation_execution_claim ON managed_automation_execution (status, available_at)"
+    },
+    {
+      "operation": "add_index",
+      "table": "managed_automation_execution",
+      "name": "ix_managed_automation_execution_automation_definition_id",
+      "definition": "",
+      "columns": [
+        "automation_definition_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_managed_automation_execution_automation_definition_id ON managed_automation_execution (automation_definition_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "managed_automation_execution",
+      "name": "ix_managed_automation_execution_organization_id",
+      "definition": "",
+      "columns": [
+        "organization_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_managed_automation_execution_organization_id ON managed_automation_execution (organization_id)"
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "managed_automation_execution",
+      "name": "ck_managed_automation_execution_managed_automation_exec_af25",
+      "definition": "status::text = ANY (ARRAY['pending'::character varying, 'running'::character varying, 'succeeded'::character varying, 'failed'::character varying, 'skipped'::character varying, 'cancelled'::character varying]::text[])",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "managed_automation_execution",
+      "name": "ck_managed_automation_execution_managed_automation_exec_b3d3",
+      "definition": "attempt_count >= 0 AND attempt_count <= 3",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_constraint",
+      "table": "managed_automation_execution",
+      "name": "ck_managed_automation_execution_managed_automation_execution_status",
+      "definition": "status IN ('pending','running','succeeded','failed','skipped','cancelled')",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE managed_automation_execution ADD CONSTRAINT ck_managed_automation_execution_managed_automation_exec_af25 CHECK (status IN ('pending','running','succeeded','failed','skipped','cancelled'))"
+    },
+    {
+      "operation": "remove_index",
+      "table": "message",
+      "name": "ix_message_conversation_occurred",
+      "definition": "",
+      "columns": [
+        "conversation_id",
+        "occurred_at",
+        "id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_index",
+      "table": "message",
+      "name": "ix_message_organization_bot",
+      "definition": "",
+      "columns": [
+        "organization_id",
+        "bot_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_index",
+      "table": "message",
+      "name": "uq_message_inbound_external",
+      "definition": "",
+      "columns": [
+        "channel_type",
+        "external_message_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_index",
+      "table": "message",
+      "name": "uq_message_outbound_attempt",
+      "definition": "",
+      "columns": [
+        "outbound_attempt_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_index",
+      "table": "message",
+      "name": "ix_message_bot_id",
+      "definition": "",
+      "columns": [
+        "bot_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_message_bot_id ON message (bot_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "message",
+      "name": "ix_message_channel_type",
+      "definition": "",
+      "columns": [
+        "channel_type"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_message_channel_type ON message (channel_type)"
+    },
+    {
+      "operation": "add_index",
+      "table": "message",
+      "name": "ix_message_direction",
+      "definition": "",
+      "columns": [
+        "direction"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_message_direction ON message (direction)"
+    },
+    {
+      "operation": "add_index",
+      "table": "message",
+      "name": "ix_message_occurred_at",
+      "definition": "",
+      "columns": [
+        "occurred_at"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_message_occurred_at ON message (occurred_at)"
+    },
+    {
+      "operation": "add_index",
+      "table": "message",
+      "name": "ix_message_organization_id",
+      "definition": "",
+      "columns": [
+        "organization_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_message_organization_id ON message (organization_id)"
+    },
+    {
+      "operation": "remove_fk",
+      "table": "message",
+      "name": "fk_message_inbound_receipt_id_inbound_message_receipt",
+      "definition": "",
+      "columns": [
+        "inbound_receipt_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_fk",
+      "table": "message",
+      "name": "fk_message_outbound_attempt_id_outbound_message_attempt",
+      "definition": "",
+      "columns": [
+        "outbound_attempt_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "message",
+      "name": "ck_message_message_management_direction",
+      "definition": "direction IS NULL OR (direction::text = ANY (ARRAY['inbound'::character varying, 'outbound'::character varying]::text[]))",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "message",
+      "name": "ck_message_message_management_status",
+      "definition": "delivery_status IS NULL OR (delivery_status::text = ANY (ARRAY['received'::character varying, 'processed'::character varying, 'pending'::character varying, 'sent'::character varying, 'delivered'::character varying, 'read'::character varying, 'failed'::character varying]::text[]))",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_index",
+      "table": "organization",
+      "name": "ix_organization_slug",
+      "definition": "",
+      "columns": [
+        "slug"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "organization_onboarding",
+      "name": "ck_organization_onboarding_organization_onboarding_comp_ad62",
+      "definition": "status::text = 'completed'::text AND completed_at IS NOT NULL AND completed_by_user_id IS NOT NULL OR status::text = 'in_progress'::text AND completed_at IS NULL AND completed_by_user_id IS NULL",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "organization_onboarding",
+      "name": "ck_organization_onboarding_organization_onboarding_comp_ff4a",
+      "definition": "completed_at IS NULL OR completed_at >= started_at",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "organization_onboarding",
+      "name": "ck_organization_onboarding_organization_onboarding_vers_1091",
+      "definition": "version > 0",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_constraint",
+      "table": "organization_onboarding",
+      "name": "ck_organization_onboarding_organization_onboarding_completion_order",
+      "definition": "completed_at IS NULL OR completed_at >= started_at",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE organization_onboarding ADD CONSTRAINT ck_organization_onboarding_organization_onboarding_comp_ff4a CHECK (completed_at IS NULL OR completed_at >= started_at)"
+    },
+    {
+      "operation": "add_constraint",
+      "table": "organization_onboarding",
+      "name": "ck_organization_onboarding_organization_onboarding_completion_shape",
+      "definition": "(status = 'completed' AND completed_at IS NOT NULL AND completed_by_user_id IS NOT NULL) OR (status = 'in_progress' AND completed_at IS NULL AND completed_by_user_id IS NULL)",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE organization_onboarding ADD CONSTRAINT ck_organization_onboarding_organization_onboarding_comp_ad62 CHECK ((status = 'completed' AND completed_at IS NOT NULL AND completed_by_user_id IS NOT NULL) OR (status = 'in_progress' AND completed_at IS NULL AND completed_by_user_id IS NULL))"
+    },
+    {
+      "operation": "add_constraint",
+      "table": "organization_onboarding",
+      "name": "ck_organization_onboarding_organization_onboarding_version_positive",
+      "definition": "version > 0",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE organization_onboarding ADD CONSTRAINT ck_organization_onboarding_organization_onboarding_vers_1091 CHECK (version > 0)"
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "organization_plan_assignment",
+      "name": "ck_organization_plan_assignment_ck_plan_assignment_vers_f7cb",
+      "definition": "version > 0",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_constraint",
+      "table": "organization_plan_assignment",
+      "name": "ck_organization_plan_assignment_ck_plan_assignment_version_positive",
+      "definition": "version > 0",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE organization_plan_assignment ADD CONSTRAINT ck_organization_plan_assignment_ck_plan_assignment_vers_f7cb CHECK (version > 0)"
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "outbound_message_attempt",
+      "name": "ck_outbound_message_attempt_status",
+      "definition": "status::text = ANY (ARRAY['pending'::character varying, 'sent'::character varying, 'delivered'::character varying, 'read'::character varying, 'failed'::character varying]::text[])",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_constraint",
+      "table": "outbound_message_attempt",
+      "name": "ck_outbound_message_attempt_outbound_message_attempt_status",
+      "definition": "status IN ('pending', 'sent', 'delivered', 'read', 'failed')",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE outbound_message_attempt ADD CONSTRAINT ck_outbound_message_attempt_outbound_message_attempt_status CHECK (status IN ('pending', 'sent', 'delivered', 'read', 'failed'))"
+    },
+    {
+      "operation": "remove_constraint",
+      "table": "whatsapp_channel_configuration",
+      "name": "ck_whatsapp_channel_configuration_status",
+      "definition": "status::text = ANY (ARRAY['draft'::character varying, 'active'::character varying, 'inactive'::character varying]::text[])",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_constraint",
+      "table": "whatsapp_channel_configuration",
+      "name": "ck_whatsapp_channel_configuration_whatsapp_channel_configuration_status",
+      "definition": "status IN ('draft', 'active', 'inactive')",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE whatsapp_channel_configuration ADD CONSTRAINT ck_whatsapp_channel_configuration_whatsapp_channel_conf_60e7 CHECK (status IN ('draft', 'active', 'inactive'))"
+    }
+  ]
+}

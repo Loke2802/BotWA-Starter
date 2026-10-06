@@ -1,0 +1,304 @@
+{
+  "scope": "Local migrated PostgreSQL; all model modules loaded; read-only review",
+  "count": 27,
+  "by_operation": {
+    "remove_index": 1,
+    "add_index": 24,
+    "add_constraint": 2
+  },
+  "crm_findings": [],
+  "findings": [
+    {
+      "operation": "remove_index",
+      "table": "business_configuration",
+      "name": "ix_business_configuration_bot_id",
+      "definition": "",
+      "columns": [
+        "bot_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing."
+    },
+    {
+      "operation": "add_index",
+      "table": "business_configuration",
+      "name": "ix_business_configuration_bot_id",
+      "definition": "",
+      "columns": [
+        "bot_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE UNIQUE INDEX ix_business_configuration_bot_id ON business_configuration (bot_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "contact",
+      "name": "ix_contact_organization_id",
+      "definition": "",
+      "columns": [
+        "organization_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_contact_organization_id ON contact (organization_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "conversation",
+      "name": "ix_conversation_bot_id",
+      "definition": "",
+      "columns": [
+        "bot_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_conversation_bot_id ON conversation (bot_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "conversation",
+      "name": "ix_conversation_channel_configuration_id",
+      "definition": "",
+      "columns": [
+        "channel_configuration_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_conversation_channel_configuration_id ON conversation (channel_configuration_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "conversation",
+      "name": "ix_conversation_external_customer_id",
+      "definition": "",
+      "columns": [
+        "external_customer_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_conversation_external_customer_id ON conversation (external_customer_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "conversation",
+      "name": "ix_conversation_last_message_at",
+      "definition": "",
+      "columns": [
+        "last_message_at"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_conversation_last_message_at ON conversation (last_message_at)"
+    },
+    {
+      "operation": "add_index",
+      "table": "conversation",
+      "name": "ix_conversation_management_status",
+      "definition": "",
+      "columns": [
+        "management_status"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_conversation_management_status ON conversation (management_status)"
+    },
+    {
+      "operation": "add_index",
+      "table": "conversation",
+      "name": "ix_conversation_organization_id",
+      "definition": "",
+      "columns": [
+        "organization_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_conversation_organization_id ON conversation (organization_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "handoff_event",
+      "name": "ix_handoff_event_handoff_session_id",
+      "definition": "",
+      "columns": [
+        "handoff_session_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_handoff_event_handoff_session_id ON handoff_event (handoff_session_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "handoff_event",
+      "name": "ix_handoff_event_organization_id",
+      "definition": "",
+      "columns": [
+        "organization_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_handoff_event_organization_id ON handoff_event (organization_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "handoff_session",
+      "name": "ix_handoff_session_bot_id",
+      "definition": "",
+      "columns": [
+        "bot_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_handoff_session_bot_id ON handoff_session (bot_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "handoff_session",
+      "name": "ix_handoff_session_organization_id",
+      "definition": "",
+      "columns": [
+        "organization_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_handoff_session_organization_id ON handoff_session (organization_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "handoff_session",
+      "name": "ix_handoff_session_status",
+      "definition": "",
+      "columns": [
+        "status"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_handoff_session_status ON handoff_session (status)"
+    },
+    {
+      "operation": "add_index",
+      "table": "managed_automation_definition",
+      "name": "ix_managed_automation_definition_bot_id",
+      "definition": "",
+      "columns": [
+        "bot_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_managed_automation_definition_bot_id ON managed_automation_definition (bot_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "managed_automation_definition",
+      "name": "ix_managed_automation_definition_organization_id",
+      "definition": "",
+      "columns": [
+        "organization_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_managed_automation_definition_organization_id ON managed_automation_definition (organization_id)"
+    },
+    {
+      "operation": "add_constraint",
+      "table": "managed_automation_definition",
+      "name": "ck_managed_automation_definition_managed_automation_definition_action",
+      "definition": "action_type = 'request_handoff'",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE managed_automation_definition ADD CONSTRAINT ck_managed_automation_definition_managed_automation_def_e977 CHECK (action_type = 'request_handoff')"
+    },
+    {
+      "operation": "add_constraint",
+      "table": "managed_automation_definition",
+      "name": "ck_managed_automation_definition_managed_automation_definition_trigger",
+      "definition": "trigger_type = 'conversation.inbound_received'",
+      "columns": [],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "ALTER TABLE managed_automation_definition ADD CONSTRAINT ck_managed_automation_definition_managed_automation_def_0bf0 CHECK (trigger_type = 'conversation.inbound_received')"
+    },
+    {
+      "operation": "add_index",
+      "table": "managed_automation_event_receipt",
+      "name": "ix_managed_automation_event_receipt_bot_id",
+      "definition": "",
+      "columns": [
+        "bot_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_managed_automation_event_receipt_bot_id ON managed_automation_event_receipt (bot_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "managed_automation_event_receipt",
+      "name": "ix_managed_automation_event_receipt_organization_id",
+      "definition": "",
+      "columns": [
+        "organization_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_managed_automation_event_receipt_organization_id ON managed_automation_event_receipt (organization_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "managed_automation_execution",
+      "name": "ix_managed_automation_execution_automation_definition_id",
+      "definition": "",
+      "columns": [
+        "automation_definition_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_managed_automation_execution_automation_definition_id ON managed_automation_execution (automation_definition_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "managed_automation_execution",
+      "name": "ix_managed_automation_execution_organization_id",
+      "definition": "",
+      "columns": [
+        "organization_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_managed_automation_execution_organization_id ON managed_automation_execution (organization_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "message",
+      "name": "ix_message_bot_id",
+      "definition": "",
+      "columns": [
+        "bot_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_message_bot_id ON message (bot_id)"
+    },
+    {
+      "operation": "add_index",
+      "table": "message",
+      "name": "ix_message_channel_type",
+      "definition": "",
+      "columns": [
+        "channel_type"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_message_channel_type ON message (channel_type)"
+    },
+    {
+      "operation": "add_index",
+      "table": "message",
+      "name": "ix_message_direction",
+      "definition": "",
+      "columns": [
+        "direction"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_message_direction ON message (direction)"
+    },
+    {
+      "operation": "add_index",
+      "table": "message",
+      "name": "ix_message_occurred_at",
+      "definition": "",
+      "columns": [
+        "occurred_at"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_message_occurred_at ON message (occurred_at)"
+    },
+    {
+      "operation": "add_index",
+      "table": "message",
+      "name": "ix_message_organization_id",
+      "definition": "",
+      "columns": [
+        "organization_id"
+      ],
+      "decision": "Preserve existing object; inspect semantic equivalence/name before changing.",
+      "proposal": "CREATE INDEX ix_message_organization_id ON message (organization_id)"
+    }
+  ]
+}

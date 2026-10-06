@@ -1,9 +1,18 @@
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, Index, String
+from sqlalchemy import (
+    JSON,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    column,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.schema import conv
 from sqlalchemy.types import Uuid
 
 from app.infrastructure.database import Base
@@ -14,40 +23,42 @@ class AuditEventModel(Base):
     __table_args__ = (
         CheckConstraint(
             "actor_type IN ('user','system','automation')",
-            name="audit_event_actor_type",
+            name=conv("ck_audit_event_ck_audit_event_actor_type"),
         ),
-        CheckConstraint("result = 'success'", name="audit_event_result"),
+        CheckConstraint(
+            "result = 'success'", name=conv("ck_audit_event_ck_audit_event_result")
+        ),
         CheckConstraint(
             "(actor_type = 'user' AND actor_user_id IS NOT NULL "
             "AND actor_role IS NOT NULL) OR (actor_type IN "
             "('system','automation') AND actor_user_id IS NULL "
             "AND actor_role IS NULL)",
-            name="audit_event_actor_shape",
+            name=conv("ck_audit_event_ck_audit_event_actor_shape"),
         ),
         Index(
             "ix_audit_event_org_occurred_id",
             "organization_id",
-            "occurred_at",
-            "id",
+            column("occurred_at").desc(),
+            column("id").desc(),
         ),
         Index(
             "ix_audit_event_org_action_occurred",
             "organization_id",
             "action",
-            "occurred_at",
+            column("occurred_at").desc(),
         ),
         Index(
             "ix_audit_event_org_actor_occurred",
             "organization_id",
             "actor_user_id",
-            "occurred_at",
+            column("occurred_at").desc(),
         ),
         Index(
             "ix_audit_event_org_resource_occurred",
             "organization_id",
             "resource_type",
             "resource_id",
-            "occurred_at",
+            column("occurred_at").desc(),
         ),
     )
 

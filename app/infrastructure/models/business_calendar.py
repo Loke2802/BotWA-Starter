@@ -16,6 +16,7 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.schema import conv
 from sqlalchemy.types import Uuid
 
 from app.infrastructure.database import Base
@@ -98,18 +99,20 @@ class BusinessCalendarWeeklyIntervalModel(Base):
             name="fk_business_weekly_interval_org_calendar",
         ),
         CheckConstraint(
-            "weekday BETWEEN 1 AND 7", name="business_weekly_interval_weekday"
+            "weekday BETWEEN 1 AND 7",
+            name=conv("ck_business_calendar_weekly_interval_business_weekly_in_b9de"),
         ),
         CheckConstraint(
             "start_minute >= 0 AND start_minute < 1440",
-            name="business_weekly_interval_start",
+            name=conv("ck_business_calendar_weekly_interval_business_weekly_in_82f0"),
         ),
         CheckConstraint(
             "end_minute > 0 AND end_minute <= 1440",
-            name="business_weekly_interval_end",
+            name=conv("ck_business_calendar_weekly_interval_business_weekly_in_f4f4"),
         ),
         CheckConstraint(
-            "start_minute < end_minute", name="business_weekly_interval_order"
+            "start_minute < end_minute",
+            name=conv("ck_business_calendar_weekly_interval_business_weekly_in_68d2"),
         ),
         UniqueConstraint(
             "calendar_id",
@@ -150,9 +153,12 @@ class BusinessCalendarDateExceptionModel(Base):
         CheckConstraint(
             "mode IN "
             "('closed_all_day','open_all_day','replace','add_open','close_partial')",
-            name="business_date_exception_mode",
+            name=conv("ck_business_calendar_date_exception_business_date_excep_6916"),
         ),
-        CheckConstraint("version > 0", name="business_date_exception_version_positive"),
+        CheckConstraint(
+            "version > 0",
+            name=conv("ck_business_calendar_date_exception_business_date_excep_d9ad"),
+        ),
         UniqueConstraint(
             "calendar_id", "local_date", name="uq_business_date_exception_date"
         ),
@@ -269,7 +275,10 @@ class BusinessCalendarOverrideModel(Base):
         CheckConstraint(
             "decision IN ('open', 'closed')", name="business_override_decision"
         ),
-        CheckConstraint("version > 0", name="business_override_version_positive"),
+        CheckConstraint(
+            "version > 0",
+            name=conv("ck_business_calendar_override_business_override_version_12bb"),
+        ),
         CheckConstraint(
             "ends_at IS NULL OR starts_at < ends_at",
             name="business_override_window",

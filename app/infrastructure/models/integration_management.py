@@ -21,6 +21,7 @@ from app.infrastructure.database import Base
 class IntegrationConnectionModel(Base):
     __tablename__ = "integration_connection"
     __table_args__ = (
+        Index("ix_integration_connection_org_bot", "organization_id", "bot_id"),
         CheckConstraint(
             "status IN ('draft', 'active', 'inactive', 'archived')",
             name="integration_connection_status",

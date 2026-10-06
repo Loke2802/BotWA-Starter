@@ -15,6 +15,7 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.schema import conv
 from sqlalchemy.types import Uuid
 
 from app.infrastructure.database import Base
@@ -66,7 +67,7 @@ class BillingPriceModel(Base):
         ),
         CheckConstraint("status IN ('active','retired')", name="billing_price_status"),
         UniqueConstraint(
-            "provider", "provider_price_id", name="uq_billing_price_provider_price"
+            "provider", "provider_price_id", name=conv("uq_billing_price_provider")
         ),
     )
 
@@ -175,12 +176,18 @@ class SubscriptionModel(Base):
 class BillingProviderEventModel(Base):
     __tablename__ = "billing_provider_event"
     __table_args__ = (
+        UniqueConstraint(
+            "provider",
+            "provider_event_id",
+            name=conv("uq_billing_provider_event_provider"),
+        ),
         CheckConstraint(
             "status IN ('received','processed','ignored','failed')",
             name="billing_provider_event_status",
         ),
         CheckConstraint(
-            "attempts > 0", name="billing_provider_event_attempts_positive"
+            "attempts > 0",
+            name=conv("ck_billing_provider_event_billing_provider_event_attemp_e53c"),
         ),
         Index("ix_billing_event_status_received", "status", "received_at"),
     )

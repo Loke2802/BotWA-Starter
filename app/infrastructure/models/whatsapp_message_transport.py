@@ -12,6 +12,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.schema import conv
 from sqlalchemy.types import Uuid
 
 from app.infrastructure.database import Base
@@ -30,7 +31,7 @@ class InboundMessageReceiptModel(Base):
         ),
         CheckConstraint(
             "status IN ('received', 'processing', 'processed', 'failed')",
-            name="inbound_message_receipt_status",
+            name=conv("ck_inbound_message_receipt_status"),
         ),
         Index(
             "ix_inbound_message_receipt_organization_bot_status",
@@ -113,7 +114,7 @@ class OutboundMessageAttemptModel(Base):
         ),
         CheckConstraint(
             "status IN ('pending', 'sent', 'delivered', 'read', 'failed')",
-            name="outbound_message_attempt_status",
+            name=conv("ck_outbound_message_attempt_status"),
         ),
         Index(
             "ix_outbound_message_attempt_organization_bot_status",

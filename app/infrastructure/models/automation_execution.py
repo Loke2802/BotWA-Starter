@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import JSON, DateTime, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import Uuid
 
@@ -14,7 +15,9 @@ class AutomationExecutionModel(Base):
     execution_id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
     plan_id: Mapped[UUID] = mapped_column(Uuid, nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
-    request_data: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    request_data: Mapped[dict[str, object] | None] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql"), nullable=True
+    )
     started_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
@@ -28,7 +31,9 @@ class AutomationExecutionModel(Base):
     total_tasks: Mapped[int] = mapped_column(Integer, default=0)
     completed_tasks: Mapped[int] = mapped_column(Integer, default=0)
     failed_tasks: Mapped[int] = mapped_column(Integer, default=0)
-    result_data: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    result_data: Mapped[dict[str, object] | None] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql"), nullable=True
+    )
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

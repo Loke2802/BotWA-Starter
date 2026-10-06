@@ -12,6 +12,7 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.schema import conv
 from sqlalchemy.types import Uuid
 
 from app.infrastructure.database import Base
@@ -22,15 +23,15 @@ class ConversationManagementEventModel(Base):
     __table_args__ = (
         CheckConstraint(
             "from_status IN ('open','closed','archived')",
-            name="conversation_management_event_from_status",
+            name=conv("ck_conversation_management_event_ck_conversation_manage_460b"),
         ),
         CheckConstraint(
             "to_status IN ('open','closed','archived')",
-            name="conversation_management_event_to_status",
+            name=conv("ck_conversation_management_event_ck_conversation_manage_c862"),
         ),
         CheckConstraint(
             "actor_type IN ('user','system','automation')",
-            name="conversation_management_event_actor_type",
+            name=conv("ck_conversation_management_event_ck_conversation_manage_cf92"),
         ),
         Index(
             "ix_conversation_management_event_org_occurred",
@@ -77,15 +78,17 @@ class HandoffCycleModel(Base):
         CheckConstraint(
             "resolution_type IS NULL OR "
             "resolution_type IN ('resolved','returned_to_bot')",
-            name="handoff_cycle_resolution_type",
+            name=conv(
+                "ck_handoff_cycle_ck_handoff_cycle_handoff_cycle_resolution_type"
+            ),
         ),
         CheckConstraint(
             "activated_at IS NULL OR activated_at >= requested_at",
-            name="handoff_cycle_activated_after_request",
+            name=conv("ck_handoff_cycle_ck_handoff_cycle_handoff_cycle_activat_9eec"),
         ),
         CheckConstraint(
             "resolved_at IS NULL OR resolved_at >= requested_at",
-            name="handoff_cycle_resolved_after_request",
+            name=conv("ck_handoff_cycle_ck_handoff_cycle_handoff_cycle_resolve_24f2"),
         ),
         Index("ix_handoff_cycle_org_requested", "organization_id", "requested_at"),
         Index(
@@ -142,7 +145,7 @@ class AnalyticsDailySummaryModel(Base):
             "AND automation_executions_created >= 0 AND automation_succeeded >= 0 "
             "AND automation_failed >= 0 AND automation_skipped >= 0 "
             "AND automation_cancelled >= 0 AND contacts_created >= 0",
-            name="analytics_daily_summary_nonnegative",
+            name=conv("ck_analytics_daily_summary_ck_analytics_daily_summary_a_68ec"),
         ),
         Index(
             "uq_analytics_daily_summary_bot",

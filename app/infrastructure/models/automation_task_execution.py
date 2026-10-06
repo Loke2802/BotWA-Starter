@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import Uuid
 
@@ -29,7 +30,9 @@ class AutomationTaskExecutionModel(Base):
         DateTime(timezone=True), nullable=True
     )
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
-    result_data: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    result_data: Mapped[dict[str, object] | None] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

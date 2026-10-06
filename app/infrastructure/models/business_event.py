@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import JSON, DateTime, String
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import Uuid
 
@@ -16,7 +17,7 @@ class BusinessEventModel(Base):
     conversation_id: Mapped[UUID | None] = mapped_column(Uuid, nullable=True)
     business_case_id: Mapped[UUID | None] = mapped_column(Uuid, nullable=True)
     payload: Mapped[dict[str, object] | None] = mapped_column(
-        JSON, nullable=True, default=dict
+        JSON().with_variant(JSONB, "postgresql"), nullable=True, default=dict
     )
     source: Mapped[str] = mapped_column(String(100), nullable=False)
     created_at: Mapped[datetime] = mapped_column(

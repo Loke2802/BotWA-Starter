@@ -115,6 +115,22 @@ class OpportunityList(BaseModel):
     has_next: bool
 
 
+FollowUpFilter = Literal["all", "overdue", "upcoming", "without_action"]
+
+
+class FollowUpSummary(BaseModel):
+    open: int
+    overdue: int
+    upcoming: int
+    without_action: int
+
+
+class FollowUpList(OpportunityList):
+    as_of: datetime
+    timezone: str
+    summary: FollowUpSummary
+
+
 class HistoryRecord(BaseModel):
     version: int
     actor_user_id: UUID

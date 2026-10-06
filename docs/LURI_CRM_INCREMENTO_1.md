@@ -1,5 +1,7 @@
 # Luri CRM: conversación, ficha, oportunidad y próxima acción
 
+**Actualización:** la [continuación local](LURI_CRM_CONTINUACION_LOCAL_2026-10-06.md) añade Seguimiento y resuelve el drift histórico con `0028`. Los resultados de este documento corresponden a la entrega inicial.
+
 Fecha: 06/10/2026. Rama: `codex/luri-crm-increment-1`.
 Base: `026ca10d3276ed06cb8f644549e807a684921f22` (PR #45), referencia remota
 guardada localmente. El checkout principal y sus cambios previos se conservan.

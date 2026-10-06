@@ -1,0 +1,38 @@
+{
+  "environment": "local API, bearer authentication, PostgreSQL",
+  "unauthenticated_denied": true,
+  "roles": [
+    {
+      "role": "organization_owner",
+      "authenticated": true,
+      "own_scope": true,
+      "foreign_scope_denied": true,
+      "content_redacted": false,
+      "write_expected": true
+    },
+    {
+      "role": "operator",
+      "authenticated": true,
+      "own_scope": true,
+      "foreign_scope_denied": true,
+      "content_redacted": false,
+      "write_expected": true
+    },
+    {
+      "role": "viewer",
+      "authenticated": true,
+      "own_scope": true,
+      "foreign_scope_denied": true,
+      "content_redacted": true,
+      "write_expected": false
+    },
+    {
+      "role": "other_company",
+      "authenticated": true,
+      "own_scope": true,
+      "foreign_scope_denied": true,
+      "content_redacted": false,
+      "write_expected": false
+    }
+  ]
+}

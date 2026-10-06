@@ -47,6 +47,8 @@ window.LuriOpportunities = (() => {
       <label>Etapa<select name="stage_code">${data.stages.filter(s=>item || s.kind==="open").map(s=>`<option value="${esc(s.code)}" ${s.code===(item?.stage_code || draft?.stage_code) ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select></label>
       <label>Responsable<select name="assigned_user_id" required><option value="">Seleccionar responsable</option>${data.assignees.map(u=>`<option value="${esc(u.id)}" ${u.id===(item?.assigned_user_id || draft?.assigned_user_id) ? "selected" : ""}>${esc(u.name)}</option>`).join("")}</select></label>
       <label>Necesidad<textarea name="need" maxlength="4000">${esc(item?.need || draft?.need)}</textarea></label>
+      <label><input type="checkbox" name="defer_action" ${item?.no_action_reason || draft?.no_action_reason ? "checked" : ""}> Sin acción programada por ahora</label>
+      <label>Motivo sin acción<input name="no_action_reason" maxlength="1000" value="${esc(item?.no_action_reason || draft?.no_action_reason)}"></label>
       <label>Próxima acción<input name="description" maxlength="2000" value="${esc(item?.next_action?.description || draft?.next_action?.description)}" ${closed ? "" : "required"}></label>
       <label>Fecha y hora<input type="datetime-local" name="due_at" value="${local(item?.next_action?.due_at || draft?.next_action?.due_at)}" ${closed ? "" : "required"}><small>Entrada en hora de tu dispositivo (${esc(Intl.DateTimeFormat().resolvedOptions().timeZone)}); se mostrará en ${esc(data.info.timezone)}.</small></label>
       <label>Motivo de cierre<input name="close_reason" maxlength="1000" value="${esc(item?.close_reason)}"></label>
@@ -56,11 +58,15 @@ window.LuriOpportunities = (() => {
     const requirements = () => {
       const kind = data.stages.find(s=>s.code===f.elements.stage_code.value).kind;
       const terminal = kind!=="open";
-      f.elements.description.required = !terminal; f.elements.due_at.required = !terminal;
-      f.elements.description.disabled = terminal; f.elements.due_at.disabled = terminal;
+      const deferred = !terminal && f.elements.defer_action.checked;
+      f.elements.description.required = !terminal && !deferred; f.elements.due_at.required = !terminal && !deferred;
+      f.elements.description.disabled = terminal || deferred; f.elements.due_at.disabled = terminal || deferred;
+      f.elements.defer_action.disabled = terminal;
+      f.elements.no_action_reason.required = deferred; f.elements.no_action_reason.disabled = !deferred;
       f.elements.close_reason.required = terminal; f.elements.close_reason.disabled = !terminal;
     };
     f.elements.stage_code.addEventListener("change", requirements); requirements();
+    f.elements.defer_action.addEventListener("change", requirements);
   }
   async function action(c, name, id, refresh) {
     if (!alive(c) || c.busy) return;
@@ -85,7 +91,8 @@ window.LuriOpportunities = (() => {
     const f=new FormData(event.target), item=c.commercialEdit;
     const stage=c.commercial.stages.find(s=>s.code===f.get("stage_code"));
     const payload={title:f.get("title"), need:f.get("need")||null, stage_code:stage.code, assigned_user_id:f.get("assigned_user_id"),
-      next_action:stage.kind==="open" ? {description:f.get("description"),due_at:new Date(f.get("due_at")).toISOString()} : null,
+      next_action:stage.kind==="open" && !f.has("defer_action") ? {description:f.get("description"),due_at:new Date(f.get("due_at")).toISOString()} : null,
+      no_action_reason:stage.kind==="open" && f.has("defer_action") ? f.get("no_action_reason") : null,
       close_reason:stage.kind==="open" ? null : f.get("close_reason"), amount:item?.amount ?? null, currency:item?.currency ?? null};
     if(item){payload.version=item.version;payload.complete_previous_action=f.has("complete_previous_action");}
     else {payload.contact_id=c.commercial.info.contact_id;payload.conversation_id=c.selected;c.commercialDraft=payload;}
@@ -106,7 +113,7 @@ window.LuriOpportunities = (() => {
       saved=true;c.commercialDraft=null;
       if(!item)sessionStorage.removeItem(`luri.opportunity.${c.user.id}.${c.org}.${c.selected}`);
       if(alive(c)){await refresh();c.root.querySelector("#commercial-feedback").textContent="Oportunidad guardada correctamente.";}
-    } catch(error){if(alive(c)) (c.root.querySelector("#commercial-form-error")||c.root.querySelector("#commercial-feedback")).textContent=saved?"Guardada, pero no se pudo actualizar la vista. Pulsa Actualizar.":`${error.message} Reintentar la misma creación conserva la clave y evita duplicados.`;}
+    } catch(error){if(alive(c) && !saved)c.root.querySelector("#commercial-feedback").textContent="";if(alive(c)) (c.root.querySelector("#commercial-form-error")||c.root.querySelector("#commercial-feedback")).textContent=saved?"Guardada, pero no se pudo actualizar la vista. Pulsa Actualizar.":item && error.status===409 ? "Esta oportunidad cambió en otra sesión. Pulsa Actualizar y revisa el historial antes de volver a editar." : item ? error.message : `${error.message} Reintentar la misma creación conserva la clave y evita duplicados.`;}
     finally{c.busy=false;if(alive(c))formNode.querySelectorAll("button").forEach(b=>b.disabled=false);}
   }
   return {load,markup,action,submit};

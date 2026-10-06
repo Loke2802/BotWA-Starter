@@ -7,6 +7,10 @@ conversación → ficha existente → oportunidad → responsable, etapa y próx
 Implementado en rama independiente; no acredita despliegue ni validación externa.
 Requisitos: [LURI-CTX-001](docs/LURI-CTX-001_CONTEXTO_MAESTRO_CRM_2026-10-06.md).
 
+[Continuación local](docs/LURI_CRM_CONTINUACION_LOCAL_2026-10-06.md): seguimiento
+comercial, esquema reconciliado (`0028`), recuperación de backups y validación
+autenticada de roles. No requiere DigitalOcean; no acredita despliegue.
+
 ## Antecedente - Phase 3 / PRD-001 a PRD-023 CLOSED
 
 Quality Gates (validación técnica PRD-023):

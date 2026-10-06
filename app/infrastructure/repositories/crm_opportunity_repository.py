@@ -21,12 +21,13 @@ class OpportunityRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
 
-    def contact(self, org: UUID, contact_id: UUID) -> ContactModel:
-        row = self.session.scalar(
-            select(ContactModel)
-            .where(ContactModel.id == contact_id, ContactModel.organization_id == org)
-            .with_for_update()
+    def contact(
+        self, org: UUID, contact_id: UUID, *, lock: bool = False
+    ) -> ContactModel:
+        query = select(ContactModel).where(
+            ContactModel.id == contact_id, ContactModel.organization_id == org
         )
+        row = self.session.scalar(query.with_for_update() if lock else query)
         if row is None:
             raise CrmNotFound()
         return row
@@ -44,12 +45,11 @@ class OpportunityRepository:
             raise CrmNotFound()
         return row
 
-    def organization(self, org: UUID) -> OrganizationModel:
-        row = self.session.scalar(
-            select(OrganizationModel)
-            .where(OrganizationModel.id == org, OrganizationModel.status == "active")
-            .with_for_update()
+    def organization(self, org: UUID, *, lock: bool = False) -> OrganizationModel:
+        query = select(OrganizationModel).where(
+            OrganizationModel.id == org, OrganizationModel.status == "active"
         )
+        row = self.session.scalar(query.with_for_update() if lock else query)
         if row is None:
             raise CrmNotFound()
         return row

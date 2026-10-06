@@ -99,7 +99,7 @@ class OpportunityService:
         require_scoped_permission(actor, "crm.stages.manage", org)
         self._read(org, actor)
         try:
-            self.repository.organization(org)
+            self.repository.organization(org, lock=True)
             self._initialize_stages(org)
             existing = {s.code: s for s in self.repository.stages(org)}
             if not set(existing).issubset({s.code for s in data.stages}):
@@ -327,8 +327,8 @@ class OpportunityService:
         ).hexdigest()
         try:
             # Serialize keys across contacts and initialize stages under one lock.
-            self.repository.organization(org)
-            self.repository.contact(org, data.contact_id)
+            self.repository.organization(org, lock=True)
+            self.repository.contact(org, data.contact_id, lock=True)
             duplicate = self.repository.duplicate(org, actor.id, key)
             if duplicate:
                 if duplicate.request_digest != digest:
@@ -365,7 +365,7 @@ class OpportunityService:
     ) -> OpportunityRecord:
         self._write(org, actor)
         try:
-            self.repository.organization(org)
+            self.repository.organization(org, lock=True)
             row = self.repository.opportunity(org, opportunity_id, lock=True)
             if row.version != data.version:
                 raise CrmConflict(
@@ -393,7 +393,7 @@ class OpportunityService:
     ) -> OpportunityRecord:
         self._write(org, actor)
         try:
-            self.repository.organization(org)
+            self.repository.organization(org, lock=True)
             row = self.repository.opportunity(org, opportunity_id, lock=True)
             self._link(row, conversation_id, actor)
             self.session.commit()

@@ -7,11 +7,14 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.crm_routes import Actor
 from app.api.whatsapp_configuration_dependencies import get_whatsapp_secret_cipher
+from app.application.crm.follow_up import FollowUpService
 from app.application.crm.service import OpportunityService
 from app.domain.crm.contracts import (
     CommercialContext,
     CrmConflict,
     CrmNotFound,
+    FollowUpFilter,
+    FollowUpList,
     HistoryRecord,
     OpportunityCreate,
     OpportunityList,
@@ -43,6 +46,31 @@ def get_opportunity_service() -> Generator[OpportunityService]:
 
 
 Service = Annotated[OpportunityService, Depends(get_opportunity_service)]
+
+
+@router.get("/crm/follow-up", response_model=FollowUpList)
+def follow_up(
+    organization_id: UUID,
+    actor: Actor,
+    service: Service,
+    due: FollowUpFilter = "all",
+    assigned_user_id: UUID | None = None,
+    stage_code: str | None = Query(default=None, max_length=40),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+) -> FollowUpList:
+    try:
+        return FollowUpService(service.session, service.cipher).list(
+            organization_id,
+            actor,
+            due=due,
+            assigned_user_id=assigned_user_id,
+            stage_code=stage_code,
+            page=page,
+            page_size=page_size,
+        )
+    except (ValueError, SQLAlchemyError) as exc:
+        raise fail(exc) from exc
 
 
 def fail(exc: Exception) -> HTTPException:

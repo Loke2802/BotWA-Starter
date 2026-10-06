@@ -10,6 +10,7 @@ def test_portal_shell_and_assets_are_served() -> None:
     script = client.get("/portal/assets/portal.js")
     conversations = client.get("/portal/assets/conversations.js")
     opportunities = client.get("/portal/assets/opportunities.js")
+    follow_up = client.get("/portal/assets/follow-up.js")
 
     assert page.status_code == 200
     assert "Bienvenido a Luri" in page.text
@@ -22,3 +23,6 @@ def test_portal_shell_and_assets_are_served() -> None:
     assert "/portal/assets/conversations.js" in page.text
     assert opportunities.status_code == 200
     assert "/portal/assets/opportunities.js" in page.text
+    assert follow_up.status_code == 200
+    assert "/portal/assets/follow-up.js" in page.text
+    assert 'data-view="follow-up"' in page.text

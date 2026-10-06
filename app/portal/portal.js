@@ -89,6 +89,7 @@ async function login(event) {
 }
 
 function signOut() {
+  window.LuriFollowUp.reset();
   window.LuriConversations.reset();
   window.LuriCRM.reset();
   renderGeneration++;
@@ -266,6 +267,7 @@ async function renderConfiguration() {
 let renderGeneration = 0;
 async function renderView() {
   const ticket = ++renderGeneration;
+  window.LuriFollowUp.close();
   window.LuriCRM.close();
   window.LuriConversations.reset();
   const organizationId = state.activeOrganization;
@@ -276,6 +278,7 @@ async function renderView() {
     overview: () => renderOverview(organizationId),
     conversations: () => renderConversations(organizationId),
     contacts: () => renderContacts(organizationId),
+    "follow-up": () => window.LuriFollowUp.render(organizationId, api, state.user, state.permissions, renderView),
     team: () => renderTeam(),
     configuration: () => renderConfiguration(),
   };
@@ -284,6 +287,7 @@ async function renderView() {
     if (ticket !== renderGeneration || !state.token || state.activeOrganization !== organizationId) return;
     content.innerHTML = markup;
     if (state.view === "contacts") window.LuriCRM.mount(content);
+    if (state.view === "follow-up") window.LuriFollowUp.mount(content);
     if (state.view === "conversations") window.LuriConversations.mount(content);
   } catch (error) {
     if (ticket !== renderGeneration || !state.token) return;
@@ -303,6 +307,7 @@ document.querySelector("#new-organization-name").addEventListener("input", (even
 });
 organizationForm.addEventListener("submit", createOrganization);
 picker.addEventListener("change", async (event) => {
+  window.LuriFollowUp.reset();
   window.LuriCRM.reset();
   state.activeOrganization = event.target.value;
   sessionStorage.setItem(organizationKey, state.activeOrganization);

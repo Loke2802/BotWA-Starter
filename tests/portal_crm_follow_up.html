@@ -1,0 +1,65 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>Pruebas de seguimiento CRM</title>
+<link rel="stylesheet" href="../app/portal/portal.css"><main style="padding:24px"><h1>Pruebas de seguimiento CRM</h1><p>API y datos ficticios.</p><pre id="results">Ejecutando…</pre><div id="portal-notice" hidden></div><div id="fixture"></div></main>
+<script src="../app/portal/crm.js"></script><script src="../app/portal/opportunities.js"></script><script src="../app/portal/follow-up.js"></script>
+<script>
+(async()=>{
+  const root=document.querySelector('#fixture'), output=document.querySelector('#results'), report=[];
+  const permissions=['contacts.read','crm.opportunities.read','crm.opportunities.read_content','crm.opportunities.write'];
+  const stages=[{code:'new',name:'Consulta nueva',kind:'open'},{code:'offer',name:'Oferta presentada',kind:'open'},{code:'won',name:'Ganada',kind:'won'}];
+  let calls=[], viewer=false, delayed=null, draws=0, rejectEdit=false;
+  let item={id:'op',contact_id:'contact',title:'Propuesta <img src=x onerror=alert(1)>',need:'Necesidad privada',stage_code:'new',stage_kind:'open',assigned_user_id:'owner',version:2,next_action:{description:'Llamar al cliente',due_at:'2026-10-05T15:00:00Z'},no_action_reason:null};
+  const wait=async f=>{for(let i=0;i<150;i++){if(f())return;await new Promise(r=>setTimeout(r,10));}throw Error('Tiempo agotado');};
+  const assert=(v,m)=>{if(!v)throw Error(m);};
+  async function api(path,options={}){
+    calls.push({path,...options});
+    if(path.endsWith('/stages'))return stages;
+    if(path.endsWith('/assignees'))return [{id:'owner',name:'Responsable ficticio'}];
+    if(path.includes('/follow-up?')){
+      if(delayed){const d=delayed;delayed=null;await d;}
+      const row=viewer?{...item,title:'Oportunidad',need:null,no_action_reason:null,next_action:item.next_action?{...item.next_action,description:'Contenido restringido'}:null}:item;
+      return {items:[row],total:1,page:1,page_size:20,has_next:false,as_of:'2026-10-06T15:00:00Z',timezone:'America/Lima',summary:{open:1,overdue:row.next_action?1:0,upcoming:0,without_action:row.next_action?0:1}};
+    }
+    if(path.includes('/history'))return [{version:item.version,actor_user_id:'owner',occurred_at:'2026-10-06T15:00:00Z',snapshot:item}];
+    if(options.method==='PATCH'){
+      if(rejectEdit){const error=new Error('Conflicto de versión');error.status=409;throw error;}
+      const data=JSON.parse(options.body);assert(data.version===item.version,'Versión esperada');
+      item={...item,...data,version:item.version+1};return item;
+    }
+    if(path.includes('/opportunities/'))return item;
+    throw Error('Ruta no esperada: '+path);
+  }
+  async function refresh(){root.innerHTML=await LuriFollowUp.render('company',api,{id:'owner'},viewer?['contacts.read','crm.opportunities.read']:permissions,refresh);LuriFollowUp.mount(root);draws++;}
+  async function test(name,fn){await fn();report.push('PASS '+name);output.textContent=report.join('\n');}
+  try{
+    await test('Cola, vencimientos y escape de HTML',async()=>{
+      LuriFollowUp.reset();await refresh();assert(root.textContent.includes('Acción vencida'),'Debe marcar vencida');assert(!root.querySelector('img'),'No debe ejecutar HTML');
+    });
+    await test('Filtros llegan al servidor y conservan el responsable',async()=>{
+      const previous=draws;root.querySelector('[name="assigned_user_id"]').value='owner';root.querySelector('#follow-up-filters').requestSubmit();await wait(()=>draws>previous);
+      await wait(()=>root.querySelector('[data-due="overdue"]'));const filtered=draws;root.querySelector('[data-due="overdue"]').click();await wait(()=>draws>filtered);assert(calls.some(c=>c.path.includes('due=overdue')&&c.path.includes('assigned_user_id=owner')),'Conservar responsable');
+    });
+    await test('Editor compartido actualiza versión y conserva motivo sin acción',async()=>{
+      await wait(()=>root.querySelector('[data-commercial="edit"]'));root.querySelector('[data-commercial="edit"]').click();await wait(()=>root.querySelector('#commercial-form'));
+      root.querySelector('[name="defer_action"]').click();root.querySelector('[name="no_action_reason"]').value='Esperar decisión';root.querySelector('#commercial-form').requestSubmit();await wait(()=>calls.some(c=>c.method==='PATCH'));
+      const sent=JSON.parse(calls.find(c=>c.method==='PATCH').body);assert(sent.version===2&&sent.next_action===null&&sent.no_action_reason==='Esperar decisión','Payload coherente');await wait(()=>!root.querySelector('#commercial-form'));
+    });
+    await test('Historial reutilizado sin otro módulo de edición',async()=>{
+      root.querySelector('[data-commercial="history"]').click();await wait(()=>root.textContent.includes('Versión 3'));
+    });
+    await test('Conflicto visible conserva datos y termina el aviso de guardado',async()=>{
+      root.querySelector('[data-commercial="edit"]').click();await wait(()=>root.querySelector('#commercial-form'));rejectEdit=true;root.querySelector('#commercial-form').requestSubmit();await wait(()=>root.textContent.includes('cambió en otra sesión'));
+      assert(item.version===3,'No sobrescribir');assert(!root.querySelector('#commercial-feedback').textContent.includes('Guardando'),'Finalizar aviso');rejectEdit=false;root.querySelector('[data-commercial="cancel"]').click();
+    });
+    await test('Viewer consulta contenido restringido sin edición',async()=>{
+      viewer=true;LuriFollowUp.reset();await refresh();assert(!root.querySelector('[data-commercial="edit"]'),'Viewer no edita');assert(!root.textContent.includes('Necesidad privada')&&!root.textContent.includes('Esperar decisión'),'Sin contenido privado');
+    });
+    await test('Cambio de empresa descarta respuesta tardía',async()=>{
+      let finish;delayed=new Promise(r=>finish=r);const pending=LuriFollowUp.render('old-company',api,{id:'owner'},permissions,refresh);LuriFollowUp.reset();finish();assert(await pending==='','No debe pintar empresa anterior');
+    });
+    await test('Sin permisos no consulta datos comerciales',async()=>{
+      calls=[];const markup=await LuriFollowUp.render('company',api,{id:'owner'},[],refresh);assert(calls.length===0&&markup.includes('No tienes permiso'),'No consultar sin permisos');
+    });
+    output.textContent+='\n8 pruebas aprobadas. Sin envíos ni IA.';
+  }catch(error){output.textContent+='\nFAIL '+error.message;throw error;}
+})();
+</script></html>

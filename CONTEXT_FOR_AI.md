@@ -5,6 +5,10 @@
 Leer [LURI-CTX-001](docs/LURI-CTX-001_CONTEXTO_MAESTRO_CRM_2026-10-06.md),
 [auditoría inicial](docs/LURI_CRM_AUDITORIA_Y_DISENO_2026-10-06.md) y
 [incremento implementado](docs/LURI_CRM_INCREMENTO_1.md).
+Continuación: [cuatro avances locales](docs/LURI_CRM_CONTINUACION_LOCAL_2026-10-06.md).
+Esta rama incorpora Seguimiento, migración `20261006_0028`, Alembic check sin
+diferencias y ensayos de backup/restauración. Autenticación y permisos comprobados
+localmente con cuatro roles/empresas. No hay DigitalOcean ni despliegue.
 Kalivur es la empresa madre; Kalivur Marketing Pro es el piloto comercial
 propuesto; Luri es el producto de asistentes IA y empleada digital de Kalivur.
 

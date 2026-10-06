@@ -2,6 +2,11 @@
 
 ## Luri CRM — incremento 1 (06/10/2026, rama local)
 
+[Recorrido integral reproducible](docs/LURI_CRM_RECORRIDO_INTEGRAL_LOCAL_2026-10-06.md):
+un comando prepara PostgreSQL ficticio, prueba conversación → ficha → oportunidad
+→ acción → cierre → métricas, permisos y concurrencia, y verifica persistencia al
+reiniciar el servidor. Sin DigitalOcean ni servicios externos.
+
 [Duplicados, métricas históricas e IA sobre oportunidades](docs/LURI_CRM_DUPLICADOS_METRICAS_IA_2026-10-06.md):
 unión revisada con originales conservados, cierres y tiempo por etapa, sugerencias
 para editar ventas existentes. Migración `0030`; validación local sin DigitalOcean.

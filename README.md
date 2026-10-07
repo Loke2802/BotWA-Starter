@@ -2,6 +2,10 @@
 
 ## Luri CRM — incremento 1 (06/10/2026, rama local)
 
+[Historial móvil y navegación con teclado](docs/LURI_CRM_ACCESIBILIDAD_HISTORIAL_MOVIL_2026-10-07.md):
+controles visibles, textos largos y foco conservado al cambiar de página;
+pruebas de navegador y recorrido local autenticado.
+
 [Validación local en un comando](docs/LURI_CRM_VALIDACION_REPRODUCIBLE_2026-10-07.md):
 formato, tipos, pruebas, PostgreSQL ficticio opcional y evidencia por ejecución;
 límites de tiempo y aislamiento de selectores, sin despliegue.

@@ -1,0 +1,263 @@
+{
+  "mobileFixtures": [
+    {
+      "width": 390,
+      "results": "PASS Tarjetas con título, acción y responsable largos caben en la pantalla\nPASS Todo el historial y sus botones caben sin desplazamiento horizontal de página\nPASS Formulario de edición mantiene visibles los campos y las opciones largas\nPASS Se mantiene el desplazamiento propio del menú móvil\nCOMPLETE: 4 PASS · ancho 390",
+      "dimensions": {
+        "scrollWidth": 375,
+        "width": 390
+      }
+    },
+    {
+      "width": 320,
+      "results": "PASS Tarjetas con título, acción y responsable largos caben en la pantalla\nPASS Todo el historial y sus botones caben sin desplazamiento horizontal de página\nPASS Formulario de edición mantiene visibles los campos y las opciones largas\nPASS Se mantiene el desplazamiento propio del menú móvil\nCOMPLETE: 4 PASS · ancho 320",
+      "dimensions": {
+        "scrollWidth": 320,
+        "width": 320
+      }
+    },
+    {
+      "width": 768,
+      "results": "PASS Tarjetas con título, acción y responsable largos caben en la pantalla\nPASS Todo el historial y sus botones caben sin desplazamiento horizontal de página\nPASS Formulario de edición mantiene visibles los campos y las opciones largas\nPASS Se mantiene el desplazamiento propio del menú móvil\nCOMPLETE: 4 PASS · ancho 768",
+      "dimensions": {
+        "scrollWidth": 753,
+        "width": 768
+      }
+    }
+  ],
+  "historyFixture": "PASS Recorre 41 versiones hasta la original sin truncar ni ejecutar HTML\nPASS Otra edición no repite ni salta versiones; actualizar incorpora la nueva\nPASS Página final exacta de 20 no ofrece una página vacía\nPASS Historial vacío muestra estado y controles correctos\nPASS Fallo de página conserva la vista y permite reintentar\nPASS Cambio de empresa descarta una respuesta pendiente\nPASS Abrir un editor invalida un historial pendiente\nPASS Navegación sólo consulta API scoped y no escribe\nPASS Teclado conserva foco y ofrece control válido en los límites\nPASS Una carga pendiente no roba foco a otro control\nPASS Error recuperable conserva foco y controles originales\nCOMPLETE: 11 PASS",
+  "before": {
+    "viewportWidth": 390,
+    "pageScrollWidth": 1029,
+    "historyWidth": 944.96875,
+    "olderButtonRight": 986.97,
+    "focusAfterPagination": "BODY"
+  },
+  "regressions": [
+    {
+      "file": "portal_crm_opportunities.html",
+      "results": "PASS Conversación abre ficha existente, oculta PII y escapa HTML\nPASS Creación, respuesta perdida y recarga reutilizan clave sin duplicar\nPASS Edición envía versión y etapa; conserva historial\nPASS Vincular usa oportunidad y conversación sin crear otra venta\nPASS Cambio de empresa descarta respuestas antiguas y controles de escritura\nCOMPLETE: 5 PASS"
+    },
+    {
+      "file": "portal_crm_board.html",
+      "results": "PASS Columnas con totales, fechas y escape HTML\nPASS Paginación independiente por etapa\nPASS Cambio a ganada usa editor, motivo y versión\nPASS Viewer consulta sin controles de escritura\nPASS Configuración renombra, ordena y añade sin cambiar códigos previos\nPASS Conflicto de etapas conserva borrador y avisa\nPASS Código duplicado no envía cambios y sigue corregible\nPASS Sin permiso no consulta configuración\nPASS Cambio de empresa descarta respuestas tardías\n9 pruebas aprobadas. Sin envíos ni IA."
+    },
+    {
+      "file": "portal_crm_customer_workspace.html",
+      "results": "PASS Ficha reúne ventas, próximas acciones y conversaciones\nPASS Actividad con respuesta perdida reintenta sin duplicarse\nPASS Completar acción y programar siguiente conserva versión\nPASS Sugerencia se revisa y aplica sin guardar automáticamente\nPASS Creación desde cliente reintenta con importe sin duplicarse\nPASS IA propone actualizar oportunidad sin escribir y conserva campos\nPASS IA rechaza oportunidad cambiada después de sugerir\nPASS Viewer recibe notas restringidas y no puede escribir\nPASS Resumen separa monedas y filtra periodo inclusivo\nPASS Resumen no consulta sin permiso y no muestra importes al viewer\nPASS Ficha cerrada descarta resultados antiguos\n11 pruebas aprobadas."
+    },
+    {
+      "file": "portal_crm_follow_up.html",
+      "results": "PASS Cola, vencimientos y escape de HTML\nPASS Filtros llegan al servidor y conservan el responsable\nPASS Agenda abre en hoy y próximas empieza mañana\nPASS Ficha se abre para el cliente de la acción\nPASS Editor compartido actualiza versión y conserva motivo sin acción\nPASS Historial reutilizado sin otro módulo de edición\nPASS Conflicto visible conserva datos y termina el aviso de guardado\nPASS Viewer consulta contenido restringido sin edición\nPASS Cambio de empresa descarta respuesta tardía\nPASS Sin permisos no consulta datos comerciales\n10 pruebas aprobadas. Sin envíos ni IA."
+    },
+    {
+      "file": "portal_conversations.html",
+      "results": "PASS Historial, escape de HTML y paginación\nPASS Viewer no consulta contenido ni ofrece acciones de envío\nPASS Respuesta tardía no repuebla otra empresa\nPASS Solicitud, toma, envío idempotente y devolución a Luri\nPASS Un operador no responde una atención asignada a otro\nPASS Errores de permisos visibles y recuperables\nPASS Un fallo al refrescar no invita a reenviar un mensaje confirmado\n7 pruebas aprobadas. Ningún mensaje real enviado."
+    }
+  ],
+  "realForm": {
+    "action": "Acción ronda 200 por operator",
+    "assignee": "organization_owner",
+    "due": "2026-10-08T00:06",
+    "fields": [
+      {
+        "left": 42,
+        "name": "title",
+        "right": 333
+      },
+      {
+        "left": 42,
+        "name": "stage_code",
+        "right": 333
+      },
+      {
+        "left": 42,
+        "name": "assigned_user_id",
+        "right": 333
+      },
+      {
+        "left": 42,
+        "name": "amount",
+        "right": 333
+      },
+      {
+        "left": 42,
+        "name": "currency",
+        "right": 333
+      },
+      {
+        "left": 42,
+        "name": "need",
+        "right": 333
+      },
+      {
+        "left": 46,
+        "name": "defer_action",
+        "right": 330
+      },
+      {
+        "left": 42,
+        "name": "no_action_reason",
+        "right": 333
+      },
+      {
+        "left": 42,
+        "name": "description",
+        "right": 333
+      },
+      {
+        "left": 42,
+        "name": "due_at",
+        "right": 333
+      },
+      {
+        "left": 42,
+        "name": "close_reason",
+        "right": 333
+      },
+      {
+        "left": 46,
+        "name": "complete_previous_action",
+        "right": 330
+      }
+    ],
+    "scrollWidth": 375,
+    "stage": "Oferta presentada",
+    "title": "Concurrencia local 81f6bb1c",
+    "width": 390
+  },
+  "realHistory": [
+    {
+      "page": 1,
+      "view": {
+        "buttons": [
+          {
+            "height": 44,
+            "left": 42,
+            "right": 218.640625,
+            "text": "Versiones más recientes"
+          },
+          {
+            "height": 44,
+            "left": 42,
+            "right": 197.328125,
+            "text": "Versiones anteriores"
+          },
+          {
+            "height": 44,
+            "left": 42,
+            "right": 214.890625,
+            "text": "Actualizar historial"
+          }
+        ],
+        "scrollWidth": 375,
+        "status": "Historial comercial: página 1. Versiones 201 a 182.",
+        "versions": [
+          201,
+          200,
+          199,
+          198,
+          197,
+          196,
+          195,
+          194,
+          193,
+          192,
+          191,
+          190,
+          189,
+          188,
+          187,
+          186,
+          185,
+          184,
+          183,
+          182
+        ],
+        "width": 390
+      }
+    },
+    {
+      "page": 2,
+      "view": {
+        "activeAction": "history-next",
+        "activeTag": "BUTTON",
+        "scrollWidth": 375,
+        "status": "Historial comercial: página 2. Versiones 181 a 162.",
+        "versions": [
+          181,
+          180,
+          179,
+          178,
+          177,
+          176,
+          175,
+          174,
+          173,
+          172,
+          171,
+          170,
+          169,
+          168,
+          167,
+          166,
+          165,
+          164,
+          163,
+          162
+        ],
+        "width": 390
+      }
+    }
+  ],
+  "realCustomerDialog": {
+    "dialog": {
+      "clientWidth": 320,
+      "left": 19,
+      "right": 356,
+      "scrollWidth": 320
+    },
+    "pageWidth": 375,
+    "width": 390
+  },
+  "realCustomerHistory": {
+    "activeAction": "history-next",
+    "activeTag": "BUTTON",
+    "backgroundStatus": "Historial comercial: página 2. Versiones 181 a 162.",
+    "dialogScrollWidth": 320,
+    "dialogWidth": 320,
+    "status": "Historial comercial: página 2. Versiones 181 a 162.",
+    "versions": [
+      181,
+      180,
+      179,
+      178,
+      177,
+      176,
+      175,
+      174,
+      173,
+      172,
+      171,
+      170,
+      169,
+      168,
+      167,
+      166,
+      165,
+      164,
+      163,
+      162
+    ],
+    "width": 390
+  },
+  "consoleErrors": [],
+  "scope": {
+    "syntheticData": true,
+    "localPostgreSQL": true,
+    "browserFixturesUseMockAPI": true,
+    "commercialWrites": false,
+    "deployment": false
+  },
+  "recordedAt": "2026-10-07T13:13:27.878Z"
+}

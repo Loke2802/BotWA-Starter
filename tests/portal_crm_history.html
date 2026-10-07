@@ -1,4 +1,4 @@
-<!doctype html><html lang="es"><meta charset="utf-8"><title>Pruebas de historial CRM</title>
+<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pruebas de historial CRM</title>
 <link rel="stylesheet" href="../app/portal/portal.css">
 <main style="padding:24px"><h1>Historial comercial paginado</h1><p>API simulada; no llama a IA ni envía mensajes.</p><pre id="results" role="status">Ejecutando…</pre><div id="fixture"></div></main>
 <script src="../app/portal/opportunity-history.js"></script><script src="../app/portal/opportunities.js"></script>
@@ -89,7 +89,33 @@
       assert(calls.every(call => !call.options.method && !call.options.body), 'sólo lecturas');
       assert(calls.every(call => Number(new URL(call.path, location.origin).searchParams.get('page_size')) <= 20), 'consultas acotadas');
     });
-    results.textContent = report.join('\n') + '\nCOMPLETE: 8 PASS';
+    await test('Teclado conserva foco y ofrece control válido en los límites', async () => {
+      const c = context(); await action(c, 'history'); next(c).focus();
+      await action(c, 'history-next'); assert(document.activeElement === next(c), 'foco en siguiente renovado');
+      assert(c.root.querySelector('#commercial-feedback').textContent.includes('página 2. Versiones 21 a 2'), 'anuncia página y versiones');
+      await action(c, 'history-next');
+      const previous = () => c.root.querySelector('[data-commercial="history-previous"]');
+      assert(document.activeElement === previous(c), 'al final enfoca retorno habilitado');
+      await action(c, 'history-previous'); assert(document.activeElement === previous(c), 'retorno conserva foco');
+      await action(c, 'history-previous'); assert(document.activeElement === next(c), 'al comienzo ofrece avance');
+      c.root.querySelector('[data-commercial="history-refresh"]').focus(); await action(c, 'history-refresh');
+      assert(document.activeElement.dataset.commercial === 'history-refresh', 'actualizar conserva foco');
+    });
+    await test('Una carga pendiente no roba foco a otro control', async () => {
+      const c = context(); await action(c, 'history'); next(c).focus();
+      const outside = document.createElement('button'); outside.textContent = 'Otro control'; c.root.append(outside);
+      const hold = {}; release = hold; const pending = action(c, 'history-next'); outside.focus();
+      hold.resolve(Array.from({length:20}, (_, n) => version(21 - n))); await pending;
+      assert(document.activeElement === outside, 'respeta nueva elección de foco');
+      assert(c.commercialHistory.page === 2, 'página consultada');
+    });
+    await test('Error recuperable conserva foco y controles originales', async () => {
+      const c = context(); await action(c, 'history'); const original = next(c); original.focus();
+      fail = true; await action(c, 'history-next');
+      assert(document.activeElement === original && !original.disabled, 'puede reintentar con teclado');
+      assert(c.root.querySelector('#commercial-feedback').textContent.includes('Fallo simulado'), 'error accesible');
+    });
+    results.textContent = report.join('\n') + '\nCOMPLETE: 11 PASS';
   } catch(error) {results.textContent = report.join('\n') + '\nFAIL ' + error.stack;}
 })();
 </script></html>

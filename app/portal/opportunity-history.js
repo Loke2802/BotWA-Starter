@@ -4,6 +4,17 @@ window.LuriOpportunityHistory = (() => {
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"})[c]);
   const live = c => c.root?.isConnected && c.isCurrent();
   const date = (value, zone) => new Intl.DateTimeFormat("es-PE", {dateStyle:"medium", timeStyle:"short", timeZone:zone}).format(new Date(value));
+  const navigationActions = ["history-previous", "history-next", "history-refresh"];
+
+  function restoreFocus(editor, action, previous) {
+    // Disabling/replacing the focused button can send focus to body. Restore
+    // only that navigation intent; another focused control belongs to the user.
+    if (!action || (document.activeElement !== document.body && document.activeElement !== previous)) return;
+    const buttons = Array.from(editor.querySelectorAll("button[data-commercial]"));
+    const target = buttons.find(button => button.dataset.commercial === action && !button.disabled)
+      || buttons.find(button => navigationActions.includes(button.dataset.commercial) && !button.disabled);
+    target?.focus();
+  }
 
   function clear(c) {
     c.commercialHistoryGeneration = (c.commercialHistoryGeneration || 0) + 1;
@@ -30,6 +41,9 @@ window.LuriOpportunityHistory = (() => {
     if (!live(c)) return;
     const editor = c.root.querySelector("#commercial-editor");
     if (!editor) return;
+    const previousFocus = document.activeElement;
+    const focusAction = editor.contains(previousFocus) && navigationActions.includes(previousFocus?.dataset?.commercial)
+      ? previousFocus.dataset.commercial : null;
     const ticket = (c.commercialHistoryGeneration || 0) + 1;
     c.commercialHistoryGeneration = ticket;
     const current = () => live(c) && c.commercialHistoryGeneration === ticket;
@@ -56,12 +70,13 @@ window.LuriOpportunityHistory = (() => {
       const state = {id, page, throughVersion:anchor, hasNext};
       c.commercialHistory = state;
       editor.innerHTML = markup(c, state, rows);
-      c.root.querySelector("#commercial-feedback").textContent = "";
+      c.root.querySelector("#commercial-feedback").textContent = `Historial comercial: página ${state.page}. ${rows.length ? `Versiones ${rows[0].version} a ${rows.at(-1).version}.` : "Sin versiones."}`;
     } finally {
       loading.remove();
       if (current()) {
         editor.removeAttribute("aria-busy");
         controls.forEach(({node, disabled}) => {if (node.isConnected) node.disabled = disabled;});
+        restoreFocus(editor, focusAction, previousFocus);
       }
     }
   }

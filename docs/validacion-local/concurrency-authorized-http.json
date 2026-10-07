@@ -1,0 +1,613 @@
+{
+  "status": "passed",
+  "environment": "authenticated localhost PostgreSQL",
+  "sessions": 8,
+  "rounds": 6,
+  "wave_requests": 56,
+  "requests": [
+    {
+      "kind": "name",
+      "status": 200,
+      "seconds": 5.4773
+    },
+    {
+      "kind": "phone",
+      "status": 200,
+      "seconds": 5.2404
+    },
+    {
+      "kind": "email",
+      "status": 200,
+      "seconds": 5.2392
+    },
+    {
+      "kind": "duplicates",
+      "status": 200,
+      "seconds": 11.4834
+    },
+    {
+      "kind": "viewer_name",
+      "status": 200,
+      "seconds": 5.4354
+    },
+    {
+      "kind": "foreign_denied",
+      "status": 403,
+      "seconds": 3.1995
+    },
+    {
+      "kind": "create_session_1",
+      "status": 201,
+      "seconds": 5.541
+    },
+    {
+      "kind": "create_session_2",
+      "status": 201,
+      "seconds": 5.5046
+    },
+    {
+      "kind": "name",
+      "status": 200,
+      "seconds": 0.6624
+    },
+    {
+      "kind": "phone",
+      "status": 200,
+      "seconds": 0.4787
+    },
+    {
+      "kind": "email",
+      "status": 200,
+      "seconds": 0.6552
+    },
+    {
+      "kind": "duplicates",
+      "status": 200,
+      "seconds": 1.6176
+    },
+    {
+      "kind": "viewer_name",
+      "status": 200,
+      "seconds": 0.6839
+    },
+    {
+      "kind": "foreign_denied",
+      "status": 403,
+      "seconds": 0.1176
+    },
+    {
+      "kind": "edit_organization_owner",
+      "status": 409,
+      "seconds": 0.4811
+    },
+    {
+      "kind": "edit_operator",
+      "status": 200,
+      "seconds": 0.5113
+    },
+    {
+      "kind": "name",
+      "status": 200,
+      "seconds": 0.5382
+    },
+    {
+      "kind": "phone",
+      "status": 200,
+      "seconds": 0.3714
+    },
+    {
+      "kind": "email",
+      "status": 200,
+      "seconds": 0.4291
+    },
+    {
+      "kind": "duplicates",
+      "status": 200,
+      "seconds": 1.0962
+    },
+    {
+      "kind": "viewer_name",
+      "status": 200,
+      "seconds": 0.5323
+    },
+    {
+      "kind": "foreign_denied",
+      "status": 403,
+      "seconds": 0.2035
+    },
+    {
+      "kind": "edit_organization_owner",
+      "status": 200,
+      "seconds": 0.5088
+    },
+    {
+      "kind": "edit_operator",
+      "status": 409,
+      "seconds": 0.5483
+    },
+    {
+      "kind": "name",
+      "status": 200,
+      "seconds": 0.6652
+    },
+    {
+      "kind": "phone",
+      "status": 200,
+      "seconds": 0.4868
+    },
+    {
+      "kind": "email",
+      "status": 200,
+      "seconds": 0.5696
+    },
+    {
+      "kind": "duplicates",
+      "status": 200,
+      "seconds": 1.583
+    },
+    {
+      "kind": "viewer_name",
+      "status": 200,
+      "seconds": 0.4668
+    },
+    {
+      "kind": "foreign_denied",
+      "status": 403,
+      "seconds": 0.15
+    },
+    {
+      "kind": "edit_organization_owner",
+      "status": 200,
+      "seconds": 0.5154
+    },
+    {
+      "kind": "edit_operator",
+      "status": 409,
+      "seconds": 0.5012
+    },
+    {
+      "kind": "name",
+      "status": 200,
+      "seconds": 4.758
+    },
+    {
+      "kind": "phone",
+      "status": 200,
+      "seconds": 4.4618
+    },
+    {
+      "kind": "email",
+      "status": 200,
+      "seconds": 4.8727
+    },
+    {
+      "kind": "duplicates",
+      "status": 200,
+      "seconds": 6.2954
+    },
+    {
+      "kind": "viewer_name",
+      "status": 200,
+      "seconds": 4.763
+    },
+    {
+      "kind": "foreign_denied",
+      "status": 403,
+      "seconds": 3.4541
+    },
+    {
+      "kind": "edit_organization_owner",
+      "status": 200,
+      "seconds": 4.8705
+    },
+    {
+      "kind": "edit_operator",
+      "status": 409,
+      "seconds": 4.8309
+    },
+    {
+      "kind": "name",
+      "status": 200,
+      "seconds": 1.5565
+    },
+    {
+      "kind": "phone",
+      "status": 200,
+      "seconds": 1.5452
+    },
+    {
+      "kind": "email",
+      "status": 200,
+      "seconds": 1.5224
+    },
+    {
+      "kind": "duplicates",
+      "status": 200,
+      "seconds": 2.9735
+    },
+    {
+      "kind": "viewer_name",
+      "status": 200,
+      "seconds": 1.5993
+    },
+    {
+      "kind": "foreign_denied",
+      "status": 403,
+      "seconds": 0.8399
+    },
+    {
+      "kind": "edit_organization_owner",
+      "status": 200,
+      "seconds": 2.6675
+    },
+    {
+      "kind": "edit_operator",
+      "status": 409,
+      "seconds": 2.6517
+    },
+    {
+      "kind": "name",
+      "status": 200,
+      "seconds": 0.7625
+    },
+    {
+      "kind": "phone",
+      "status": 200,
+      "seconds": 0.5362
+    },
+    {
+      "kind": "email",
+      "status": 200,
+      "seconds": 0.4297
+    },
+    {
+      "kind": "duplicates",
+      "status": 200,
+      "seconds": 1.4713
+    },
+    {
+      "kind": "viewer_name",
+      "status": 200,
+      "seconds": 0.73
+    },
+    {
+      "kind": "foreign_denied",
+      "status": 403,
+      "seconds": 0.1424
+    },
+    {
+      "kind": "edit_organization_owner",
+      "status": 200,
+      "seconds": 0.4584
+    },
+    {
+      "kind": "edit_operator",
+      "status": 409,
+      "seconds": 0.3617
+    }
+  ],
+  "timings": {
+    "name": {
+      "samples": 7,
+      "median_seconds": 0.7625,
+      "p95_seconds": 5.4773,
+      "max_seconds": 5.4773
+    },
+    "phone": {
+      "samples": 7,
+      "median_seconds": 0.5362,
+      "p95_seconds": 5.2404,
+      "max_seconds": 5.2404
+    },
+    "email": {
+      "samples": 7,
+      "median_seconds": 0.6552,
+      "p95_seconds": 5.2392,
+      "max_seconds": 5.2392
+    },
+    "duplicates": {
+      "samples": 7,
+      "median_seconds": 1.6176,
+      "p95_seconds": 11.4834,
+      "max_seconds": 11.4834
+    },
+    "viewer_name": {
+      "samples": 7,
+      "median_seconds": 0.73,
+      "p95_seconds": 5.4354,
+      "max_seconds": 5.4354
+    },
+    "foreign_denied": {
+      "samples": 7,
+      "median_seconds": 0.2035,
+      "p95_seconds": 3.4541,
+      "max_seconds": 3.4541
+    },
+    "create_session_1": {
+      "samples": 1,
+      "median_seconds": 5.541,
+      "p95_seconds": 5.541,
+      "max_seconds": 5.541
+    },
+    "create_session_2": {
+      "samples": 1,
+      "median_seconds": 5.5046,
+      "p95_seconds": 5.5046,
+      "max_seconds": 5.5046
+    },
+    "edit_organization_owner": {
+      "samples": 6,
+      "median_seconds": 0.5121,
+      "p95_seconds": 4.8705,
+      "max_seconds": 4.8705
+    },
+    "edit_operator": {
+      "samples": 6,
+      "median_seconds": 0.5298,
+      "p95_seconds": 4.8309,
+      "max_seconds": 4.8309
+    }
+  },
+  "opportunity_id": "ec508697-a20f-4286-af3e-ba671ca063f2",
+  "final_record": {
+    "id": "ec508697-a20f-4286-af3e-ba671ca063f2",
+    "contact_id": "a01883e8-71ac-494a-919e-7b0dff1beebc",
+    "title": "Concurrencia local 3ca67560",
+    "need": "Datos ficticios",
+    "stage_code": "offer",
+    "stage_kind": "open",
+    "assigned_user_id": "856ff48d-bbf5-4aed-9ff0-afb5be0a921f",
+    "next_action": {
+      "id": "5c2f5fcf-0081-44bf-9227-c239503d93d8",
+      "description": "Acción ronda 6 por organization_owner",
+      "due_at": "2026-10-08T04:01:55.737323Z",
+      "status": "pending"
+    },
+    "no_action_reason": null,
+    "close_reason": null,
+    "amount": "49.50",
+    "currency": "PEN",
+    "version": 7,
+    "created_at": "2026-10-07T04:01:24.254900Z",
+    "updated_at": "2026-10-07T04:01:57.818238Z",
+    "closed_at": null
+  },
+  "idempotent_creation_count": 1,
+  "history_versions": 7,
+  "completed_actions": 6,
+  "pending_actions": 1,
+  "conversation_links": 1,
+  "conflicts": 6,
+  "winners": [
+    {
+      "version": 2,
+      "description": "Acción ronda 1 por operator"
+    },
+    {
+      "version": 3,
+      "description": "Acción ronda 2 por organization_owner"
+    },
+    {
+      "version": 4,
+      "description": "Acción ronda 3 por organization_owner"
+    },
+    {
+      "version": 5,
+      "description": "Acción ronda 4 por organization_owner"
+    },
+    {
+      "version": 6,
+      "description": "Acción ronda 5 por organization_owner"
+    },
+    {
+      "version": 7,
+      "description": "Acción ronda 6 por organization_owner"
+    }
+  ],
+  "original_sale_history_unchanged": true,
+  "external_calls": false,
+  "volume_restore": {
+    "source_database": "luri_rehearsal_ac728301ff_after",
+    "restored_database": "luri_rehearsal_2ab000b548_after",
+    "backup_in_local_container": "/tmp/luri_rehearsal_2ab000b548_after_volume.dump",
+    "backup_sha256": "e139c1c597d90f15dd660b02fc95f674fbf6e957fbc221fd68f814bc94e039c8",
+    "all_tables_equal": true,
+    "source_unchanged": true,
+    "optimizer_statistics_refreshed": true,
+    "table_count": 64,
+    "fingerprints_source": {
+      "bot": "8f9635791ab7866d8d6092cd76da1f6dc973b24097009607497750f7c8d2e126",
+      "billing_price": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_memory": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_response_checkpoint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "analytics_daily_summary": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "alembic_version": "6b5b7a2c542c2d7defc66585d6fc531bd1b4a923b341be07dc2e1a8d050cb489",
+      "app_user": "a25b0ebd3fe752b1b8fa844dbdede00a31ffe2e7c3c2950d48a1243aff0c8433",
+      "audit_event": "a24ce4a2d86539b0c9f7e0e4a4171067ba3ec1f468d6f502e8e6bd886fbbda42",
+      "billing_provider_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "automation_execution": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "billing_account": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_audit_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "automation_task_execution": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_job": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_attempt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_idempotency_receipt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_override": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_weekly_interval": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_configuration": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_date_exception": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_holiday": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "contact_name_token": "48976c755ee3dea29706dd2dc869e848eb875a0fc78ba8deb7809171c43c618b",
+      "contact_search_state": "925dc4b5d334856951cb16741ff66f526f378447310558b3fd5bc369cc7e25f2",
+      "contact_search_token": "9d687b7b0fb745e0c4ff6cd6e97735427d6027112064d0eb1a3a40dafecb15f2",
+      "conversation_management_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "contact": "e730cd0d170a398697f729c441c93352ca4ded30b5c334612a532de7c4363ef4",
+      "conversation_state_history": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "crm_opportunity": "2887bb32caf732c235a28e543c447d38f5f53ec50f9187efe82ae89a375a9b7c",
+      "crm_opportunity_history": "80e48a1c1fa9024dc38c0e031e4faf90c1cfd265814befbcf1deb0fcaa6720f8",
+      "crm_opportunity_conversation": "8a611c21b28322f3737b99b40178aa7a27810307b50dded060619a99853b32f5",
+      "crm_contact_merge": "2765031013333c245f389eb14d8117f17aba23f608168bc3314ee30a3cc6a363",
+      "crm_customer_activity": "2f045851d46504e8951a51e44f62bdfa83c678e9b0b12cac8b5ab0db75fb5154",
+      "conversation": "b616f80840cd5517e700f3d8fc27ded863761c082ddfa42fae0915cb8fd8fd16",
+      "contact_name_state": "753b141256b16fc3d85150118d38c759333d0414e8e4b733a85d0f51a8d6d42f",
+      "crm_activity": "15ed524837a06e7fd35e32b5499a2ce602f8e824475fb81cae27f27d4df8a17c",
+      "crm_stage": "502b69d0b42ac5b32ea13409aed4b48db579921569c7be62eb6fcd29d7f3ffd5",
+      "handoff_session": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_connection": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "handoff_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "customer_profile": "acecfa3c7389ab95f11f716e283084c1df83df00ffb93412d520cce1bae2b1d9",
+      "integration_oauth_state": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_credential": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_health_check": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_entry": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_catalog_entry": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_query_log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "inbound_message_receipt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "handoff_cycle": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_source": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "managed_automation_execution": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "message": "fe84493446b06ff71e2148caba9e4902ba8c3d3e9edee75f19f01ba606bbc99c",
+      "managed_automation_definition": "350c12c66e6b7952d09f5c06f97a551ce2d1bffa90d5d61c020790b262883ef2",
+      "managed_automation_event_receipt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "organization_plan_assignment": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "plan_definition": "9e778065cf664cd63eb6e667d51c81f482337968783732fbd8720be40e754bf1",
+      "subscription": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "security_rate_limit_bucket": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "organization_onboarding": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "organization": "5f558d14f4aa169cf3986fb77675666cb0d5bb3027e8f67802af02e1fdb5757a",
+      "outbound_message_attempt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "whatsapp_channel_configuration": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fingerprints_restored": {
+      "bot": "8f9635791ab7866d8d6092cd76da1f6dc973b24097009607497750f7c8d2e126",
+      "billing_price": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_memory": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_response_checkpoint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "analytics_daily_summary": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "alembic_version": "6b5b7a2c542c2d7defc66585d6fc531bd1b4a923b341be07dc2e1a8d050cb489",
+      "app_user": "a25b0ebd3fe752b1b8fa844dbdede00a31ffe2e7c3c2950d48a1243aff0c8433",
+      "audit_event": "a24ce4a2d86539b0c9f7e0e4a4171067ba3ec1f468d6f502e8e6bd886fbbda42",
+      "billing_provider_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "automation_execution": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "billing_account": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_audit_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "automation_task_execution": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_job": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_attempt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_idempotency_receipt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_override": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_weekly_interval": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_configuration": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_date_exception": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_holiday": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "contact_name_token": "48976c755ee3dea29706dd2dc869e848eb875a0fc78ba8deb7809171c43c618b",
+      "contact_search_state": "925dc4b5d334856951cb16741ff66f526f378447310558b3fd5bc369cc7e25f2",
+      "contact_search_token": "9d687b7b0fb745e0c4ff6cd6e97735427d6027112064d0eb1a3a40dafecb15f2",
+      "conversation_management_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "contact": "e730cd0d170a398697f729c441c93352ca4ded30b5c334612a532de7c4363ef4",
+      "conversation_state_history": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "crm_opportunity": "2887bb32caf732c235a28e543c447d38f5f53ec50f9187efe82ae89a375a9b7c",
+      "crm_opportunity_history": "80e48a1c1fa9024dc38c0e031e4faf90c1cfd265814befbcf1deb0fcaa6720f8",
+      "crm_opportunity_conversation": "8a611c21b28322f3737b99b40178aa7a27810307b50dded060619a99853b32f5",
+      "crm_contact_merge": "2765031013333c245f389eb14d8117f17aba23f608168bc3314ee30a3cc6a363",
+      "crm_customer_activity": "2f045851d46504e8951a51e44f62bdfa83c678e9b0b12cac8b5ab0db75fb5154",
+      "conversation": "b616f80840cd5517e700f3d8fc27ded863761c082ddfa42fae0915cb8fd8fd16",
+      "contact_name_state": "753b141256b16fc3d85150118d38c759333d0414e8e4b733a85d0f51a8d6d42f",
+      "crm_activity": "15ed524837a06e7fd35e32b5499a2ce602f8e824475fb81cae27f27d4df8a17c",
+      "crm_stage": "502b69d0b42ac5b32ea13409aed4b48db579921569c7be62eb6fcd29d7f3ffd5",
+      "handoff_session": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_connection": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "handoff_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "customer_profile": "acecfa3c7389ab95f11f716e283084c1df83df00ffb93412d520cce1bae2b1d9",
+      "integration_oauth_state": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_credential": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_health_check": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_entry": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_catalog_entry": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_query_log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "inbound_message_receipt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "handoff_cycle": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_source": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "managed_automation_execution": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "message": "fe84493446b06ff71e2148caba9e4902ba8c3d3e9edee75f19f01ba606bbc99c",
+      "managed_automation_definition": "350c12c66e6b7952d09f5c06f97a551ce2d1bffa90d5d61c020790b262883ef2",
+      "managed_automation_event_receipt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "organization_plan_assignment": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "plan_definition": "9e778065cf664cd63eb6e667d51c81f482337968783732fbd8720be40e754bf1",
+      "subscription": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "security_rate_limit_bucket": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "organization_onboarding": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "organization": "5f558d14f4aa169cf3986fb77675666cb0d5bb3027e8f67802af02e1fdb5757a",
+      "outbound_message_attempt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "whatsapp_channel_configuration": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "index_rebuild": {
+    "contacts": 10003,
+    "seconds": 193.733,
+    "service_seconds": 174.072,
+    "name_index_schema": "0032",
+    "historical_tables_unchanged": true,
+    "exact_lookup_plan": [
+      {
+        "Plan": {
+          "Node Type": "Index Scan",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Scan Direction": "Forward",
+          "Index Name": "ix_contact_search_exact",
+          "Relation Name": "contact_search_token",
+          "Alias": "contact_search_token",
+          "Startup Cost": 0.41,
+          "Total Cost": 8.43,
+          "Plan Rows": 1,
+          "Plan Width": 16,
+          "Actual Startup Time": 1.463,
+          "Actual Total Time": 1.469,
+          "Actual Rows": 1,
+          "Actual Loops": 1,
+          "Index Cond": "((organization_id = 'ce5b370f-9888-4e24-a441-44db745c001b'::uuid) AND ((field)::text = 'phone'::text) AND ((digest)::text = '53742b732b2954266d15a606828c3d79d2a21b133408dbdc1feef7e8f55d28f1'::text))",
+          "Rows Removed by Index Recheck": 0
+        },
+        "Planning Time": 13.242,
+        "Triggers": [],
+        "Execution Time": 1.495
+      }
+    ],
+    "name_lookup_plan": [
+      {
+        "Plan": {
+          "Node Type": "Index Scan",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Scan Direction": "Forward",
+          "Index Name": "ix_contact_name_lookup",
+          "Relation Name": "contact_name_token",
+          "Alias": "contact_name_token",
+          "Startup Cost": 0.42,
+          "Total Cost": 36.8,
+          "Plan Rows": 17,
+          "Plan Width": 16,
+          "Actual Startup Time": 2.548,
+          "Actual Total Time": 2.557,
+          "Actual Rows": 2,
+          "Actual Loops": 1,
+          "Index Cond": "((organization_id = 'ce5b370f-9888-4e24-a441-44db745c001b'::uuid) AND ((kind)::text = 'gram'::text) AND ((digest)::text = '3b806eefd301e89c6d20b800875280d04d39ea790d105f70e8c402d4692871b7'::text))",
+          "Rows Removed by Index Recheck": 0
+        },
+        "Planning Time": 2.549,
+        "Triggers": [],
+        "Execution Time": 2.584
+      }
+    ]
+  },
+  "manifest": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\docs\\validacion-local\\concurrency\\20261007T035529158928Z\\recovery.json",
+  "finished_at": "2026-10-07T04:01:59.605656+00:00",
+  "server_restart_preserves_concurrent_writes": true
+}

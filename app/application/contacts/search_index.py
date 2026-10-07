@@ -5,6 +5,7 @@ from typing import Any, Literal
 from uuid import UUID
 
 from app.application.contacts.identity import ContactIdentityHasher
+from app.application.contacts.name_index import ContactNameIndex
 from app.application.contacts.search import ContactSearch, identities
 from app.infrastructure.models.contact import ContactModel
 from app.infrastructure.models.contact_search import (
@@ -22,7 +23,7 @@ class ContactSearchIndex:
     ) -> None:
         self.session, self.cipher, self.hasher = session, cipher, hasher
 
-    def _valid(self, org: UUID) -> Any:
+    def valid(self, org: UUID) -> Any:
         state = ContactSearchStateModel
         return and_(
             state.organization_id == org,
@@ -47,7 +48,7 @@ class ContactSearchIndex:
                 (state.organization_id == token.organization_id)
                 & (state.contact_id == token.contact_id),
             )
-            .join(ContactModel, self._valid(org))
+            .join(ContactModel, self.valid(org))
             .where(
                 token.organization_id == org,
                 token.field == matcher.field,
@@ -55,7 +56,7 @@ class ContactSearchIndex:
                 == self.hasher.search_digest(org, matcher.field, matcher.term),
             )
         )
-        valid = select(state.contact_id).where(self._valid(org)).exists()
+        valid = select(state.contact_id).where(self.valid(org)).exists()
         pending = self.session.scalars(
             select(ContactModel)
             .where(
@@ -112,6 +113,7 @@ class ContactSearchIndex:
         self.session.execute(insert(ContactSearchStateModel), states)
         if tokens:
             self.session.execute(insert(ContactSearchTokenModel), tokens)
+        ContactNameIndex(self.session, self.cipher, self.hasher).replace(org, contacts)
 
     def sync(self, contact: ContactModel) -> None:
         self.session.flush()

@@ -437,7 +437,7 @@ class Journey:
             with engine.connect() as connection:
                 assert (
                     connection.scalar(text("SELECT version_num FROM alembic_version"))
-                    == "20261006_0031"
+                    == "20261006_0032"
                 )
                 assert (
                     connection.scalar(
@@ -658,15 +658,19 @@ class Journey:
                         service.digest_key, ContactIdentityNormalizer()
                     ),
                 )
+                service_started = perf_counter()
                 count = crm.rebuild_search_index(
                     UUID(self.manifest["organization_id"]),
                     User.model_validate(self.users["organization_owner"]),
                 )
+                service_seconds = round(perf_counter() - service_started, 3)
                 assert count == self.report["search_dataset"]["expected_contacts"]
                 for table in (
                     "contact",
                     "contact_search_state",
                     "contact_search_token",
+                    "contact_name_state",
+                    "contact_name_token",
                 ):
                     session.execute(text("ANALYZE " + table))
                 session.commit()
@@ -686,17 +690,40 @@ class Journey:
                     },
                 )
                 assert "ix_contact_search_exact" in json.dumps(plan)
+                name_plan = session.scalar(
+                    text(
+                        "EXPLAIN (ANALYZE, FORMAT JSON) SELECT contact_id "
+                        "FROM contact_name_token WHERE organization_id=:org "
+                        "AND kind='gram' AND digest=:digest"
+                    ),
+                    {
+                        "org": UUID(self.manifest["organization_id"]),
+                        "digest": crm.hasher.name_digest(
+                            UUID(self.manifest["organization_id"]), "gram", "pe"
+                        ),
+                    },
+                )
+                assert "ix_contact_name_lookup" in json.dumps(name_plan)
             after = fingerprint(engine)
             assert all(
                 before[t] == after[t]
                 for t in before
-                if t not in {"contact_search_state", "contact_search_token"}
+                if t
+                not in {
+                    "contact_search_state",
+                    "contact_search_token",
+                    "contact_name_state",
+                    "contact_name_token",
+                }
             )
             self.report["index_rebuild"] = {
                 "contacts": count,
                 "seconds": round(perf_counter() - started, 3),
+                "service_seconds": service_seconds,
+                "name_index_schema": "0032",
                 "historical_tables_unchanged": True,
                 "exact_lookup_plan": plan,
+                "name_lookup_plan": name_plan,
             }
         finally:
             engine.dispose()

@@ -159,3 +159,16 @@ def test_search_alias_chain_returns_main_and_archived_original(crm_opportunities
         params={"search": "+12025550147", "search_by": "phone", "status": "archived"},
     ).json()
     assert archived["total"] == 1 and UUID(archived["items"][0]["id"]) == original
+    by_name = client.get(
+        base, params={"search": "client synthetic", "search_by": "name"}
+    ).json()
+    assert by_name["total"] == 1 and UUID(by_name["items"][0]["id"]) == third
+    old_names = client.get(
+        base,
+        params={
+            "search": "client synthetic",
+            "search_by": "name",
+            "status": "archived",
+        },
+    ).json()
+    assert {UUID(row["id"]) for row in old_names["items"]} == {original, second}

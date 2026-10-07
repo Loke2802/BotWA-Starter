@@ -4,6 +4,12 @@
 con PostgreSQL 17 y datos ficticios. Cambios y evidencia anteriores conservados.
 Sin DigitalOcean, despliegue, llamadas a IA externa ni WhatsApp real.
 
+Continuación: [nombres, duplicados y concurrencia local](LURI_CRM_NOMBRES_DUPLICADOS_CONCURRENCIA_2026-10-06.md)
+añade `0032` y reemplaza los pendientes de optimización de nombre/duplicados y
+el ensayo breve simultáneo. Este documento conserva la evidencia histórica de
+`0031`. Para arrancar el código actual, usar la demo y manifiesto `0032` indicados
+en la continuación; el manifiesto `index-volume-recovery.json` corresponde a `0031`.
+
 ## Búsqueda exacta protegida
 
 La migración aditiva `20261006_0031` crea `contact_search_state` y

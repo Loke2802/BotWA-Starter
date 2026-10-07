@@ -30,6 +30,10 @@ from app.infrastructure.models.business_configuration import (
 )
 from app.infrastructure.models.business_event import BusinessEventModel
 from app.infrastructure.models.contact import ContactModel
+from app.infrastructure.models.contact_name_search import (
+    ContactNameStateModel,
+    ContactNameTokenModel,
+)
 from app.infrastructure.models.contact_search import (
     ContactSearchStateModel,
     ContactSearchTokenModel,
@@ -112,6 +116,8 @@ __all__ = [
     "ConversationModel",
     "ConversationManagementEventModel",
     "ContactModel",
+    "ContactNameStateModel",
+    "ContactNameTokenModel",
     "ContactSearchStateModel",
     "ContactSearchTokenModel",
     "ConversationStateHistoryModel",

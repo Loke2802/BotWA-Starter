@@ -2,6 +2,10 @@
 
 ## Luri CRM — incremento 1 (06/10/2026, rama local)
 
+[Nombres, duplicados y concurrencia local](docs/LURI_CRM_NOMBRES_DUPLICADOS_CONCURRENCIA_2026-10-06.md):
+índice de nombres protegidos, grupos de duplicados en SQL y ensayo HTTP simultáneo.
+La versión actual requiere migración `0032`; las entregas siguientes son antecedentes.
+
 [Índices protegidos y recuperación con volumen](docs/LURI_CRM_INDICES_RECUPERACION_VOLUMEN_2026-10-06.md):
 búsqueda exacta de teléfono/correo con HMAC por empresa, migración aditiva `0031`
 y backup/restauración comprobados con 10 000 contactos, venta e historial.

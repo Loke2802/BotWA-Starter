@@ -37,6 +37,8 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> Generator[DatabaseFixture]:
                 "contact",
                 "contact_search_state",
                 "contact_search_token",
+                "contact_name_state",
+                "contact_name_token",
             )
         ],
     )

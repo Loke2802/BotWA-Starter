@@ -30,6 +30,12 @@ class ContactIdentityHasher:
         )
         return hmac.new(self._key, payload.encode("utf-8"), sha256).hexdigest()
 
+    def name_digest(self, org: UUID, kind: Literal["gram", "exact"], value: str) -> str:
+        payload = json.dumps(
+            ["contact-name-search-v1", str(org), kind, value], separators=(",", ":")
+        )
+        return hmac.new(self._key, payload.encode("utf-8"), sha256).hexdigest()
+
     def identify(
         self,
         organization_id: UUID,

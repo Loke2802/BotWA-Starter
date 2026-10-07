@@ -8,14 +8,12 @@ from typing import cast
 from uuid import UUID
 
 from sqlalchemy import delete, select, update
-from sqlalchemy.orm import load_only
 
 from app.application.audit.writer import append_user_audit
-from app.application.contacts.search import identities, normalized_name
+from app.application.crm.duplicate_index import DuplicateIndex
 from app.application.crm.service import OpportunityService
 from app.domain.crm.contracts import CrmConflict
 from app.domain.crm.growth_contracts import (
-    DuplicateCandidate,
     DuplicateList,
     MergeContact,
     MergeInput,
@@ -23,7 +21,6 @@ from app.domain.crm.growth_contracts import (
     MergeResult,
 )
 from app.domain.user.contracts import User
-from app.infrastructure.models.contact import ContactModel
 from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.crm_contact_merge import ContactMergeModel
 from app.infrastructure.models.crm_customer_activity import CrmCustomerActivityModel
@@ -53,76 +50,9 @@ class DuplicateService:
 
     def candidates(self, org: UUID, actor: User, page: int) -> DuplicateList:
         self._access(org, actor)
-        cipher = self.commercial.cipher
-        anchors: dict[tuple[str, str], tuple[UUID, str]] = {}
-        items = []
-        scanned = total = 0
-        start = (page - 1) * 20
-        rows = self.session.scalars(
-            select(ContactModel)
-            .options(
-                load_only(
-                    ContactModel.id,
-                    ContactModel.display_name_ciphertext,
-                    ContactModel.channel_type,
-                    ContactModel.external_identifier_ciphertext,
-                    ContactModel.registration_ciphertext,
-                )
-            )
-            .where(
-                ContactModel.organization_id == org,
-                ContactModel.status == "active",
-                ContactModel.id.not_in(
-                    select(ContactMergeModel.source_id).where(
-                        ContactMergeModel.organization_id == org
-                    )
-                ),
-            )
-            .order_by(ContactModel.created_at, ContactModel.id)
-            .execution_options(yield_per=256)
-        )
-        for row in rows:
-            scanned += 1
-            name = (
-                cipher.decrypt(row.display_name_ciphertext)
-                if row.display_name_ciphertext
-                else "Sin nombre"
-            )
-            values = identities(row, cipher)
-            normalized = normalized_name(name)
-            if row.display_name_ciphertext and len(normalized) >= 3:
-                values.append(("nombre", normalized))
-            matches: dict[UUID, tuple[str, list[str]]] = {}
-            for kind, value in values:
-                key = (kind, hashlib.sha256(value.encode()).hexdigest())
-                anchor = anchors.get(key)
-                if anchor:
-                    if anchor[0] not in matches:
-                        matches[anchor[0]] = (anchor[1], [])
-                    matches[anchor[0]][1].append(kind)
-                else:
-                    anchors[key] = (row.id, name)
-            for target in sorted(matches, key=str):
-                target_name, reasons = matches[target]
-                if start <= total < start + 20:
-                    items.append(
-                        DuplicateCandidate(
-                            source_id=row.id,
-                            target_id=target,
-                            source_name=name,
-                            target_name=target_name,
-                            reasons=sorted(set(reasons)),
-                        )
-                    )
-                total += 1
-        return DuplicateList(
-            items=items,
-            page=page,
-            has_next=page * 20 < total,
-            scanned=scanned,
-            scan_limited=False,
-            total=total,
-        )
+        return DuplicateIndex(
+            self.session, self.commercial.cipher, self.commercial.digest_key
+        ).candidates(org, page)
 
     def _state(self, org: UUID, contact: UUID) -> tuple[MergeContact, str]:
         row = self.commercial.repository.contact(org, contact)

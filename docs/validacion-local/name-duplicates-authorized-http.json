@@ -1,0 +1,553 @@
+{
+  "status": "passed",
+  "environment": "authenticated localhost PostgreSQL",
+  "run_id": "3951b0c63fc04579a161021febeb3156",
+  "started_at": "2026-10-07T01:15:28.040054+00:00",
+  "organization_id": "ce5b370f-9888-4e24-a441-44db745c001b",
+  "checks": [
+    {
+      "name": "conversation_to_existing_customer_and_portal_assets",
+      "status": "passed"
+    },
+    {
+      "name": "simultaneous_creation_deduplicated_and_action_persisted",
+      "status": "passed"
+    },
+    {
+      "name": "authorized_competing_edits_one_winner_and_completed_action",
+      "status": "passed"
+    },
+    {
+      "name": "recorded_call_replay_and_payload_conflict",
+      "status": "passed"
+    },
+    {
+      "name": "closed_sale_history_action_completion_and_historical_metrics",
+      "status": "passed"
+    },
+    {
+      "name": "roles_redaction_and_foreign_company_denied_without_writes",
+      "status": "passed"
+    },
+    {
+      "name": "global_name_phone_email_search_pagination_roles_and_company_isolation",
+      "status": "passed"
+    },
+    {
+      "name": "full_duplicate_scan_beyond_2000_stable_pages_and_review_permissions",
+      "status": "passed"
+    },
+    {
+      "name": "protected_index_backfill_preserves_contact_history_and_uses_sql_index",
+      "status": "passed"
+    },
+    {
+      "name": "global_name_phone_email_search_pagination_roles_and_company_isolation",
+      "status": "passed"
+    },
+    {
+      "name": "full_duplicate_scan_beyond_2000_stable_pages_and_review_permissions",
+      "status": "passed"
+    },
+    {
+      "name": "postgresql_rows_encrypted_content_and_exact_associations",
+      "status": "passed"
+    },
+    {
+      "name": "closed_sale_history_action_completion_and_historical_metrics",
+      "status": "passed"
+    },
+    {
+      "name": "global_name_phone_email_search_pagination_roles_and_company_isolation",
+      "status": "passed"
+    },
+    {
+      "name": "full_duplicate_scan_beyond_2000_stable_pages_and_review_permissions",
+      "status": "passed"
+    },
+    {
+      "name": "postgresql_rows_encrypted_content_and_exact_associations",
+      "status": "passed"
+    },
+    {
+      "name": "server_restart_preserves_sale_actions_history_and_metrics",
+      "status": "passed"
+    },
+    {
+      "name": "closed_sale_history_action_completion_and_historical_metrics",
+      "status": "passed"
+    },
+    {
+      "name": "global_name_phone_email_search_pagination_roles_and_company_isolation",
+      "status": "passed"
+    },
+    {
+      "name": "full_duplicate_scan_beyond_2000_stable_pages_and_review_permissions",
+      "status": "passed"
+    },
+    {
+      "name": "postgresql_rows_encrypted_content_and_exact_associations",
+      "status": "passed"
+    },
+    {
+      "name": "volume_restore_preserves_indexes_search_duplicates_roles_sale_and_history",
+      "status": "passed"
+    },
+    {
+      "name": "global_name_phone_email_search_pagination_roles_and_company_isolation",
+      "status": "passed"
+    },
+    {
+      "name": "full_duplicate_scan_beyond_2000_stable_pages_and_review_permissions",
+      "status": "passed"
+    },
+    {
+      "name": "closed_sale_history_action_completion_and_historical_metrics",
+      "status": "passed"
+    },
+    {
+      "name": "postgresql_rows_encrypted_content_and_exact_associations",
+      "status": "passed"
+    }
+  ],
+  "browser_automation": false,
+  "external_calls": false,
+  "search_dataset": {
+    "count": 10000,
+    "late_ids": [
+      "4c21c092-caca-4ab1-9367-cd85c65b3b1a",
+      "79cd4c7e-5fd0-467d-a038-7bdaeb5ea11c"
+    ],
+    "group_ids": [
+      "93203ac3-7f16-4753-826b-c4e8633e75a3",
+      "c2b7ed52-7bb5-47d0-bc07-f87b82db25de",
+      "8db171c1-1abe-47f3-81ee-be9fffa7a849",
+      "01f21b1d-f1c1-46c4-a16d-b6c3b5a2f690",
+      "f8b0d58c-e4c2-44d9-be14-bd3ba34c20fa",
+      "b5e1e640-9efb-4569-9d8a-f737f6c334c7",
+      "1a10b939-2685-49ba-a48e-52c537e8b9e9",
+      "efa41eaf-f456-4bce-b32c-6af872c818d8",
+      "7b672faf-2857-4405-bc90-1d8055313150",
+      "a071d0cb-b515-44d3-a418-57e1ceb67bf7",
+      "7a850668-9821-4477-86a7-0b33015e96ab",
+      "9006f8a2-3096-4813-aad1-be180b63d8fb",
+      "e9fbb6d2-a908-468f-97c0-f042a277ee6a",
+      "2d6dddff-fe00-44b9-b0c0-c4f76057847a",
+      "4b298285-a95e-4ea0-90fb-649d32a24730",
+      "9a1ba7af-9505-4239-89cb-c022850f6950",
+      "0a4420ba-073e-457c-8317-45cdf2087213",
+      "cb192613-9a70-4e8b-a8cb-7fa4bb81f91d",
+      "9e87c8b8-2e2b-43b8-b637-bd4e15bea77f",
+      "0507f037-79b4-4e75-96ea-b3f3d9cfe080",
+      "f64b7268-183c-457a-9418-360f05389c57",
+      "915505a1-1980-453d-8e45-d719881a6c50",
+      "daa002b7-b754-4552-af00-bc13b823cb6a"
+    ],
+    "phone": "+1 (203) 000-2001",
+    "email": "tardio@example.test",
+    "expected_contacts": 10003
+  },
+  "metric_start": "2026-10-07T01:16:02.084223+00:00",
+  "opportunity_id": "aa0b0cba-d8dd-423e-a7ff-1273d4e06ba9",
+  "title": "Recorrido integral local 3951b0c6",
+  "assigned_user_id": "856ff48d-bbf5-4aed-9ff0-afb5be0a921f",
+  "contact_id": "a01883e8-71ac-494a-919e-7b0dff1beebc",
+  "conversation_id": "ac7eab2a-f5aa-45bf-a5af-8b27bc0c0de3",
+  "create_key": "journey-create-3951b0c63fc04579a161021febeb3156",
+  "create_payload": {
+    "contact_id": "a01883e8-71ac-494a-919e-7b0dff1beebc",
+    "conversation_id": "ac7eab2a-f5aa-45bf-a5af-8b27bc0c0de3",
+    "title": "Recorrido integral local 3951b0c6",
+    "need": "Necesidad ficticia verificable",
+    "stage_code": "new",
+    "assigned_user_id": "856ff48d-bbf5-4aed-9ff0-afb5be0a921f",
+    "amount": "195.75",
+    "currency": "PEN",
+    "next_action": {
+      "description": "Llamar para preparar propuesta",
+      "due_at": "2026-10-07T01:15:02.084257+00:00"
+    }
+  },
+  "first_action_id": "99c877a0-224c-4bac-afd7-e9e170f96f6f",
+  "second_action_id": "70ef7920-db7c-4569-a928-f5f888b91f0d",
+  "activity_id": "d637e89d-74d2-4687-958c-0d1811bacc8d",
+  "activity_record": {
+    "id": "d637e89d-74d2-4687-958c-0d1811bacc8d",
+    "contact_id": "a01883e8-71ac-494a-919e-7b0dff1beebc",
+    "opportunity_id": "aa0b0cba-d8dd-423e-a7ff-1273d4e06ba9",
+    "kind": "call",
+    "description": "Llamada ficticia del recorrido integral",
+    "occurred_at": "2026-10-07T01:16:03.033937Z",
+    "created_at": "2026-10-07T01:16:03.097953Z",
+    "actor_user_id": "856ff48d-bbf5-4aed-9ff0-afb5be0a921f"
+  },
+  "final_record": {
+    "id": "aa0b0cba-d8dd-423e-a7ff-1273d4e06ba9",
+    "contact_id": "a01883e8-71ac-494a-919e-7b0dff1beebc",
+    "title": "Recorrido integral local 3951b0c6",
+    "need": "Necesidad ficticia verificable",
+    "stage_code": "won",
+    "stage_kind": "won",
+    "assigned_user_id": "856ff48d-bbf5-4aed-9ff0-afb5be0a921f",
+    "next_action": null,
+    "no_action_reason": null,
+    "close_reason": "Cliente ficticio acepta propuesta",
+    "amount": "195.75",
+    "currency": "PEN",
+    "version": 3,
+    "created_at": "2026-10-07T01:16:02.329597Z",
+    "updated_at": "2026-10-07T01:16:03.254376Z",
+    "closed_at": "2026-10-07T01:16:03.254376Z"
+  },
+  "history": [
+    {
+      "version": 3,
+      "actor_user_id": "856ff48d-bbf5-4aed-9ff0-afb5be0a921f",
+      "occurred_at": "2026-10-07T01:16:03.275864Z",
+      "snapshot": {
+        "id": "aa0b0cba-d8dd-423e-a7ff-1273d4e06ba9",
+        "contact_id": "a01883e8-71ac-494a-919e-7b0dff1beebc",
+        "title": "Recorrido integral local 3951b0c6",
+        "need": "Necesidad ficticia verificable",
+        "stage_code": "won",
+        "stage_kind": "won",
+        "assigned_user_id": "856ff48d-bbf5-4aed-9ff0-afb5be0a921f",
+        "next_action": null,
+        "no_action_reason": null,
+        "close_reason": "Cliente ficticio acepta propuesta",
+        "amount": "195.75",
+        "currency": "PEN",
+        "version": 3,
+        "created_at": "2026-10-07T01:16:02.329597Z",
+        "updated_at": "2026-10-07T01:16:03.254376Z",
+        "closed_at": "2026-10-07T01:16:03.254376Z"
+      }
+    },
+    {
+      "version": 2,
+      "actor_user_id": "856ff48d-bbf5-4aed-9ff0-afb5be0a921f",
+      "occurred_at": "2026-10-07T01:16:02.918301Z",
+      "snapshot": {
+        "id": "aa0b0cba-d8dd-423e-a7ff-1273d4e06ba9",
+        "contact_id": "a01883e8-71ac-494a-919e-7b0dff1beebc",
+        "title": "Recorrido integral local 3951b0c6",
+        "need": "Necesidad ficticia verificable",
+        "stage_code": "offer",
+        "stage_kind": "open",
+        "assigned_user_id": "856ff48d-bbf5-4aed-9ff0-afb5be0a921f",
+        "next_action": {
+          "id": "70ef7920-db7c-4569-a928-f5f888b91f0d",
+          "description": "Revisar propuesta enviada",
+          "due_at": "2026-10-08T01:16:02.823628Z",
+          "status": "pending"
+        },
+        "no_action_reason": null,
+        "close_reason": null,
+        "amount": "195.75",
+        "currency": "PEN",
+        "version": 2,
+        "created_at": "2026-10-07T01:16:02.329597Z",
+        "updated_at": "2026-10-07T01:16:02.887223Z",
+        "closed_at": null
+      }
+    },
+    {
+      "version": 1,
+      "actor_user_id": "856ff48d-bbf5-4aed-9ff0-afb5be0a921f",
+      "occurred_at": "2026-10-07T01:16:02.447025Z",
+      "snapshot": {
+        "id": "aa0b0cba-d8dd-423e-a7ff-1273d4e06ba9",
+        "contact_id": "a01883e8-71ac-494a-919e-7b0dff1beebc",
+        "title": "Recorrido integral local 3951b0c6",
+        "need": "Necesidad ficticia verificable",
+        "stage_code": "new",
+        "stage_kind": "open",
+        "assigned_user_id": "856ff48d-bbf5-4aed-9ff0-afb5be0a921f",
+        "next_action": {
+          "id": "99c877a0-224c-4bac-afd7-e9e170f96f6f",
+          "description": "Llamar para preparar propuesta",
+          "due_at": "2026-10-07T01:15:02.084257Z",
+          "status": "pending"
+        },
+        "no_action_reason": null,
+        "close_reason": null,
+        "amount": "195.75",
+        "currency": "PEN",
+        "version": 1,
+        "created_at": "2026-10-07T01:16:02.329597Z",
+        "updated_at": "2026-10-07T01:16:02.360215Z",
+        "closed_at": null
+      }
+    }
+  ],
+  "metrics_closings": [
+    {
+      "assigned_user_id": "856ff48d-bbf5-4aed-9ff0-afb5be0a921f",
+      "won": 1,
+      "lost": 0,
+      "conversion_percent": "100.00",
+      "currency": "PEN",
+      "won_amount": "195.75"
+    }
+  ],
+  "search_runs": [
+    {
+      "timings_seconds": {
+        "name_organization_owner_page_1": 2.462,
+        "name_organization_owner_page_2": 2.273,
+        "phone_organization_owner_page_1": 2.993,
+        "email_organization_owner_page_1": 2.201,
+        "name_organization_owner_page_3": 2.346,
+        "name_viewer_page_1": 3.315,
+        "duplicates_two_pages": 16.992
+      },
+      "scanned": 10002,
+      "duplicate_pairs": 24,
+      "protected_index_built": false
+    },
+    {
+      "timings_seconds": {
+        "name_organization_owner_page_1": 4.324,
+        "name_organization_owner_page_2": 0.964,
+        "phone_organization_owner_page_1": 0.593,
+        "email_organization_owner_page_1": 0.338,
+        "name_organization_owner_page_3": 0.902,
+        "name_viewer_page_1": 0.24,
+        "duplicates_two_pages": 4.018
+      },
+      "scanned": 10002,
+      "duplicate_pairs": 24,
+      "protected_index_built": true
+    },
+    {
+      "timings_seconds": {
+        "name_organization_owner_page_1": 1.079,
+        "name_organization_owner_page_2": 0.914,
+        "phone_organization_owner_page_1": 0.204,
+        "email_organization_owner_page_1": 0.192,
+        "name_organization_owner_page_3": 0.781,
+        "name_viewer_page_1": 0.245,
+        "duplicates_two_pages": 3.705
+      },
+      "scanned": 10002,
+      "duplicate_pairs": 24,
+      "protected_index_built": true
+    },
+    {
+      "timings_seconds": {
+        "name_organization_owner_page_1": 4.263,
+        "name_organization_owner_page_2": 0.816,
+        "phone_organization_owner_page_1": 0.343,
+        "email_organization_owner_page_1": 0.197,
+        "name_organization_owner_page_3": 0.852,
+        "name_viewer_page_1": 0.224,
+        "duplicates_two_pages": 7.662
+      },
+      "scanned": 10002,
+      "duplicate_pairs": 24,
+      "protected_index_built": true
+    },
+    {
+      "timings_seconds": {
+        "name_organization_owner_page_1": 1.481,
+        "name_organization_owner_page_2": 0.605,
+        "phone_organization_owner_page_1": 0.127,
+        "email_organization_owner_page_1": 0.076,
+        "name_organization_owner_page_3": 0.329,
+        "name_viewer_page_1": 0.141,
+        "duplicates_two_pages": 2.893
+      },
+      "scanned": 10002,
+      "duplicate_pairs": 24,
+      "protected_index_built": true
+    }
+  ],
+  "index_rebuild": {
+    "contacts": 10003,
+    "seconds": 381.365,
+    "historical_tables_unchanged": true,
+    "exact_lookup_plan": [
+      {
+        "Plan": {
+          "Node Type": "Index Scan",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Scan Direction": "Forward",
+          "Index Name": "ix_contact_search_exact",
+          "Relation Name": "contact_search_token",
+          "Alias": "contact_search_token",
+          "Startup Cost": 0.41,
+          "Total Cost": 8.43,
+          "Plan Rows": 1,
+          "Plan Width": 16,
+          "Actual Startup Time": 0.031,
+          "Actual Total Time": 0.032,
+          "Actual Rows": 1,
+          "Actual Loops": 1,
+          "Index Cond": "((organization_id = 'ce5b370f-9888-4e24-a441-44db745c001b'::uuid) AND ((field)::text = 'phone'::text) AND ((digest)::text = '53742b732b2954266d15a606828c3d79d2a21b133408dbdc1feef7e8f55d28f1'::text))",
+          "Rows Removed by Index Recheck": 0
+        },
+        "Planning Time": 19.35,
+        "Triggers": [],
+        "Execution Time": 0.061
+      }
+    ]
+  },
+  "volume_restore": {
+    "source_database": "luri_rehearsal_f2488fdda2_after",
+    "restored_database": "luri_rehearsal_ac728301ff_after",
+    "backup_in_local_container": "/tmp/luri_rehearsal_ac728301ff_after_volume.dump",
+    "backup_sha256": "f90473183271d844685ece4af6c4fc3e54c8f4771de4bd7429bab87d2bd2e56b",
+    "all_tables_equal": true,
+    "source_unchanged": true,
+    "optimizer_statistics_refreshed": true,
+    "table_count": 64,
+    "fingerprints_source": {
+      "bot": "8f9635791ab7866d8d6092cd76da1f6dc973b24097009607497750f7c8d2e126",
+      "billing_price": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_memory": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_response_checkpoint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "analytics_daily_summary": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "alembic_version": "6b5b7a2c542c2d7defc66585d6fc531bd1b4a923b341be07dc2e1a8d050cb489",
+      "app_user": "317900f9628c0b146db9b67af53913d4c650460beb7822cf2ccc15dd42eb0916",
+      "audit_event": "a24ce4a2d86539b0c9f7e0e4a4171067ba3ec1f468d6f502e8e6bd886fbbda42",
+      "billing_provider_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "automation_execution": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "billing_account": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_audit_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "automation_task_execution": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_job": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_attempt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_idempotency_receipt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_override": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_weekly_interval": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_configuration": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_date_exception": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_holiday": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "contact_name_token": "48976c755ee3dea29706dd2dc869e848eb875a0fc78ba8deb7809171c43c618b",
+      "contact_search_state": "925dc4b5d334856951cb16741ff66f526f378447310558b3fd5bc369cc7e25f2",
+      "contact_search_token": "9d687b7b0fb745e0c4ff6cd6e97735427d6027112064d0eb1a3a40dafecb15f2",
+      "conversation_management_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "contact": "e730cd0d170a398697f729c441c93352ca4ded30b5c334612a532de7c4363ef4",
+      "conversation_state_history": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "crm_opportunity": "2887bb32caf732c235a28e543c447d38f5f53ec50f9187efe82ae89a375a9b7c",
+      "crm_opportunity_history": "80e48a1c1fa9024dc38c0e031e4faf90c1cfd265814befbcf1deb0fcaa6720f8",
+      "crm_opportunity_conversation": "8a611c21b28322f3737b99b40178aa7a27810307b50dded060619a99853b32f5",
+      "crm_contact_merge": "2765031013333c245f389eb14d8117f17aba23f608168bc3314ee30a3cc6a363",
+      "crm_customer_activity": "2f045851d46504e8951a51e44f62bdfa83c678e9b0b12cac8b5ab0db75fb5154",
+      "conversation": "b616f80840cd5517e700f3d8fc27ded863761c082ddfa42fae0915cb8fd8fd16",
+      "contact_name_state": "753b141256b16fc3d85150118d38c759333d0414e8e4b733a85d0f51a8d6d42f",
+      "crm_activity": "15ed524837a06e7fd35e32b5499a2ce602f8e824475fb81cae27f27d4df8a17c",
+      "crm_stage": "502b69d0b42ac5b32ea13409aed4b48db579921569c7be62eb6fcd29d7f3ffd5",
+      "handoff_session": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_connection": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "handoff_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "customer_profile": "acecfa3c7389ab95f11f716e283084c1df83df00ffb93412d520cce1bae2b1d9",
+      "integration_oauth_state": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_credential": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_catalog_entry": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_health_check": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "managed_automation_execution": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "message": "fe84493446b06ff71e2148caba9e4902ba8c3d3e9edee75f19f01ba606bbc99c",
+      "inbound_message_receipt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "handoff_cycle": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_query_log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_source": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "managed_automation_event_receipt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "managed_automation_definition": "350c12c66e6b7952d09f5c06f97a551ce2d1bffa90d5d61c020790b262883ef2",
+      "organization_plan_assignment": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "plan_definition": "9e778065cf664cd63eb6e667d51c81f482337968783732fbd8720be40e754bf1",
+      "subscription": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "security_rate_limit_bucket": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "organization_onboarding": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "organization": "5f558d14f4aa169cf3986fb77675666cb0d5bb3027e8f67802af02e1fdb5757a",
+      "outbound_message_attempt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "whatsapp_channel_configuration": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_entry": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fingerprints_restored": {
+      "bot": "8f9635791ab7866d8d6092cd76da1f6dc973b24097009607497750f7c8d2e126",
+      "billing_price": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_memory": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_response_checkpoint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "analytics_daily_summary": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "alembic_version": "6b5b7a2c542c2d7defc66585d6fc531bd1b4a923b341be07dc2e1a8d050cb489",
+      "app_user": "317900f9628c0b146db9b67af53913d4c650460beb7822cf2ccc15dd42eb0916",
+      "audit_event": "a24ce4a2d86539b0c9f7e0e4a4171067ba3ec1f468d6f502e8e6bd886fbbda42",
+      "billing_provider_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "automation_execution": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "billing_account": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_audit_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "automation_task_execution": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_job": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_attempt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_idempotency_receipt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_override": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_weekly_interval": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_configuration": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_date_exception": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_holiday": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "contact_name_token": "48976c755ee3dea29706dd2dc869e848eb875a0fc78ba8deb7809171c43c618b",
+      "contact_search_state": "925dc4b5d334856951cb16741ff66f526f378447310558b3fd5bc369cc7e25f2",
+      "contact_search_token": "9d687b7b0fb745e0c4ff6cd6e97735427d6027112064d0eb1a3a40dafecb15f2",
+      "conversation_management_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "contact": "e730cd0d170a398697f729c441c93352ca4ded30b5c334612a532de7c4363ef4",
+      "conversation_state_history": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "crm_opportunity": "2887bb32caf732c235a28e543c447d38f5f53ec50f9187efe82ae89a375a9b7c",
+      "crm_opportunity_history": "80e48a1c1fa9024dc38c0e031e4faf90c1cfd265814befbcf1deb0fcaa6720f8",
+      "crm_opportunity_conversation": "8a611c21b28322f3737b99b40178aa7a27810307b50dded060619a99853b32f5",
+      "crm_contact_merge": "2765031013333c245f389eb14d8117f17aba23f608168bc3314ee30a3cc6a363",
+      "crm_customer_activity": "2f045851d46504e8951a51e44f62bdfa83c678e9b0b12cac8b5ab0db75fb5154",
+      "conversation": "b616f80840cd5517e700f3d8fc27ded863761c082ddfa42fae0915cb8fd8fd16",
+      "contact_name_state": "753b141256b16fc3d85150118d38c759333d0414e8e4b733a85d0f51a8d6d42f",
+      "crm_activity": "15ed524837a06e7fd35e32b5499a2ce602f8e824475fb81cae27f27d4df8a17c",
+      "crm_stage": "502b69d0b42ac5b32ea13409aed4b48db579921569c7be62eb6fcd29d7f3ffd5",
+      "handoff_session": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_connection": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "handoff_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "customer_profile": "acecfa3c7389ab95f11f716e283084c1df83df00ffb93412d520cce1bae2b1d9",
+      "integration_oauth_state": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_credential": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_health_check": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_entry": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_catalog_entry": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_query_log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "inbound_message_receipt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "handoff_cycle": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_source": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "managed_automation_execution": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "message": "fe84493446b06ff71e2148caba9e4902ba8c3d3e9edee75f19f01ba606bbc99c",
+      "managed_automation_definition": "350c12c66e6b7952d09f5c06f97a551ce2d1bffa90d5d61c020790b262883ef2",
+      "managed_automation_event_receipt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "organization_plan_assignment": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "plan_definition": "9e778065cf664cd63eb6e667d51c81f482337968783732fbd8720be40e754bf1",
+      "subscription": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "security_rate_limit_bucket": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "organization_onboarding": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "organization": "5f558d14f4aa169cf3986fb77675666cb0d5bb3027e8f67802af02e1fdb5757a",
+      "outbound_message_attempt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "whatsapp_channel_configuration": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "finished_at": "2026-10-07T01:26:34.858047+00:00",
+  "server_restarted": true,
+  "manifest": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\docs\\validacion-local\\journey\\20261007T011322228115Z\\volume-restored.json",
+  "database_restored": true,
+  "base_url": "http://127.0.0.1:8776",
+  "final_name_index_validation": {
+    "status": "passed",
+    "database": "luri_rehearsal_2ab000b548_after",
+    "cross_tenant_fk_rejections": 2,
+    "counts": {
+      "contact_name_state": 10003,
+      "contact_name_token": 320319
+    },
+    "concurrency_proof": "concurrency-authorized-http.json"
+  }
+}

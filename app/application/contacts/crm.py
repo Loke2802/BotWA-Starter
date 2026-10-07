@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 
 from app.application.audit.writer import append_user_audit
 from app.application.contacts.identity import ContactIdentityHasher
+from app.application.contacts.name_index import ContactNameIndex
 from app.application.contacts.registration import preserve_registration
 from app.application.contacts.search import ContactSearch, SearchField
 from app.application.contacts.search_index import ContactSearchIndex
@@ -131,77 +132,36 @@ class CrmService:
             if search_by != "name":
                 require_scoped_permission(actor, "contacts.read_sensitive", org)
             matcher = ContactSearch(search, search_by, self.cipher)
-            if search_by != "name":
-                identity_matches = ContactSearchIndex(
-                    self.session, self.cipher, self.hasher
-                ).matching(org, matcher)
-                exact_aliases: set[UUID] = set()
-                if status == "active":
-                    links = redirects(self.session, org)
-                    for source in self.session.scalars(
-                        select(ContactMergeModel.source_id).where(
-                            ContactMergeModel.organization_id == org,
-                            ContactMergeModel.source_id.in_(identity_matches),
-                        )
-                    ):
-                        exact_aliases.add(resolve(links, source))
-                query = query.where(
-                    or_(
-                        ContactModel.id.in_(identity_matches),
-                        ContactModel.id.in_(exact_aliases),
-                    )
-                )
-                total = (
-                    self.session.scalar(
-                        select(func.count()).select_from(query.subquery())
-                    )
-                    or 0
-                )
-                rows = self.session.execute(
-                    query.order_by(ContactModel.created_at.desc(), ContactModel.id)
-                    .offset((page - 1) * page_size)
-                    .limit(page_size)
-                ).all()
-                return CustomerList(
-                    items=[self._item(c, p) for c, p in rows],
-                    total=total,
-                    page=page,
-                    page_size=page_size,
-                    has_next=page * page_size < total,
-                )
-            alias_matches: set[UUID] = set()
+            index = (
+                ContactNameIndex(self.session, self.cipher, self.hasher)
+                if search_by == "name"
+                else ContactSearchIndex(self.session, self.cipher, self.hasher)
+            )
+            identity_matches = index.matching(org, matcher)
+            aliases: set[UUID] = set()
             if status == "active":
                 links = redirects(self.session, org)
-                aliases = self.session.scalars(
-                    select(ContactModel)
-                    .join(
-                        ContactMergeModel,
-                        (ContactMergeModel.source_id == ContactModel.id)
-                        & (
-                            ContactMergeModel.organization_id
-                            == ContactModel.organization_id
-                        ),
+                for source in self.session.scalars(
+                    select(ContactMergeModel.source_id).where(
+                        ContactMergeModel.organization_id == org,
+                        ContactMergeModel.source_id.in_(identity_matches),
                     )
-                    .where(ContactModel.organization_id == org)
-                    .execution_options(yield_per=256)
-                )
-                for alias in aliases:
-                    if matcher.matches(alias):
-                        alias_matches.add(resolve(links, alias.id))
-            items = []
-            total = 0
-            start = (page - 1) * page_size
-            for contact, profile in self.session.execute(
-                query.order_by(
-                    ContactModel.created_at.desc(), ContactModel.id
-                ).execution_options(yield_per=256)
-            ):
-                if contact.id in alias_matches or matcher.matches(contact):
-                    if start <= total < start + page_size:
-                        items.append(self._item(contact, profile))
-                    total += 1
+                ):
+                    aliases.add(resolve(links, source))
+            query = query.where(
+                or_(ContactModel.id.in_(identity_matches), ContactModel.id.in_(aliases))
+            )
+            total = (
+                self.session.scalar(select(func.count()).select_from(query.subquery()))
+                or 0
+            )
+            rows = self.session.execute(
+                query.order_by(ContactModel.created_at.desc(), ContactModel.id)
+                .offset((page - 1) * page_size)
+                .limit(page_size)
+            ).all()
             return CustomerList(
-                items=items,
+                items=[self._item(c, p) for c, p in rows],
                 total=total,
                 page=page,
                 page_size=page_size,
@@ -443,6 +403,8 @@ class CrmService:
         try:
             if has_permission(actor, "contacts.read_sensitive"):
                 ContactSearchIndex(self.session, self.cipher, self.hasher).sync(contact)
+            else:
+                ContactNameIndex(self.session, self.cipher, self.hasher).sync(contact)
             self.session.commit()
         except IntegrityError as exc:
             self.session.rollback()

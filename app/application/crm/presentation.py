@@ -47,15 +47,23 @@ def record(
     item = OpportunityRecord(
         id=row.id,
         contact_id=row.contact_id,
-        title=cipher.decrypt(row.title_ciphertext),
-        need=cipher.decrypt(row.need_ciphertext) if row.need_ciphertext else None,
+        title=cipher.decrypt(row.title_ciphertext) if content else "Oportunidad",
+        need=(
+            cipher.decrypt(row.need_ciphertext)
+            if content and row.need_ciphertext
+            else None
+        ),
         stage_code=row.stage_code,
         stage_kind=cast(StageKind, stage.kind),
         assigned_user_id=row.assigned_user_id,
         next_action=(
             ActionRecord(
                 id=action.id,
-                description=cipher.decrypt(action.description_ciphertext),
+                description=(
+                    cipher.decrypt(action.description_ciphertext)
+                    if content
+                    else "Contenido restringido"
+                ),
                 due_at=aware(action.due_at),
                 status=cast("LiteralActionStatus", action.status),
             )
@@ -64,22 +72,22 @@ def record(
         ),
         no_action_reason=(
             cipher.decrypt(row.no_action_reason_ciphertext)
-            if row.no_action_reason_ciphertext
+            if content and row.no_action_reason_ciphertext
             else None
         ),
         close_reason=(
             cipher.decrypt(row.close_reason_ciphertext)
-            if row.close_reason_ciphertext
+            if content and row.close_reason_ciphertext
             else None
         ),
-        amount=row.amount,
-        currency=row.currency,
+        amount=row.amount if content else None,
+        currency=row.currency if content else None,
         version=row.version,
         created_at=aware(row.created_at),
         updated_at=aware(row.updated_at),
         closed_at=aware(row.closed_at) if row.closed_at else None,
     )
-    return item if content else redact(item)
+    return item
 
 
 LiteralActionStatus = Literal["pending", "completed", "cancelled"]

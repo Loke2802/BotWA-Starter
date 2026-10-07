@@ -2,6 +2,10 @@
 
 ## Luri CRM — incremento 1 (06/10/2026, rama local)
 
+[Autorización y aislamiento](docs/LURI_CRM_SEGURIDAD_AUTORIZACION_2026-10-07.md):
+JWT real, roles vigentes y referencias entre empresas; viewer consulta metadatos
+sin descifrar primero el contenido comercial restringido.
+
 [Rendimiento y carga sostenida local](docs/LURI_CRM_RENDIMIENTO_CARGA_SOSTENIDA_2026-10-06.md):
 planes SQL, conjuntos grandes de candidatos y una sesión por petición autenticada.
 Ensayo reproducible sobre copias ficticias; conserva permisos e historial.

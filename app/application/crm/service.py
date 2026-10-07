@@ -214,11 +214,20 @@ class OpportunityService:
         return self._record(self.repository.opportunity(org, opportunity_id), actor)
 
     def history(
-        self, org: UUID, opportunity_id: UUID, actor: User, page: int, page_size: int
+        self,
+        org: UUID,
+        opportunity_id: UUID,
+        actor: User,
+        page: int,
+        page_size: int,
+        *,
+        through_version: int | None = None,
     ) -> list[HistoryRecord]:
         self._read(org, actor)
         self.repository.opportunity(org, opportunity_id)
-        rows = self.repository.history(org, opportunity_id, page, page_size)
+        rows = self.repository.history(
+            org, opportunity_id, page, page_size, through_version=through_version
+        )
         result = []
         for row in rows:
             snapshot = OpportunityRecord.model_validate_json(

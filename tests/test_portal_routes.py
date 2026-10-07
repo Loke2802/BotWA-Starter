@@ -23,6 +23,8 @@ def test_portal_shell_and_assets_are_served() -> None:
     assert "/portal/assets/conversations.js" in page.text
     assert opportunities.status_code == 200
     assert "/portal/assets/opportunities.js" in page.text
+    assert client.get("/portal/assets/opportunity-history.js").status_code == 200
+    assert "/portal/assets/opportunity-history.js" in page.text
     assert follow_up.status_code == 200
     assert "/portal/assets/follow-up.js" in page.text
     assert 'data-view="follow-up"' in page.text

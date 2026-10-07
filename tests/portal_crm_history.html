@@ -1,0 +1,95 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>Pruebas de historial CRM</title>
+<link rel="stylesheet" href="../app/portal/portal.css">
+<main style="padding:24px"><h1>Historial comercial paginado</h1><p>API simulada; no llama a IA ni envía mensajes.</p><pre id="results" role="status">Ejecutando…</pre><div id="fixture"></div></main>
+<script src="../app/portal/opportunity-history.js"></script><script src="../app/portal/opportunities.js"></script>
+<script>
+(async () => {
+  const fixture = document.querySelector('#fixture'), results = document.querySelector('#results'), report = [];
+  const assert = (value, message) => {if (!value) throw Error(message);};
+  const version = number => ({version:number, actor_user_id:'user', occurred_at:'2026-10-06T15:00:00Z', snapshot:{title:`Propuesta ${number} <img src=x onerror=alert(1)>`, stage_code:'offer', assigned_user_id:'user', next_action:{description:'Acción privada'}}});
+  const versions = total => Array.from({length:total}, (_, n) => version(n + 1));
+  let rows, calls, fail, release;
+  async function api(path, options = {}) {
+    calls.push({path, options});
+    const params = new URL(path, location.origin).searchParams;
+    if (release) {const held = release; release = null; return new Promise(resolve => held.resolve = resolve);}
+    if (fail) throw Error('Fallo simulado, reintenta');
+    const ceiling = Number(params.get('through_version')) || Infinity;
+    const page = Number(params.get('page')), size = Number(params.get('page_size'));
+    return rows.filter(row => row.version <= ceiling).sort((a,b) => b.version - a.version).slice((page-1)*size, page*size);
+  }
+  function context(total = 41, org = 'company') {
+    rows = versions(total); calls = []; fail = false; release = null;
+    fixture.replaceChildren();
+    const root = document.createElement('article'); fixture.append(root);
+    root.innerHTML = '<div id="commercial-editor"></div><p id="commercial-feedback" role="status"></p>';
+    return {root, org, api, user:{id:'user'}, isCurrent:() => true, commercial:{info:{contact_id:'contact', timezone:'America/Lima'}, stages:[{code:'offer', name:'Oferta presentada', kind:'open'}], assignees:[{id:'user', name:'Responsable <script>bad()<\/script>'}]}};
+  }
+  const action = (c, name, id = 'opportunity') => window.LuriOpportunities.action(c, name, id, async () => {});
+  const first = c => c.root.querySelector('#commercial-editor li')?.textContent;
+  const next = c => c.root.querySelector('[data-commercial="history-next"]');
+  async function test(name, run) {await run(); report.push('PASS ' + name); results.textContent = report.join('\n');}
+  try {
+    await test('Recorre 41 versiones hasta la original sin truncar ni ejecutar HTML', async () => {
+      const c = context(); await action(c, 'history');
+      assert(first(c).startsWith('Versión 41 '), 'comienza en la última');
+      assert(!c.root.querySelector('img, script'), 'datos escapados');
+      assert(next(c) && !next(c).disabled, 'existe página siguiente');
+      await action(c, 'history-next'); assert(first(c).startsWith('Versión 21 '), 'segunda página');
+      await action(c, 'history-next'); assert(first(c).startsWith('Versión 1 '), 'original accesible');
+      assert(next(c).disabled, 'fin conocido');
+      await action(c, 'history-previous'); assert(first(c).startsWith('Versión 21 '), 'retorno');
+    });
+    await test('Otra edición no repite ni salta versiones; actualizar incorpora la nueva', async () => {
+      const c = context(); await action(c, 'history'); rows.push(version(42));
+      await action(c, 'history-next'); assert(first(c).startsWith('Versión 21 '), 'anclaje conservado');
+      assert(calls.at(-2).path.includes('through_version=41'), 'envía referencia');
+      await action(c, 'history-refresh'); assert(first(c).startsWith('Versión 42 '), 'actualización explícita');
+      assert(c.commercialHistory.page === 1 && c.commercialHistory.throughVersion === 42, 'nuevo comienzo');
+    });
+    await test('Página final exacta de 20 no ofrece una página vacía', async () => {
+      const c = context(40); await action(c, 'history'); await action(c, 'history-next');
+      assert(c.root.querySelectorAll('#commercial-editor li').length === 20, 'página completa');
+      assert(next(c).disabled, 'sin siguiente fantasma');
+      assert(calls.at(-1).path.includes('page=41&page_size=1'), 'comprobación de límite');
+    });
+    await test('Historial vacío muestra estado y controles correctos', async () => {
+      const c = context(0); await action(c, 'history');
+      assert(c.root.textContent.includes('No hay versiones'), 'estado vacío');
+      assert(next(c).disabled && c.root.querySelector('[data-commercial="history-previous"]').disabled, 'sin navegación');
+      assert(calls.length === 1, 'no consulta páginas inútiles');
+    });
+    await test('Fallo de página conserva la vista y permite reintentar', async () => {
+      const c = context(); await action(c, 'history'); fail = true; await action(c, 'history-next');
+      assert(first(c).startsWith('Versión 41 '), 'conserva página previa');
+      assert(c.commercialHistory.page === 1 && !c.busy && !next(c).disabled, 'estado recuperable');
+      assert(c.root.querySelector('#commercial-feedback').textContent.includes('Fallo simulado'), 'error visible');
+      assert(!c.root.querySelector('[aria-busy="true"]'), 'carga finalizada');
+      fail = false; await action(c, 'history-next'); assert(first(c).startsWith('Versión 21 '), 'reintento');
+    });
+    await test('Cambio de empresa descarta una respuesta pendiente', async () => {
+      const c = context(), hold = {}; release = hold;
+      const pending = action(c, 'history');
+      assert(hold.resolve, 'solicitud pendiente'); c.isCurrent = () => false;
+      window.LuriOpportunityHistory.clear(c); c.root.textContent = 'Otra empresa';
+      hold.resolve([version(41)]); await pending;
+      assert(c.root.textContent === 'Otra empresa', 'respuesta descartada');
+    });
+    await test('Abrir un editor invalida un historial pendiente', async () => {
+      const c = context(), hold = {}; release = hold;
+      const pending = action(c, 'history'); window.LuriOpportunities.form(c);
+      hold.resolve([version(41)]); await pending;
+      assert(c.root.querySelector('#commercial-form'), 'editor preservado');
+      assert(!c.root.querySelector('[aria-busy="true"]'), 'editor no queda ocupado');
+      assert(!c.root.textContent.includes('Versión 41'), 'no sobrescribe el editor');
+    });
+    await test('Navegación sólo consulta API scoped y no escribe', async () => {
+      const c = context(); await action(c, 'history'); await action(c, 'history-next'); await action(c, 'history-refresh');
+      assert(calls.every(call => call.path.startsWith('/organizations/company/crm/opportunities/opportunity/history?')), 'empresa y recurso');
+      assert(calls.every(call => !call.options.method && !call.options.body), 'sólo lecturas');
+      assert(calls.every(call => Number(new URL(call.path, location.origin).searchParams.get('page_size')) <= 20), 'consultas acotadas');
+    });
+    results.textContent = report.join('\n') + '\nCOMPLETE: 8 PASS';
+  } catch(error) {results.textContent = report.join('\n') + '\nFAIL ' + error.stack;}
+})();
+</script></html>

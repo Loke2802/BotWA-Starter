@@ -483,3 +483,54 @@ def test_board_move_close_and_reopen_preserves_history(crm_opportunities):  # ty
         h["snapshot"]["stage_code"]
         for h in client.get(f"{base}/opportunities/{item['id']}/history").json()
     ] == ["offer", "won", "new"]
+
+
+def test_history_pages_hold_anchor_while_another_edit_arrives(crm_opportunities):  # type: ignore[no-untyped-def]
+    client, _, actor, other, contact, conversation = crm_opportunities
+    base = f"/organizations/{actor.organization_id}/crm/opportunities"
+    data = payload(actor, contact, conversation)
+    item = client.post(
+        base, json=data, headers={"Idempotency-Key": "history-anchor"}
+    ).json()
+    patch = {
+        k: v for k, v in data.items() if k not in {"contact_id", "conversation_id"}
+    }
+    for version in range(1, 7):
+        response = client.patch(
+            f"{base}/{item['id']}", json={**patch, "version": version}
+        )
+        assert response.status_code == 200, response.text
+    history = f"{base}/{item['id']}/history"
+    first = client.get(history, params={"page_size": 3}).json()
+    assert [row["version"] for row in first] == [7, 6, 5]
+    anchor = first[0]["version"]
+    response = client.patch(f"{base}/{item['id']}", json={**patch, "version": anchor})
+    assert response.status_code == 200 and response.json()["version"] == 8
+    subsequent = []
+    for page in (2, 3):
+        response = client.get(
+            history, params={"page": page, "page_size": 3, "through_version": anchor}
+        )
+        assert response.status_code == 200, response.text
+        subsequent.extend(response.json())
+    assert [row["version"] for row in first + subsequent] == [7, 6, 5, 4, 3, 2, 1]
+    assert client.get(history, params={"page_size": 3}).json()[0]["version"] == 8
+    assert [
+        row["version"]
+        for row in client.get(history, params={"through_version": 1}).json()
+    ] == [1]
+    assert client.get(history, params={"through_version": 0}).status_code == 422
+    viewer = actor.model_copy(update={"role": "viewer"})
+    client.app.dependency_overrides[require_authenticated_user] = lambda: viewer
+    redacted = client.get(
+        history, params={"page": 2, "page_size": 3, "through_version": anchor}
+    ).json()
+    assert [row["version"] for row in redacted] == [4, 3, 2]
+    assert all(row["snapshot"]["need"] is None for row in redacted)
+    client.app.dependency_overrides[require_authenticated_user] = lambda: other
+    assert (
+        client.get(
+            f"/organizations/{other.organization_id}/crm/opportunities/{item['id']}/history?through_version={anchor}"
+        ).status_code
+        == 404
+    )

@@ -1,0 +1,39 @@
+{
+  "status": "passed",
+  "environment": "browser simulated API",
+  "captured_at": "2026-10-07T05:29:03.295Z",
+  "passed": 50,
+  "fixtures": [
+    {
+      "file": "portal_crm_opportunities.html",
+      "passed": 5,
+      "text": "PASS Conversación abre ficha existente, oculta PII y escapa HTML\nPASS Creación, respuesta perdida y recarga reutilizan clave sin duplicar\nPASS Edición envía versión y etapa; conserva historial\nPASS Vincular usa oportunidad y conversación sin crear otra venta\nPASS Cambio de empresa descarta respuestas antiguas y controles de escritura\nCOMPLETE: 5 PASS"
+    },
+    {
+      "file": "portal_crm_board.html",
+      "passed": 9,
+      "text": "PASS Columnas con totales, fechas y escape HTML\nPASS Paginación independiente por etapa\nPASS Cambio a ganada usa editor, motivo y versión\nPASS Viewer consulta sin controles de escritura\nPASS Configuración renombra, ordena y añade sin cambiar códigos previos\nPASS Conflicto de etapas conserva borrador y avisa\nPASS Código duplicado no envía cambios y sigue corregible\nPASS Sin permiso no consulta configuración\nPASS Cambio de empresa descarta respuestas tardías\n9 pruebas aprobadas. Sin envíos ni IA."
+    },
+    {
+      "file": "portal_crm_customer_workspace.html",
+      "passed": 11,
+      "text": "PASS Ficha reúne ventas, próximas acciones y conversaciones\nPASS Actividad con respuesta perdida reintenta sin duplicarse\nPASS Completar acción y programar siguiente conserva versión\nPASS Sugerencia se revisa y aplica sin guardar automáticamente\nPASS Creación desde cliente reintenta con importe sin duplicarse\nPASS IA propone actualizar oportunidad sin escribir y conserva campos\nPASS IA rechaza oportunidad cambiada después de sugerir\nPASS Viewer recibe notas restringidas y no puede escribir\nPASS Resumen separa monedas y filtra periodo inclusivo\nPASS Resumen no consulta sin permiso y no muestra importes al viewer\nPASS Ficha cerrada descarta resultados antiguos\n11 pruebas aprobadas."
+    },
+    {
+      "file": "portal_crm_follow_up.html",
+      "passed": 10,
+      "text": "PASS Cola, vencimientos y escape de HTML\nPASS Filtros llegan al servidor y conservan el responsable\nPASS Agenda abre en hoy y próximas empieza mañana\nPASS Ficha se abre para el cliente de la acción\nPASS Editor compartido actualiza versión y conserva motivo sin acción\nPASS Historial reutilizado sin otro módulo de edición\nPASS Conflicto visible conserva datos y termina el aviso de guardado\nPASS Viewer consulta contenido restringido sin edición\nPASS Cambio de empresa descarta respuesta tardía\nPASS Sin permisos no consulta datos comerciales\n10 pruebas aprobadas. Sin envíos ni IA."
+    },
+    {
+      "file": "portal_conversations.html",
+      "passed": 7,
+      "text": "PASS Historial, escape de HTML y paginación\nPASS Viewer no consulta contenido ni ofrece acciones de envío\nPASS Respuesta tardía no repuebla otra empresa\nPASS Solicitud, toma, envío idempotente y devolución a Luri\nPASS Un operador no responde una atención asignada a otro\nPASS Errores de permisos visibles y recuperables\nPASS Un fallo al refrescar no invita a reenviar un mensaje confirmado\n7 pruebas aprobadas. Ningún mensaje real enviado."
+    },
+    {
+      "file": "portal_crm_history.html",
+      "passed": 8,
+      "text": "PASS Recorre 41 versiones hasta la original sin truncar ni ejecutar HTML\nPASS Otra edición no repite ni salta versiones; actualizar incorpora la nueva\nPASS Página final exacta de 20 no ofrece una página vacía\nPASS Historial vacío muestra estado y controles correctos\nPASS Fallo de página conserva la vista y permite reintentar\nPASS Cambio de empresa descarta una respuesta pendiente\nPASS Abrir un editor invalida un historial pendiente\nPASS Navegación sólo consulta API scoped y no escribe\nCOMPLETE: 8 PASS"
+    }
+  ],
+  "external_calls": false
+}

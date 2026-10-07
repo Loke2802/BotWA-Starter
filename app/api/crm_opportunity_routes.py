@@ -237,9 +237,17 @@ def history(
     service: Service,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
+    through_version: int | None = Query(default=None, ge=1, le=2147483647),
 ) -> list[HistoryRecord]:
     try:
-        return service.history(organization_id, opportunity_id, actor, page, page_size)
+        return service.history(
+            organization_id,
+            opportunity_id,
+            actor,
+            page,
+            page_size,
+            through_version=through_version,
+        )
     except (ValueError, SQLAlchemyError) as exc:
         raise fail(exc) from exc
 

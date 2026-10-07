@@ -152,16 +152,23 @@ class OpportunityRepository:
         )
 
     def history(
-        self, org: UUID, opportunity_id: UUID, page: int, page_size: int
+        self,
+        org: UUID,
+        opportunity_id: UUID,
+        page: int,
+        page_size: int,
+        *,
+        through_version: int | None = None,
     ) -> list[OpportunityHistoryModel]:
+        query = select(OpportunityHistoryModel).where(
+            OpportunityHistoryModel.organization_id == org,
+            OpportunityHistoryModel.opportunity_id == opportunity_id,
+        )
+        if through_version is not None:
+            query = query.where(OpportunityHistoryModel.version <= through_version)
         return list(
             self.session.scalars(
-                select(OpportunityHistoryModel)
-                .where(
-                    OpportunityHistoryModel.organization_id == org,
-                    OpportunityHistoryModel.opportunity_id == opportunity_id,
-                )
-                .order_by(OpportunityHistoryModel.version.desc())
+                query.order_by(OpportunityHistoryModel.version.desc())
                 .offset((page - 1) * page_size)
                 .limit(page_size)
             )

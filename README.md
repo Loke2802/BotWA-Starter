@@ -2,6 +2,10 @@
 
 ## Luri CRM — incremento 1 (06/10/2026, rama local)
 
+[Historial completo y paginación estable](docs/LURI_CRM_HISTORIAL_PAGINADO_2026-10-07.md):
+201 versiones recorridas en el panel con login normal; navegación independiente
+desde conversación y ficha, conservando permisos y cambios previos.
+
 [Autorización y aislamiento](docs/LURI_CRM_SEGURIDAD_AUTORIZACION_2026-10-07.md):
 JWT real, roles vigentes y referencias entre empresas; viewer consulta metadatos
 sin descifrar primero el contenido comercial restringido.

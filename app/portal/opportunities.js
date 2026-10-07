@@ -38,6 +38,7 @@ window.LuriOpportunities = (() => {
       <div id="commercial-editor"></div><p id="commercial-feedback" role="status"></p></section>`;
   }
   function form(c, item=null) {
+    window.LuriOpportunityHistory.clear(c);
     const data = c.commercial;
     c.commercialEdit = item;
     const closed = item && item.stage_kind !== "open";
@@ -73,7 +74,7 @@ window.LuriOpportunities = (() => {
   async function action(c, name, id, refresh) {
     if (!alive(c) || c.busy) return;
     const base = `/organizations/${c.org}`;
-    if (name === "cancel") {c.root.querySelector("#commercial-editor").innerHTML=""; return;}
+    if (name === "cancel") {window.LuriOpportunityHistory.clear(c);c.root.querySelector("#commercial-editor").innerHTML=""; return;}
     c.busy = true;
     try {
       if (name === "contact") await window.LuriCRM.openFromConversation(c.org, c.api, c.commercial.info.contact_id, refresh);
@@ -81,10 +82,8 @@ window.LuriOpportunities = (() => {
       if (name === "edit") {const item=await c.api(`${base}/crm/opportunities/${id}`); if(alive(c))form(c,item);}
       if (name === "link") {await c.api(`${base}/crm/opportunities/${id}/conversations/${c.selected || c.commercial.info.contact_id}`, {method:"PUT"}); if(alive(c))await refresh();}
       if (name === "previous" || name === "next") {c.commercialPage=(c.commercialPage || 1)+(name==="next"?1:-1); await refresh();}
-      if (name === "history") {
-        const rows=await c.api(`${base}/crm/opportunities/${id}/history?page_size=20`);
-        if(alive(c)) c.root.querySelector("#commercial-editor").innerHTML=`<h4>Historial comercial (últimas 20 versiones)</h4><ol>${rows.map(h=>`<li>Versión ${h.version} · ${esc(date(h.occurred_at,c.commercial.info.timezone))} · ${esc(h.snapshot.title)} · ${esc(c.commercial.stages.find(s=>s.code===h.snapshot.stage_code)?.name || h.snapshot.stage_code)} · Responsable ${esc(c.commercial.assignees.find(u=>u.id===h.snapshot.assigned_user_id)?.name || "Integrante del equipo")} · Modificado por ${esc(c.commercial.assignees.find(u=>u.id===h.actor_user_id)?.name || "Integrante del equipo")}<p>${esc(h.snapshot.next_action?.description || h.snapshot.close_reason || h.snapshot.no_action_reason)}</p></li>`).join("")}</ol>`;
-      }
+      if (name === "history") await window.LuriOpportunityHistory.open(c,id);
+      if (name.startsWith("history-")) await window.LuriOpportunityHistory.navigate(c,name);
     } catch(error) {if(alive(c)) c.root.querySelector("#commercial-feedback").textContent=error.message;}
     finally {c.busy=false;}
   }

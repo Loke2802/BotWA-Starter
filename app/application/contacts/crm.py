@@ -5,6 +5,7 @@ from app.application.audit.writer import append_user_audit
 from app.application.contacts.identity import ContactIdentityHasher
 from app.application.contacts.registration import preserve_registration
 from app.application.contacts.search import ContactSearch, SearchField
+from app.application.contacts.search_index import ContactSearchIndex
 from app.domain.contacts.crm_contracts import (
     CrmAssignee,
     CrmSummary,
@@ -23,7 +24,7 @@ from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepo
 from app.infrastructure.repositories.crm_identity import canonical, redirects, resolve
 from app.security.authorization import has_permission, require_scoped_permission
 from app.security.secret_cipher import SecretCipher
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -130,6 +131,44 @@ class CrmService:
             if search_by != "name":
                 require_scoped_permission(actor, "contacts.read_sensitive", org)
             matcher = ContactSearch(search, search_by, self.cipher)
+            if search_by != "name":
+                identity_matches = ContactSearchIndex(
+                    self.session, self.cipher, self.hasher
+                ).matching(org, matcher)
+                exact_aliases: set[UUID] = set()
+                if status == "active":
+                    links = redirects(self.session, org)
+                    for source in self.session.scalars(
+                        select(ContactMergeModel.source_id).where(
+                            ContactMergeModel.organization_id == org,
+                            ContactMergeModel.source_id.in_(identity_matches),
+                        )
+                    ):
+                        exact_aliases.add(resolve(links, source))
+                query = query.where(
+                    or_(
+                        ContactModel.id.in_(identity_matches),
+                        ContactModel.id.in_(exact_aliases),
+                    )
+                )
+                total = (
+                    self.session.scalar(
+                        select(func.count()).select_from(query.subquery())
+                    )
+                    or 0
+                )
+                rows = self.session.execute(
+                    query.order_by(ContactModel.created_at.desc(), ContactModel.id)
+                    .offset((page - 1) * page_size)
+                    .limit(page_size)
+                ).all()
+                return CustomerList(
+                    items=[self._item(c, p) for c, p in rows],
+                    total=total,
+                    page=page,
+                    page_size=page_size,
+                    has_next=page * page_size < total,
+                )
             alias_matches: set[UUID] = set()
             if status == "active":
                 links = redirects(self.session, org)
@@ -183,6 +222,19 @@ class CrmService:
             page_size=page_size,
             has_next=page * page_size < total,
         )
+
+    def rebuild_search_index(self, org: UUID, actor: User) -> int:
+        require_scoped_permission(actor, "contacts.update", org)
+        require_scoped_permission(actor, "contacts.read_sensitive", org)
+        try:
+            count = ContactSearchIndex(self.session, self.cipher, self.hasher).rebuild(
+                org
+            )
+            self.session.commit()
+            return count
+        except Exception:
+            self.session.rollback()
+            raise
 
     def summary(self, org: UUID, actor: User) -> CrmSummary:
         require_scoped_permission(actor, "contacts.read", org)
@@ -319,6 +371,7 @@ class CrmService:
         self.session.add(contact)
         try:
             self.session.flush()
+            ContactSearchIndex(self.session, self.cipher, self.hasher).sync(contact)
             self.session.add(
                 CustomerProfileModel(
                     contact_id=contact.id,
@@ -388,6 +441,8 @@ class CrmService:
         contact.updated_by_user_id = actor.id
         self._audit(org, actor, contact_id)
         try:
+            if has_permission(actor, "contacts.read_sensitive"):
+                ContactSearchIndex(self.session, self.cipher, self.hasher).sync(contact)
             self.session.commit()
         except IntegrityError as exc:
             self.session.rollback()

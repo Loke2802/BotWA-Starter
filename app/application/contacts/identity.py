@@ -1,5 +1,7 @@
 import hmac
+import json
 from hashlib import sha256
+from typing import Literal
 from uuid import UUID
 
 from app.domain.contacts.contracts import (
@@ -15,6 +17,18 @@ class ContactIdentityHasher:
             raise ContactIdentityError("contact identity HMAC key is not configured")
         self._key = hmac_key.encode("utf-8")
         self._normalizer = normalizer
+
+    @property
+    def search_key_id(self) -> str:
+        return hmac.new(self._key, b"contact-search-v1:key-id", sha256).hexdigest()
+
+    def search_digest(
+        self, org: UUID, field: Literal["phone", "email"], value: str
+    ) -> str:
+        payload = json.dumps(
+            ["contact-search-v1", str(org), field, value], separators=(",", ":")
+        )
+        return hmac.new(self._key, payload.encode("utf-8"), sha256).hexdigest()
 
     def identify(
         self,

@@ -7,7 +7,6 @@ Creates uniquely named databases. Never drops databases or uses a remote URL.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import subprocess
@@ -27,31 +26,13 @@ from app.infrastructure.models.managed_automation import (
 from app.infrastructure.models.message import MessageModel
 from app.infrastructure.models.user import UserModel
 from app.security.passwords import PasswordService
-from sqlalchemy import create_engine, inspect, text
-from sqlalchemy.engine import Engine
+from scripts.crm_recovery_fingerprint import fingerprint
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 from tests.crm_opportunity_support import opportunity_service, payload, seed
 from tests.test_crm_growth import target
 
 ROOT = Path(__file__).resolve().parents[1]
-
-
-def fingerprint(engine: Engine) -> dict[str, str]:
-    # SQL JSON normalizes datetime/UUID/byte representation; hashing includes
-    # ciphertext, history, rows and revisions without exporting private values.
-    with engine.connect() as connection:
-        return {
-            table: hashlib.sha256(
-                "\n".join(
-                    sorted(
-                        connection.scalars(
-                            text(f'SELECT row_to_json(t)::text FROM "{table}" AS t')
-                        )
-                    )
-                ).encode()
-            ).hexdigest()
-            for table in inspect(connection).get_table_names()
-        }
 
 
 def main() -> None:

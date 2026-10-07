@@ -14,6 +14,7 @@ from urllib.parse import urlencode, urlsplit
 from uuid import UUID, uuid4
 
 import httpx
+from app.application.contacts.crm import CrmService
 from app.application.contacts.identity import ContactIdentityHasher
 from app.domain.contacts.contracts import ContactIdentityNormalizer
 from app.infrastructure.models.contact import ContactModel
@@ -436,7 +437,7 @@ class Journey:
             with engine.connect() as connection:
                 assert (
                     connection.scalar(text("SELECT version_num FROM alembic_version"))
-                    == "20261006_0030"
+                    == "20261006_0031"
                 )
                 assert (
                     connection.scalar(
@@ -630,10 +631,77 @@ class Journey:
                 "timings_seconds": timings,
                 "scanned": first["scanned"],
                 "duplicate_pairs": first["total"],
+                "protected_index_built": bool(self.report.get("index_rebuild")),
             }
         )
         self.passed(
             "full_duplicate_scan_beyond_2000_stable_pages_and_review_permissions"
+        )
+
+    def rebuild_search_index(self, database_port: int) -> None:
+        from app.domain.user.contracts import User
+        from scripts.crm_recovery_fingerprint import fingerprint
+
+        database = self.manifest["databases"]["after"]
+        engine = create_engine(
+            f"postgresql+psycopg://botwa:crm_local_test@127.0.0.1:{database_port}/{database}?connect_timeout=15"
+        )
+        try:
+            before = fingerprint(engine)
+            started = perf_counter()
+            with Session(engine) as session:
+                service = opportunity_service(session)
+                crm = CrmService(
+                    session,
+                    service.cipher,
+                    ContactIdentityHasher(
+                        service.digest_key, ContactIdentityNormalizer()
+                    ),
+                )
+                count = crm.rebuild_search_index(
+                    UUID(self.manifest["organization_id"]),
+                    User.model_validate(self.users["organization_owner"]),
+                )
+                assert count == self.report["search_dataset"]["expected_contacts"]
+                for table in (
+                    "contact",
+                    "contact_search_state",
+                    "contact_search_token",
+                ):
+                    session.execute(text("ANALYZE " + table))
+                session.commit()
+                plan = session.scalar(
+                    text(
+                        "EXPLAIN (ANALYZE, FORMAT JSON) SELECT contact_id "
+                        "FROM contact_search_token WHERE organization_id=:org "
+                        "AND field='phone' AND digest=:digest"
+                    ),
+                    {
+                        "org": UUID(self.manifest["organization_id"]),
+                        "digest": crm.hasher.search_digest(
+                            UUID(self.manifest["organization_id"]),
+                            "phone",
+                            "12030002001",
+                        ),
+                    },
+                )
+                assert "ix_contact_search_exact" in json.dumps(plan)
+            after = fingerprint(engine)
+            assert all(
+                before[t] == after[t]
+                for t in before
+                if t not in {"contact_search_state", "contact_search_token"}
+            )
+            self.report["index_rebuild"] = {
+                "contacts": count,
+                "seconds": round(perf_counter() - started, 3),
+                "historical_tables_unchanged": True,
+                "exact_lookup_plan": plan,
+            }
+        finally:
+            engine.dispose()
+        self.passed(
+            "protected_index_backfill_preserves_contact_history_and_uses_sql_index"
         )
 
     def save(self, path: Path) -> None:

@@ -16,6 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.application.contacts.identity import ContactIdentityHasher
+from app.application.contacts.search_index import ContactSearchIndex
 from app.domain.contacts.contracts import ContactIdentityNormalizer
 from app.infrastructure.database import get_session
 from app.infrastructure.models.contact import ContactModel
@@ -103,6 +104,7 @@ def register_contact(
     )
     try:
         repository.add(contact)
+        ContactSearchIndex(session, cipher, hasher).sync(contact)
         session.commit()
     except IntegrityError:
         session.rollback()

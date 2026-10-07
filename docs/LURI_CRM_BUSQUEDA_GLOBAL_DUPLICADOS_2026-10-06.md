@@ -125,16 +125,21 @@ Panel de la base comprobada: `http://127.0.0.1:8772/portal`. Login normal fictic
 5. Con viewer, la búsqueda sólo ofrece Nombre. Las peticiones de teléfono/correo
    y duplicados se rechazan en el servidor, como comprueba el ejecutor autenticado.
 
-Para abrir esta base si el servidor de demo no sigue activo:
+El panel anterior corresponde al esquema `0030`. Para iniciar la versión actual
+de esta rama, usar la nueva base restaurada con `0031` y el puerto `8773`:
 
 ```powershell
-& 'D:\BotWA Starter\.venv\Scripts\python.exe' -m scripts.serve_crm_local --manifest docs/validacion-local/search-recovery.json --port 8772
+& 'D:\BotWA Starter\.venv\Scripts\python.exe' -m scripts.serve_crm_local --manifest docs/validacion-local/index-volume-recovery.json --port 8773
 ```
 
 Las bases de esta máquina no se incluyen en Git. Un clon debe ejecutar el ensayo
 para crear su propia base y usar el nuevo manifiesto generado.
 
 ## Pendientes
+
+La [continuación de índices y recuperación con volumen](LURI_CRM_INDICES_RECUPERACION_VOLUMEN_2026-10-06.md)
+implementa los índices exactos de teléfono/correo y comprueba el restore completo.
+Los tiempos y evidencias anteriores se conservan como referencia del estado previo.
 
 Despliegue/staging, datos reales y piloto con usuarios; carga concurrente y tiempos
 en el servidor definitivo. Para empresas mucho mayores habrá que evaluar índices

@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, TextIO
 
 import httpx
+from scripts.crm_volume_recovery import restore_volume
 from scripts.verify_crm_journey_local import Journey
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -136,6 +137,8 @@ def main() -> None:
             process = start(manifest_path, args.server_port, args.database_port, log)
             journey.execute()
             journey.check_search()
+            journey.rebuild_search_index(args.database_port)
+            journey.check_search()
             journey.check_database(args.database_port)
             journey.save(report_path)
             stop(process)
@@ -155,12 +158,39 @@ def main() -> None:
             journey.check_search()
             journey.check_database(args.database_port)
             journey.passed("server_restart_preserves_sale_actions_history_and_metrics")
+            stop(process)
+            process = None
+            failed["stage"] = "volume_backup_restore"
+            print(
+                "Backing up complete volume and restoring into a new local database",
+                flush=True,
+            )
+            restored_path = run_dir / "volume-restored.json"
+            restored_manifest, proof = restore_volume(
+                args.container, args.database_port, manifest, restored_path
+            )
+            journey.manifest = restored_manifest
+            journey.report["volume_restore"] = proof
+            failed["stage"] = "restored_authenticated_journey"
+            process = start(restored_path, args.server_port, args.database_port, log)
+            journey.client.close()
+            journey.client = httpx.Client(
+                base_url=journey.base_url, timeout=30, follow_redirects=False
+            )
+            journey.login()
+            journey.check_records()
+            journey.check_search()
+            journey.check_database(args.database_port)
+            journey.passed(
+                "volume_restore_preserves_indexes_search_duplicates_roles_sale_and_history"
+            )
             journey.report.update(
                 {
                     "status": "passed",
                     "finished_at": datetime.now(UTC).isoformat(),
                     "server_restarted": True,
-                    "manifest": str(manifest_path),
+                    "manifest": str(restored_path),
+                    "database_restored": True,
                 }
             )
             journey.save(report_path)

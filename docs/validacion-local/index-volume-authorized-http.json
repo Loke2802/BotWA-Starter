@@ -1,0 +1,548 @@
+{
+  "status": "passed",
+  "environment": "authenticated localhost PostgreSQL",
+  "run_id": "4cf2c2d904bc461ab22d02fdf6f50b4d",
+  "started_at": "2026-10-07T00:47:30.050144+00:00",
+  "organization_id": "d0ec9215-7dd3-4f85-bda3-56b00e071bcf",
+  "checks": [
+    {
+      "name": "conversation_to_existing_customer_and_portal_assets",
+      "status": "passed"
+    },
+    {
+      "name": "simultaneous_creation_deduplicated_and_action_persisted",
+      "status": "passed"
+    },
+    {
+      "name": "authorized_competing_edits_one_winner_and_completed_action",
+      "status": "passed"
+    },
+    {
+      "name": "recorded_call_replay_and_payload_conflict",
+      "status": "passed"
+    },
+    {
+      "name": "closed_sale_history_action_completion_and_historical_metrics",
+      "status": "passed"
+    },
+    {
+      "name": "roles_redaction_and_foreign_company_denied_without_writes",
+      "status": "passed"
+    },
+    {
+      "name": "global_name_phone_email_search_pagination_roles_and_company_isolation",
+      "status": "passed"
+    },
+    {
+      "name": "full_duplicate_scan_beyond_2000_stable_pages_and_review_permissions",
+      "status": "passed"
+    },
+    {
+      "name": "protected_index_backfill_preserves_contact_history_and_uses_sql_index",
+      "status": "passed"
+    },
+    {
+      "name": "global_name_phone_email_search_pagination_roles_and_company_isolation",
+      "status": "passed"
+    },
+    {
+      "name": "full_duplicate_scan_beyond_2000_stable_pages_and_review_permissions",
+      "status": "passed"
+    },
+    {
+      "name": "postgresql_rows_encrypted_content_and_exact_associations",
+      "status": "passed"
+    },
+    {
+      "name": "closed_sale_history_action_completion_and_historical_metrics",
+      "status": "passed"
+    },
+    {
+      "name": "global_name_phone_email_search_pagination_roles_and_company_isolation",
+      "status": "passed"
+    },
+    {
+      "name": "full_duplicate_scan_beyond_2000_stable_pages_and_review_permissions",
+      "status": "passed"
+    },
+    {
+      "name": "postgresql_rows_encrypted_content_and_exact_associations",
+      "status": "passed"
+    },
+    {
+      "name": "server_restart_preserves_sale_actions_history_and_metrics",
+      "status": "passed"
+    },
+    {
+      "name": "closed_sale_history_action_completion_and_historical_metrics",
+      "status": "passed"
+    },
+    {
+      "name": "global_name_phone_email_search_pagination_roles_and_company_isolation",
+      "status": "passed"
+    },
+    {
+      "name": "full_duplicate_scan_beyond_2000_stable_pages_and_review_permissions",
+      "status": "passed"
+    },
+    {
+      "name": "postgresql_rows_encrypted_content_and_exact_associations",
+      "status": "passed"
+    },
+    {
+      "name": "volume_restore_preserves_indexes_search_duplicates_roles_sale_and_history",
+      "status": "passed"
+    },
+    {
+      "name": "closed_sale_history_action_completion_and_historical_metrics",
+      "status": "passed"
+    },
+    {
+      "name": "global_name_phone_email_search_pagination_roles_and_company_isolation",
+      "status": "passed"
+    },
+    {
+      "name": "full_duplicate_scan_beyond_2000_stable_pages_and_review_permissions",
+      "status": "passed"
+    },
+    {
+      "name": "postgresql_rows_encrypted_content_and_exact_associations",
+      "status": "passed"
+    },
+    {
+      "name": "analyzed_volume_restore_preserves_indexes_search_duplicates_roles_sale_and_history",
+      "status": "passed"
+    }
+  ],
+  "browser_automation": false,
+  "external_calls": false,
+  "search_dataset": {
+    "count": 10000,
+    "late_ids": [
+      "cf620393-a9fc-47f0-a437-d8167ca47935",
+      "9f4ef400-7dda-4236-807b-f9034e4aea6d"
+    ],
+    "group_ids": [
+      "a3930aa7-cf24-4185-a270-f5b1fd60c12a",
+      "929236cb-c161-4199-ad0e-613a39cbc224",
+      "8d46a5ed-c186-467e-8083-8c9350c0276d",
+      "407d15c3-85b0-4a7f-a3a5-1af101598822",
+      "4f003d10-682e-47dd-a7cb-5b44d04aaace",
+      "570d8a78-3116-40c4-a357-9a4004080520",
+      "8fad2d45-3723-4879-bd50-cb6f53520870",
+      "57ab1bb4-ae0e-4637-a5ab-a41c82395c69",
+      "9e126a20-a05a-4812-b6c8-86486a0139fb",
+      "c82004ee-e19a-4c72-bf17-fae1bccbe1d7",
+      "4fb35824-1929-4124-bfa3-549e2bc7e85f",
+      "002c276f-46be-49a2-bb4e-67fffaabdb3d",
+      "49e305be-6029-40df-8a56-9d0e45adb4f6",
+      "6753f73a-46a2-4b79-b387-581b9c10e186",
+      "ad1b7408-7509-40e7-ac19-2b9af6500c7e",
+      "5660580f-332e-4218-80d6-b30317396cba",
+      "484d60fa-e8c3-4439-ab50-9c5d97411fe0",
+      "4fbd384c-e62f-425c-bc56-b6979618e983",
+      "36f3a281-5fc3-4104-a4c5-2e572d6aaf5c",
+      "0be770cb-e78f-4204-9672-e8a09849800a",
+      "b0adf6ae-3a95-4588-b6bf-541706f4c8e5",
+      "db2450f6-337b-433c-9934-8622b60e6ea8",
+      "68bbb3f6-ea5d-440f-aab3-bb8c14311c48"
+    ],
+    "phone": "+1 (203) 000-2001",
+    "email": "tardio@example.test",
+    "expected_contacts": 10003
+  },
+  "metric_start": "2026-10-07T00:47:58.615083+00:00",
+  "opportunity_id": "1db0124f-7694-4a08-8a2b-e65f7207f9d1",
+  "title": "Recorrido integral local 4cf2c2d9",
+  "assigned_user_id": "f537bceb-9d3f-46a9-ac0a-aead9b42227a",
+  "contact_id": "718d83d5-6ba2-4370-87d6-60156f0fadc6",
+  "conversation_id": "160bd743-303a-4696-bc81-e39e118c4ec0",
+  "create_key": "journey-create-4cf2c2d904bc461ab22d02fdf6f50b4d",
+  "create_payload": {
+    "contact_id": "718d83d5-6ba2-4370-87d6-60156f0fadc6",
+    "conversation_id": "160bd743-303a-4696-bc81-e39e118c4ec0",
+    "title": "Recorrido integral local 4cf2c2d9",
+    "need": "Necesidad ficticia verificable",
+    "stage_code": "new",
+    "assigned_user_id": "f537bceb-9d3f-46a9-ac0a-aead9b42227a",
+    "amount": "195.75",
+    "currency": "PEN",
+    "next_action": {
+      "description": "Llamar para preparar propuesta",
+      "due_at": "2026-10-07T00:46:58.615140+00:00"
+    }
+  },
+  "first_action_id": "b3368d15-669e-45ce-8055-03c488c92e47",
+  "second_action_id": "bd05b5b7-1b74-4a25-8ee8-84085f3a4477",
+  "activity_id": "b57d0e2b-8c23-4a4b-af5a-a16f3b332d61",
+  "activity_record": {
+    "id": "b57d0e2b-8c23-4a4b-af5a-a16f3b332d61",
+    "contact_id": "718d83d5-6ba2-4370-87d6-60156f0fadc6",
+    "opportunity_id": "1db0124f-7694-4a08-8a2b-e65f7207f9d1",
+    "kind": "call",
+    "description": "Llamada ficticia del recorrido integral",
+    "occurred_at": "2026-10-07T00:48:02.348473Z",
+    "created_at": "2026-10-07T00:48:02.428471Z",
+    "actor_user_id": "f537bceb-9d3f-46a9-ac0a-aead9b42227a"
+  },
+  "final_record": {
+    "id": "1db0124f-7694-4a08-8a2b-e65f7207f9d1",
+    "contact_id": "718d83d5-6ba2-4370-87d6-60156f0fadc6",
+    "title": "Recorrido integral local 4cf2c2d9",
+    "need": "Necesidad ficticia verificable",
+    "stage_code": "won",
+    "stage_kind": "won",
+    "assigned_user_id": "f537bceb-9d3f-46a9-ac0a-aead9b42227a",
+    "next_action": null,
+    "no_action_reason": null,
+    "close_reason": "Cliente ficticio acepta propuesta",
+    "amount": "195.75",
+    "currency": "PEN",
+    "version": 3,
+    "created_at": "2026-10-07T00:47:58.954974Z",
+    "updated_at": "2026-10-07T00:48:02.660147Z",
+    "closed_at": "2026-10-07T00:48:02.660147Z"
+  },
+  "history": [
+    {
+      "version": 3,
+      "actor_user_id": "f537bceb-9d3f-46a9-ac0a-aead9b42227a",
+      "occurred_at": "2026-10-07T00:48:02.686355Z",
+      "snapshot": {
+        "id": "1db0124f-7694-4a08-8a2b-e65f7207f9d1",
+        "contact_id": "718d83d5-6ba2-4370-87d6-60156f0fadc6",
+        "title": "Recorrido integral local 4cf2c2d9",
+        "need": "Necesidad ficticia verificable",
+        "stage_code": "won",
+        "stage_kind": "won",
+        "assigned_user_id": "f537bceb-9d3f-46a9-ac0a-aead9b42227a",
+        "next_action": null,
+        "no_action_reason": null,
+        "close_reason": "Cliente ficticio acepta propuesta",
+        "amount": "195.75",
+        "currency": "PEN",
+        "version": 3,
+        "created_at": "2026-10-07T00:47:58.954974Z",
+        "updated_at": "2026-10-07T00:48:02.660147Z",
+        "closed_at": "2026-10-07T00:48:02.660147Z"
+      }
+    },
+    {
+      "version": 2,
+      "actor_user_id": "f537bceb-9d3f-46a9-ac0a-aead9b42227a",
+      "occurred_at": "2026-10-07T00:48:02.184215Z",
+      "snapshot": {
+        "id": "1db0124f-7694-4a08-8a2b-e65f7207f9d1",
+        "contact_id": "718d83d5-6ba2-4370-87d6-60156f0fadc6",
+        "title": "Recorrido integral local 4cf2c2d9",
+        "need": "Necesidad ficticia verificable",
+        "stage_code": "offer",
+        "stage_kind": "open",
+        "assigned_user_id": "f537bceb-9d3f-46a9-ac0a-aead9b42227a",
+        "next_action": {
+          "id": "bd05b5b7-1b74-4a25-8ee8-84085f3a4477",
+          "description": "Revisar propuesta enviada",
+          "due_at": "2026-10-08T00:48:01.773208Z",
+          "status": "pending"
+        },
+        "no_action_reason": null,
+        "close_reason": null,
+        "amount": "195.75",
+        "currency": "PEN",
+        "version": 2,
+        "created_at": "2026-10-07T00:47:58.954974Z",
+        "updated_at": "2026-10-07T00:48:02.123734Z",
+        "closed_at": null
+      }
+    },
+    {
+      "version": 1,
+      "actor_user_id": "f537bceb-9d3f-46a9-ac0a-aead9b42227a",
+      "occurred_at": "2026-10-07T00:47:59.126601Z",
+      "snapshot": {
+        "id": "1db0124f-7694-4a08-8a2b-e65f7207f9d1",
+        "contact_id": "718d83d5-6ba2-4370-87d6-60156f0fadc6",
+        "title": "Recorrido integral local 4cf2c2d9",
+        "need": "Necesidad ficticia verificable",
+        "stage_code": "new",
+        "stage_kind": "open",
+        "assigned_user_id": "f537bceb-9d3f-46a9-ac0a-aead9b42227a",
+        "next_action": {
+          "id": "b3368d15-669e-45ce-8055-03c488c92e47",
+          "description": "Llamar para preparar propuesta",
+          "due_at": "2026-10-07T00:46:58.615140Z",
+          "status": "pending"
+        },
+        "no_action_reason": null,
+        "close_reason": null,
+        "amount": "195.75",
+        "currency": "PEN",
+        "version": 1,
+        "created_at": "2026-10-07T00:47:58.954974Z",
+        "updated_at": "2026-10-07T00:47:59.000868Z",
+        "closed_at": null
+      }
+    }
+  ],
+  "metrics_closings": [
+    {
+      "assigned_user_id": "f537bceb-9d3f-46a9-ac0a-aead9b42227a",
+      "won": 1,
+      "lost": 0,
+      "conversion_percent": "100.00",
+      "currency": "PEN",
+      "won_amount": "195.75"
+    }
+  ],
+  "search_runs": [
+    {
+      "timings_seconds": {
+        "name_organization_owner_page_1": 3.016,
+        "name_organization_owner_page_2": 4.055,
+        "phone_organization_owner_page_1": 2.851,
+        "email_organization_owner_page_1": 2.213,
+        "name_organization_owner_page_3": 2.081,
+        "name_viewer_page_1": 3.04,
+        "duplicates_two_pages": 7.914
+      },
+      "scanned": 10002,
+      "duplicate_pairs": 24,
+      "protected_index_built": false
+    },
+    {
+      "timings_seconds": {
+        "name_organization_owner_page_1": 3.117,
+        "name_organization_owner_page_2": 5.087,
+        "phone_organization_owner_page_1": 0.364,
+        "email_organization_owner_page_1": 0.188,
+        "name_organization_owner_page_3": 3.263,
+        "name_viewer_page_1": 3.744,
+        "duplicates_two_pages": 7.992
+      },
+      "scanned": 10002,
+      "duplicate_pairs": 24,
+      "protected_index_built": true
+    },
+    {
+      "timings_seconds": {
+        "name_organization_owner_page_1": 4.365,
+        "name_organization_owner_page_2": 3.431,
+        "phone_organization_owner_page_1": 0.191,
+        "email_organization_owner_page_1": 0.189,
+        "name_organization_owner_page_3": 3.997,
+        "name_viewer_page_1": 2.637,
+        "duplicates_two_pages": 7.841
+      },
+      "scanned": 10002,
+      "duplicate_pairs": 24,
+      "protected_index_built": true
+    },
+    {
+      "timings_seconds": {
+        "name_organization_owner_page_1": 2.738,
+        "name_organization_owner_page_2": 2.73,
+        "phone_organization_owner_page_1": 20.459,
+        "email_organization_owner_page_1": 18.538,
+        "name_organization_owner_page_3": 2.951,
+        "name_viewer_page_1": 7.27,
+        "duplicates_two_pages": 8.523
+      },
+      "scanned": 10002,
+      "duplicate_pairs": 24,
+      "protected_index_built": true
+    },
+    {
+      "timings_seconds": {
+        "name_organization_owner_page_1": 2.93,
+        "name_organization_owner_page_2": 2.4,
+        "phone_organization_owner_page_1": 0.312,
+        "email_organization_owner_page_1": 0.403,
+        "name_organization_owner_page_3": 2.871,
+        "name_viewer_page_1": 4.226,
+        "duplicates_two_pages": 9.242
+      },
+      "scanned": 10002,
+      "duplicate_pairs": 24,
+      "protected_index_built": true
+    }
+  ],
+  "index_rebuild": {
+    "contacts": 10003,
+    "seconds": 23.457,
+    "historical_tables_unchanged": true,
+    "exact_lookup_plan": [
+      {
+        "Plan": {
+          "Node Type": "Index Scan",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Scan Direction": "Forward",
+          "Index Name": "ix_contact_search_exact",
+          "Relation Name": "contact_search_token",
+          "Alias": "contact_search_token",
+          "Startup Cost": 0.41,
+          "Total Cost": 8.43,
+          "Plan Rows": 1,
+          "Plan Width": 16,
+          "Actual Startup Time": 0.033,
+          "Actual Total Time": 0.034,
+          "Actual Rows": 1,
+          "Actual Loops": 1,
+          "Index Cond": "((organization_id = 'd0ec9215-7dd3-4f85-bda3-56b00e071bcf'::uuid) AND ((field)::text = 'phone'::text) AND ((digest)::text = '94093d1fcabffdb1e06645ec75d1d7c0b571499604b33dfbf23f054021c74057'::text))",
+          "Rows Removed by Index Recheck": 0
+        },
+        "Planning Time": 0.362,
+        "Triggers": [],
+        "Execution Time": 0.056
+      }
+    ]
+  },
+  "volume_restore": {
+    "source_database": "luri_rehearsal_f951ae3863_after",
+    "restored_database": "luri_rehearsal_1f272aefed_after",
+    "backup_in_local_container": "/tmp/luri_rehearsal_1f272aefed_after_volume.dump",
+    "backup_sha256": "6d9d700ac2b14a2bd03742fc7d45dd4c34279f7ae5aa4c267dd57e993f23087a",
+    "all_tables_equal": true,
+    "source_unchanged": true,
+    "optimizer_statistics_refreshed": true,
+    "table_count": 62,
+    "fingerprints_source": {
+      "bot": "e868b2bb33553a25d88c302f383580fb181dae1845a5152092589c3f86529dd5",
+      "billing_price": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_memory": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_response_checkpoint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "analytics_daily_summary": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "alembic_version": "b397828b4edab49b45d0f8dd7d1b07f114608f7c1e06c6447be320a5d7a7cc4f",
+      "app_user": "2ba0bb2ba3b9ab8cd9a2380666077a62bab5bc9a72116d47690624c97982c505",
+      "audit_event": "7e9ac2ddb41b76e86f88df1c923cd12f6f7b697f5abc2f7564d42afdf6583427",
+      "billing_provider_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "automation_execution": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "billing_account": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_audit_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "automation_task_execution": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_job": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_attempt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_idempotency_receipt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_override": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_weekly_interval": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_configuration": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_date_exception": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_holiday": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "contact_search_token": "a6597f4859261744f15adbfb787e3375c7bed32f61ed5191cf34d6e9da0e1281",
+      "conversation_management_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "contact": "bf648db7714e43db79dd65c7fad9e38082d77d116eb404d69b14191092cc5fe0",
+      "conversation_state_history": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "crm_opportunity_conversation": "a489a02926ccb599f5e80db1788e1f1d4d6f1892bd4d1918ef9a6b36fe879c41",
+      "crm_opportunity": "b641e886460ce4dcb2727eda64ce2ec8930e273c136346edf9afe789179e8823",
+      "crm_opportunity_history": "1cb8a21979387780f9f31e477a3a27037880d3fa07577a319d90f1c2931bf7da",
+      "crm_contact_merge": "1595b9ec8725f570b01273482ed29909723b8fc3a5b81b2b20932b06abf2e408",
+      "crm_customer_activity": "257a3d53aa435d1cf792aba4e5e69871d3edf195c41799a06bcb2026d4268424",
+      "customer_profile": "5dd0359d76789b86750c0e5704e4fbc6baf502683fe6759ed359e2a97f0d7e7b",
+      "handoff_cycle": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "conversation": "cdcaf85ba11be562bcccd5518630184e77c7049aab0dd9c4f55f04c419239120",
+      "contact_search_state": "8e3865558a52d1bbcc095808916db9f22493f7ab789b8ee9bc01f7bf0a2cd008",
+      "crm_activity": "3a65a3a6d0302c097e81c6c247341258b310d970944f6d4ce543a78f97bfece9",
+      "crm_stage": "40448dff83f206914dc654d64d61f9444a9a5770633e47cc43d726c67ab23a52",
+      "handoff_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "handoff_session": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_catalog_entry": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_credential": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_health_check": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_oauth_state": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_entry": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_query_log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_source": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "inbound_message_receipt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_connection": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "organization_onboarding": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "message": "8c87ee6179435a8212ddb9f8d1562ab4ad092e81121c184821107e9b1a8de1ad",
+      "managed_automation_event_receipt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "organization_plan_assignment": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "organization": "41c2c7003d56bb8557d1724dc989343908b3721ffb000f8a672fc6d1dfa4af17",
+      "managed_automation_execution": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "plan_definition": "438f8959f03867c41ca37c9cdbe981eed8240aefdd19e6ac7f73d1620a07a9e5",
+      "subscription": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "security_rate_limit_bucket": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outbound_message_attempt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "whatsapp_channel_configuration": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "managed_automation_definition": "c1b0a714c15ebd23b9c8bd5458ebc47acd1bd6b00a1f10f2091f3a0d14c92c1a"
+    },
+    "fingerprints_restored": {
+      "bot": "e868b2bb33553a25d88c302f383580fb181dae1845a5152092589c3f86529dd5",
+      "billing_price": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_memory": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_response_checkpoint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "analytics_daily_summary": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "alembic_version": "b397828b4edab49b45d0f8dd7d1b07f114608f7c1e06c6447be320a5d7a7cc4f",
+      "app_user": "2ba0bb2ba3b9ab8cd9a2380666077a62bab5bc9a72116d47690624c97982c505",
+      "audit_event": "7e9ac2ddb41b76e86f88df1c923cd12f6f7b697f5abc2f7564d42afdf6583427",
+      "billing_provider_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "automation_execution": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "billing_account": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_audit_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "automation_task_execution": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_job": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ai_attempt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_idempotency_receipt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_override": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_weekly_interval": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_configuration": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_date_exception": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_calendar_holiday": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "business_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "contact_search_token": "a6597f4859261744f15adbfb787e3375c7bed32f61ed5191cf34d6e9da0e1281",
+      "conversation_management_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "contact": "bf648db7714e43db79dd65c7fad9e38082d77d116eb404d69b14191092cc5fe0",
+      "conversation_state_history": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "crm_opportunity_conversation": "a489a02926ccb599f5e80db1788e1f1d4d6f1892bd4d1918ef9a6b36fe879c41",
+      "crm_opportunity": "b641e886460ce4dcb2727eda64ce2ec8930e273c136346edf9afe789179e8823",
+      "crm_opportunity_history": "1cb8a21979387780f9f31e477a3a27037880d3fa07577a319d90f1c2931bf7da",
+      "crm_contact_merge": "1595b9ec8725f570b01273482ed29909723b8fc3a5b81b2b20932b06abf2e408",
+      "crm_customer_activity": "257a3d53aa435d1cf792aba4e5e69871d3edf195c41799a06bcb2026d4268424",
+      "customer_profile": "5dd0359d76789b86750c0e5704e4fbc6baf502683fe6759ed359e2a97f0d7e7b",
+      "handoff_cycle": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "conversation": "cdcaf85ba11be562bcccd5518630184e77c7049aab0dd9c4f55f04c419239120",
+      "contact_search_state": "8e3865558a52d1bbcc095808916db9f22493f7ab789b8ee9bc01f7bf0a2cd008",
+      "crm_activity": "3a65a3a6d0302c097e81c6c247341258b310d970944f6d4ce543a78f97bfece9",
+      "crm_stage": "40448dff83f206914dc654d64d61f9444a9a5770633e47cc43d726c67ab23a52",
+      "handoff_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "handoff_session": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_catalog_entry": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_credential": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_health_check": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_event": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_oauth_state": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_entry": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_query_log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "knowledge_source": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "inbound_message_receipt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "integration_connection": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "organization_onboarding": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "message": "8c87ee6179435a8212ddb9f8d1562ab4ad092e81121c184821107e9b1a8de1ad",
+      "managed_automation_event_receipt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "organization_plan_assignment": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "organization": "41c2c7003d56bb8557d1724dc989343908b3721ffb000f8a672fc6d1dfa4af17",
+      "managed_automation_execution": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "plan_definition": "438f8959f03867c41ca37c9cdbe981eed8240aefdd19e6ac7f73d1620a07a9e5",
+      "subscription": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "security_rate_limit_bucket": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "outbound_message_attempt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "whatsapp_channel_configuration": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "managed_automation_definition": "c1b0a714c15ebd23b9c8bd5458ebc47acd1bd6b00a1f10f2091f3a0d14c92c1a"
+    }
+  },
+  "finished_at": "2026-10-07T00:57:54.067011+00:00",
+  "server_restarted": true,
+  "manifest": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\docs\\validacion-local\\journey\\20261007T004602493824Z\\volume-restored-analyzed.json",
+  "database_restored": true,
+  "index_database_checks": {
+    "restored_contact_search_states": 10003,
+    "restored_contact_search_tokens": 10005,
+    "stale_or_missing_states": 0,
+    "cross_company_index_inserts_rejected": 2
+  }
+}

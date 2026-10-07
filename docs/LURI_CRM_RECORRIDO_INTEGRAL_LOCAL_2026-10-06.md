@@ -11,6 +11,11 @@ Los resultados originales descritos abajo se conservan como evidencia histórica
 
 ## Ejecutar con un comando
 
+La [continuación de índices y recuperación con volumen](LURI_CRM_INDICES_RECUPERACION_VOLUMEN_2026-10-06.md)
+extiende el ejecutor al esquema `0031`: reconstruye los índices protegidos y repite
+las comprobaciones contra otra base restaurada de los 10 000 contactos y su historial.
+Los resultados descritos en este documento corresponden al incremento anterior.
+
 Requisitos: Docker Desktop activo, el contenedor local existente
 `luri-crm-local-recovery` con PostgreSQL y su puerto `127.0.0.1:15437`, el entorno
 Python del proyecto y el puerto `8770` libre. No instala ni descarga servicios.
@@ -110,10 +115,11 @@ Evidencia visual: [acciones y llamada](validacion-local/journey-actions.png),
 [historial](validacion-local/journey-history.png) y
 [métricas](validacion-local/journey-metrics.png).
 
-Para volver a abrir el panel de esa base si el servidor no está activo:
+La base anterior usa `0030`. Para iniciar el código actual de la rama, usar el
+manifiesto actualizado con `0031` del [nuevo recorrido](LURI_CRM_INDICES_RECUPERACION_VOLUMEN_2026-10-06.md):
 
 ```powershell
-& 'D:\BotWA Starter\.venv\Scripts\python.exe' -m scripts.serve_crm_local --manifest docs/validacion-local/journey-recovery.json --port 8771
+& 'D:\BotWA Starter\.venv\Scripts\python.exe' -m scripts.serve_crm_local --manifest docs/validacion-local/index-volume-recovery.json --port 8773
 ```
 
 Las bases son locales y se conservan para inspección; un clon del repositorio

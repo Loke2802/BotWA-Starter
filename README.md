@@ -2,6 +2,10 @@
 
 ## Luri CRM — incremento 1 (06/10/2026, rama local)
 
+[Índices protegidos y recuperación con volumen](docs/LURI_CRM_INDICES_RECUPERACION_VOLUMEN_2026-10-06.md):
+búsqueda exacta de teléfono/correo con HMAC por empresa, migración aditiva `0031`
+y backup/restauración comprobados con 10 000 contactos, venta e historial.
+
 [Búsqueda global y duplicados sin corte de 2000](docs/LURI_CRM_BUSQUEDA_GLOBAL_DUPLICADOS_2026-10-06.md):
 nombre, teléfono y correo con permisos, resultados paginados y ensayo con 10 000
 contactos cifrados en PostgreSQL local. Conserva fichas unidas e historial.

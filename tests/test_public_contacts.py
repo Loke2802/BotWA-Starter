@@ -30,7 +30,14 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> Generator[DatabaseFixture]:
     Base.metadata.create_all(
         engine,
         tables=[
-            Base.metadata.tables[n] for n in ("organization", "app_user", "contact")
+            Base.metadata.tables[n]
+            for n in (
+                "organization",
+                "app_user",
+                "contact",
+                "contact_search_state",
+                "contact_search_token",
+            )
         ],
     )
     session = Session(engine)

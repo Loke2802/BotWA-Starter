@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 
 from app.application.contacts.identity import ContactIdentityHasher
 from app.application.contacts.repository import ContactRepository
+from app.application.contacts.search_index import ContactSearchIndex
 from app.domain.contacts.contracts import ContactIdentity
 from app.infrastructure.models.contact import ContactModel
 from app.infrastructure.unit_of_work import commit, rollback
@@ -64,6 +65,9 @@ class ContactResolutionService:
         )
         try:
             self._repository.add(contact)
+            ContactSearchIndex(self._session, self._cipher, self._identity_hasher).sync(
+                contact
+            )
             self._commit()
             return contact
         except IntegrityError as exc:

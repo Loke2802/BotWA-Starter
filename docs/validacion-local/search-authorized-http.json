@@ -1,0 +1,276 @@
+{
+  "status": "passed",
+  "environment": "authenticated localhost PostgreSQL",
+  "run_id": "ecb071163be2422191fb26c5cc5c60bf",
+  "started_at": "2026-10-07T00:20:09.307375+00:00",
+  "organization_id": "a977d38b-ff49-4e29-91b5-3eb8e5facb25",
+  "checks": [
+    {
+      "name": "conversation_to_existing_customer_and_portal_assets",
+      "status": "passed"
+    },
+    {
+      "name": "simultaneous_creation_deduplicated_and_action_persisted",
+      "status": "passed"
+    },
+    {
+      "name": "authorized_competing_edits_one_winner_and_completed_action",
+      "status": "passed"
+    },
+    {
+      "name": "recorded_call_replay_and_payload_conflict",
+      "status": "passed"
+    },
+    {
+      "name": "closed_sale_history_action_completion_and_historical_metrics",
+      "status": "passed"
+    },
+    {
+      "name": "roles_redaction_and_foreign_company_denied_without_writes",
+      "status": "passed"
+    },
+    {
+      "name": "global_name_phone_email_search_pagination_roles_and_company_isolation",
+      "status": "passed"
+    },
+    {
+      "name": "full_duplicate_scan_beyond_2000_stable_pages_and_review_permissions",
+      "status": "passed"
+    },
+    {
+      "name": "postgresql_rows_encrypted_content_and_exact_associations",
+      "status": "passed"
+    },
+    {
+      "name": "closed_sale_history_action_completion_and_historical_metrics",
+      "status": "passed"
+    },
+    {
+      "name": "global_name_phone_email_search_pagination_roles_and_company_isolation",
+      "status": "passed"
+    },
+    {
+      "name": "full_duplicate_scan_beyond_2000_stable_pages_and_review_permissions",
+      "status": "passed"
+    },
+    {
+      "name": "postgresql_rows_encrypted_content_and_exact_associations",
+      "status": "passed"
+    },
+    {
+      "name": "server_restart_preserves_sale_actions_history_and_metrics",
+      "status": "passed"
+    }
+  ],
+  "browser_automation": false,
+  "external_calls": false,
+  "search_dataset": {
+    "count": 10000,
+    "late_ids": [
+      "4fe4d634-59ab-4965-ae70-48597df079f9",
+      "5e316cd9-81fa-4037-bea4-6256edcc4f6c"
+    ],
+    "group_ids": [
+      "d85a3533-c63c-4611-959b-6da4ebe099d1",
+      "c4a552ee-97f6-47c7-8faa-562e3de3cf71",
+      "64faecef-c182-4c87-8d1b-70a58a331fa5",
+      "29b0be72-f965-4c81-8488-6d2913fa476e",
+      "ca3d8391-0560-4d7b-81f6-27bed8ba1ba8",
+      "2aadc943-6f25-4e5b-81aa-73f8996e34e9",
+      "c29f8b6b-fbc8-41ea-b4ac-9a5ac4a1870c",
+      "d7211e2f-eecc-43a8-b541-79ddfe4c46f3",
+      "129ef2ba-9a03-4a39-8b4e-f1acf581eb9d",
+      "8b95c127-cfa7-4f1a-a333-e52093cd0997",
+      "43ae928f-483e-4e4a-ada9-9cab525430d7",
+      "4744d2fc-473e-4a90-8a47-4c78050a959d",
+      "5739563a-5f0c-4526-a140-664ebad0a013",
+      "0a7a4ca2-dbd8-48dd-938b-1fad58f8b863",
+      "1e1400bd-1625-46ba-b85f-81cd44ea055d",
+      "e6a3fb29-da95-4233-81c8-c03bff0ffbe4",
+      "1cc1a037-edf3-4220-a80f-90b22ff6f0b2",
+      "ddd0668f-742b-49c9-b8b0-e0fac0012fe8",
+      "6209ee41-f85a-4203-a990-287671343cc7",
+      "6584995c-9d0e-4d22-b2e2-f75216472dc4",
+      "e1c474b8-501a-4c5b-b3df-3027a09c043c",
+      "04f816ae-0ee7-4347-bd1b-ddd693acd393",
+      "416c9705-2de1-438d-a922-76bd98f0fe19"
+    ],
+    "phone": "+1 (203) 000-2001",
+    "email": "tardio@example.test",
+    "expected_contacts": 10003
+  },
+  "metric_start": "2026-10-07T00:20:46.123534+00:00",
+  "opportunity_id": "7a36ba39-d5c7-4b73-97c4-49823064e8e3",
+  "title": "Recorrido integral local ecb07116",
+  "assigned_user_id": "5d2abeb1-e8e4-4d11-b84a-86e34d99b192",
+  "contact_id": "c3e6ab2f-f3a8-4ff8-a1f3-b03f7ac54e17",
+  "conversation_id": "41cc20c0-82d2-4c33-9624-544454d32748",
+  "create_key": "journey-create-ecb071163be2422191fb26c5cc5c60bf",
+  "create_payload": {
+    "contact_id": "c3e6ab2f-f3a8-4ff8-a1f3-b03f7ac54e17",
+    "conversation_id": "41cc20c0-82d2-4c33-9624-544454d32748",
+    "title": "Recorrido integral local ecb07116",
+    "need": "Necesidad ficticia verificable",
+    "stage_code": "new",
+    "assigned_user_id": "5d2abeb1-e8e4-4d11-b84a-86e34d99b192",
+    "amount": "195.75",
+    "currency": "PEN",
+    "next_action": {
+      "description": "Llamar para preparar propuesta",
+      "due_at": "2026-10-07T00:19:46.123580+00:00"
+    }
+  },
+  "first_action_id": "80f4a758-ba3b-4e6e-a654-bbbc319e1fae",
+  "second_action_id": "bbe892de-ab1d-4f57-8c65-9348d8ea32df",
+  "activity_id": "d8170c17-2dc7-42a7-bd64-c1d182ed544d",
+  "activity_record": {
+    "id": "d8170c17-2dc7-42a7-bd64-c1d182ed544d",
+    "contact_id": "c3e6ab2f-f3a8-4ff8-a1f3-b03f7ac54e17",
+    "opportunity_id": "7a36ba39-d5c7-4b73-97c4-49823064e8e3",
+    "kind": "call",
+    "description": "Llamada ficticia del recorrido integral",
+    "occurred_at": "2026-10-07T00:20:47.417986Z",
+    "created_at": "2026-10-07T00:20:47.512523Z",
+    "actor_user_id": "5d2abeb1-e8e4-4d11-b84a-86e34d99b192"
+  },
+  "final_record": {
+    "id": "7a36ba39-d5c7-4b73-97c4-49823064e8e3",
+    "contact_id": "c3e6ab2f-f3a8-4ff8-a1f3-b03f7ac54e17",
+    "title": "Recorrido integral local ecb07116",
+    "need": "Necesidad ficticia verificable",
+    "stage_code": "won",
+    "stage_kind": "won",
+    "assigned_user_id": "5d2abeb1-e8e4-4d11-b84a-86e34d99b192",
+    "next_action": null,
+    "no_action_reason": null,
+    "close_reason": "Cliente ficticio acepta propuesta",
+    "amount": "195.75",
+    "currency": "PEN",
+    "version": 3,
+    "created_at": "2026-10-07T00:20:46.369552Z",
+    "updated_at": "2026-10-07T00:20:47.871162Z",
+    "closed_at": "2026-10-07T00:20:47.871162Z"
+  },
+  "history": [
+    {
+      "version": 3,
+      "actor_user_id": "5d2abeb1-e8e4-4d11-b84a-86e34d99b192",
+      "occurred_at": "2026-10-07T00:20:47.911023Z",
+      "snapshot": {
+        "id": "7a36ba39-d5c7-4b73-97c4-49823064e8e3",
+        "contact_id": "c3e6ab2f-f3a8-4ff8-a1f3-b03f7ac54e17",
+        "title": "Recorrido integral local ecb07116",
+        "need": "Necesidad ficticia verificable",
+        "stage_code": "won",
+        "stage_kind": "won",
+        "assigned_user_id": "5d2abeb1-e8e4-4d11-b84a-86e34d99b192",
+        "next_action": null,
+        "no_action_reason": null,
+        "close_reason": "Cliente ficticio acepta propuesta",
+        "amount": "195.75",
+        "currency": "PEN",
+        "version": 3,
+        "created_at": "2026-10-07T00:20:46.369552Z",
+        "updated_at": "2026-10-07T00:20:47.871162Z",
+        "closed_at": "2026-10-07T00:20:47.871162Z"
+      }
+    },
+    {
+      "version": 2,
+      "actor_user_id": "5d2abeb1-e8e4-4d11-b84a-86e34d99b192",
+      "occurred_at": "2026-10-07T00:20:47.295128Z",
+      "snapshot": {
+        "id": "7a36ba39-d5c7-4b73-97c4-49823064e8e3",
+        "contact_id": "c3e6ab2f-f3a8-4ff8-a1f3-b03f7ac54e17",
+        "title": "Recorrido integral local ecb07116",
+        "need": "Necesidad ficticia verificable",
+        "stage_code": "offer",
+        "stage_kind": "open",
+        "assigned_user_id": "5d2abeb1-e8e4-4d11-b84a-86e34d99b192",
+        "next_action": {
+          "id": "bbe892de-ab1d-4f57-8c65-9348d8ea32df",
+          "description": "Revisar propuesta enviada",
+          "due_at": "2026-10-08T00:20:47.170762Z",
+          "status": "pending"
+        },
+        "no_action_reason": null,
+        "close_reason": null,
+        "amount": "195.75",
+        "currency": "PEN",
+        "version": 2,
+        "created_at": "2026-10-07T00:20:46.369552Z",
+        "updated_at": "2026-10-07T00:20:47.265518Z",
+        "closed_at": null
+      }
+    },
+    {
+      "version": 1,
+      "actor_user_id": "5d2abeb1-e8e4-4d11-b84a-86e34d99b192",
+      "occurred_at": "2026-10-07T00:20:46.476831Z",
+      "snapshot": {
+        "id": "7a36ba39-d5c7-4b73-97c4-49823064e8e3",
+        "contact_id": "c3e6ab2f-f3a8-4ff8-a1f3-b03f7ac54e17",
+        "title": "Recorrido integral local ecb07116",
+        "need": "Necesidad ficticia verificable",
+        "stage_code": "new",
+        "stage_kind": "open",
+        "assigned_user_id": "5d2abeb1-e8e4-4d11-b84a-86e34d99b192",
+        "next_action": {
+          "id": "80f4a758-ba3b-4e6e-a654-bbbc319e1fae",
+          "description": "Llamar para preparar propuesta",
+          "due_at": "2026-10-07T00:19:46.123580Z",
+          "status": "pending"
+        },
+        "no_action_reason": null,
+        "close_reason": null,
+        "amount": "195.75",
+        "currency": "PEN",
+        "version": 1,
+        "created_at": "2026-10-07T00:20:46.369552Z",
+        "updated_at": "2026-10-07T00:20:46.400050Z",
+        "closed_at": null
+      }
+    }
+  ],
+  "metrics_closings": [
+    {
+      "assigned_user_id": "5d2abeb1-e8e4-4d11-b84a-86e34d99b192",
+      "won": 1,
+      "lost": 0,
+      "conversion_percent": "100.00",
+      "currency": "PEN",
+      "won_amount": "195.75"
+    }
+  ],
+  "search_runs": [
+    {
+      "timings_seconds": {
+        "name_organization_owner_page_1": 2.173,
+        "name_organization_owner_page_2": 2.536,
+        "phone_organization_owner_page_1": 2.32,
+        "email_organization_owner_page_1": 1.925,
+        "name_organization_owner_page_3": 1.542,
+        "name_viewer_page_1": 2.696,
+        "duplicates_two_pages": 5.618
+      },
+      "scanned": 10002,
+      "duplicate_pairs": 24
+    },
+    {
+      "timings_seconds": {
+        "name_organization_owner_page_1": 1.946,
+        "name_organization_owner_page_2": 2.467,
+        "phone_organization_owner_page_1": 2.815,
+        "email_organization_owner_page_1": 2.415,
+        "name_organization_owner_page_3": 2.327,
+        "name_viewer_page_1": 2.742,
+        "duplicates_two_pages": 8.429
+      },
+      "scanned": 10002,
+      "duplicate_pairs": 24
+    }
+  ],
+  "finished_at": "2026-10-07T00:22:13.790569+00:00",
+  "server_restarted": true,
+  "manifest": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\docs\\validacion-local\\journey\\20261007T001543086277Z\\recovery.json"
+}

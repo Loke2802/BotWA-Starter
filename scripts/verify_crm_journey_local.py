@@ -8,12 +8,19 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 from urllib.parse import urlencode, urlsplit
 from uuid import UUID, uuid4
 
 import httpx
-from sqlalchemy import create_engine, text
+from app.application.contacts.identity import ContactIdentityHasher
+from app.domain.contacts.contracts import ContactIdentityNormalizer
+from app.infrastructure.models.contact import ContactModel
+from scripts.crm_search_dataset import seed_search_dataset
+from sqlalchemy import create_engine, func, select, text
+from sqlalchemy.orm import Session
+from tests.crm_opportunity_support import opportunity_service
 
 
 def validate_target(base_url: str, manifest: dict[str, Any]) -> None:
@@ -431,6 +438,25 @@ class Journey:
                     connection.scalar(text("SELECT version_num FROM alembic_version"))
                     == "20261006_0030"
                 )
+                assert (
+                    connection.scalar(
+                        text("SELECT count(*) FROM contact WHERE organization_id=:org"),
+                        {"org": UUID(self.report["organization_id"])},
+                    )
+                    == self.report["search_dataset"]["expected_contacts"]
+                )
+                assert (
+                    connection.scalar(
+                        text(
+                            "SELECT count(*) FROM contact "
+                            "WHERE organization_id=:org AND "
+                            "(display_name_ciphertext LIKE '%Pérez%' OR "
+                            "registration_ciphertext LIKE '%TARDIO@example.test%')"
+                        ),
+                        {"org": UUID(self.report["organization_id"])},
+                    )
+                    == 0
+                )
                 params = {
                     "op": UUID(self.report["opportunity_id"]),
                     "org": UUID(self.report["organization_id"]),
@@ -475,6 +501,140 @@ class Journey:
         finally:
             engine.dispose()
         self.passed("postgresql_rows_encrypted_content_and_exact_associations")
+
+    def seed_search(self, database_port: int, count: int) -> None:
+        database = self.manifest["databases"]["after"]
+        engine = create_engine(
+            f"postgresql+psycopg://botwa:crm_local_test@127.0.0.1:{database_port}/{database}?connect_timeout=5"
+        )
+        try:
+            with Session(engine) as session:
+                service = opportunity_service(session)
+                before = (
+                    session.scalar(
+                        select(func.count())
+                        .select_from(ContactModel)
+                        .where(
+                            ContactModel.organization_id
+                            == UUID(self.manifest["organization_id"])
+                        )
+                    )
+                    or 0
+                )
+                self.report["search_dataset"] = seed_search_dataset(
+                    session,
+                    UUID(self.manifest["organization_id"]),
+                    service.cipher,
+                    ContactIdentityHasher(
+                        service.digest_key, ContactIdentityNormalizer()
+                    ),
+                    count=count,
+                )
+                self.report["search_dataset"]["expected_contacts"] = before + count
+        finally:
+            engine.dispose()
+
+    def check_search(self) -> None:
+        data = self.report["search_dataset"]
+        base = f"/organizations/{self.manifest['organization_id']}/crm"
+        timings: dict[str, float] = {}
+
+        def search(
+            term: str,
+            field: str = "name",
+            page: int = 1,
+            size: int = 20,
+            role: str = "organization_owner",
+        ) -> Any:
+            started = perf_counter()
+            result = self.request(
+                "GET",
+                base
+                + "/customers?"
+                + urlencode(
+                    {
+                        "search": term,
+                        "search_by": field,
+                        "page": page,
+                        "page_size": size,
+                    }
+                ),
+                role,
+            )
+            timings[f"{field}_{role}_page_{page}"] = round(perf_counter() - started, 3)
+            return result
+
+        late = set(data["late_ids"])
+        pages = [search("perez josé", page=p, size=1) for p in (1, 2)]
+        assert all(p["total"] == 2 for p in pages)
+        assert pages[0]["has_next"] and not pages[1]["has_next"]
+        assert {p["items"][0]["id"] for p in pages} == late
+        assert search(data["phone"], "phone")["items"][0]["id"] == data["late_ids"][0]
+        assert {
+            r["id"] for r in search(data["email"].upper(), "email")["items"]
+        } == late
+        group_pages = [search("grupo marta", page=p, size=10) for p in (1, 2, 3)]
+        assert [len(p["items"]) for p in group_pages] == [10, 10, 3]
+        assert [p["has_next"] for p in group_pages] == [True, True, False]
+        assert all(p["total"] == 23 for p in group_pages)
+        assert {r["id"] for p in group_pages for r in p["items"]} == set(
+            data["group_ids"]
+        )
+        assert search("grupo marta", page=3, size=10) == group_pages[2]
+        assert search("perez", role="viewer")["total"] == 2
+        for field, term in (("phone", data["phone"]), ("email", data["email"])):
+            self.request(
+                "GET",
+                base
+                + "/customers?"
+                + urlencode(
+                    {
+                        "search": term,
+                        "search_by": field,
+                    }
+                ),
+                "viewer",
+                status=403,
+            )
+        self.request(
+            "GET", base + "/customers?search=perez", "other_company", status=403
+        )
+        foreign = (
+            f"/organizations/{self.manifest['other_organization_id']}/crm/customers"
+        )
+        assert (
+            self.request("GET", foreign + "?search=perez", "other_company")["total"]
+            == 0
+        )
+        self.passed(
+            "global_name_phone_email_search_pagination_roles_and_company_isolation"
+        )
+
+        started = perf_counter()
+        first = self.request("GET", base + "/duplicates?page=1")
+        second = self.request("GET", base + "/duplicates?page=2")
+        timings["duplicates_two_pages"] = round(perf_counter() - started, 3)
+        assert first["scanned"] >= data["count"] and not first["scan_limited"]
+        assert first["has_next"] and not second["has_next"]
+        pairs = first["items"] + second["items"]
+        assert len(pairs) == first["total"] == second["total"]
+        assert len({(p["source_id"], p["target_id"]) for p in pairs}) == len(pairs)
+        late_pair = next(p for p in pairs if {p["source_id"], p["target_id"]} == late)
+        assert {"nombre", "correo"}.issubset(late_pair["reasons"])
+        assert sum(p["source_id"] in data["group_ids"] for p in pairs) == 22
+        assert self.request("GET", base + "/duplicates?page=2") == second
+        for role in ("viewer", "operator"):
+            self.request("GET", base + "/duplicates", role, status=403)
+        self.report.setdefault("search_runs", []).append(
+            {
+                "timings_seconds": timings,
+                "scanned": first["scanned"],
+                "duplicate_pairs": first["total"],
+            }
+        )
+        self.passed(
+            "full_duplicate_scan_beyond_2000_stable_pages_and_review_permissions"
+        )
 
     def save(self, path: Path) -> None:
         # Synthetic records only. Never serialize bearer tokens or passwords.

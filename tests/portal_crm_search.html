@@ -1,0 +1,25 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>Pruebas búsqueda global CRM</title><link rel="stylesheet" href="../app/portal/portal.css"><main style="padding:24px"><h1>Pruebas búsqueda global CRM</h1><p>API simulada. Comprueba los módulos reales del panel.</p><pre id="results">Ejecutando…</pre><div id="fixture"></div></main><script src="../app/portal/crm.js"></script><script src="../app/portal/customer-quality.js"></script><script>
+(async()=>{
+ const root=document.querySelector('#fixture'),out=document.querySelector('#results'),results=[],permissions=['contacts.read','contacts.read_sensitive','contacts.update','contacts.archive','crm.opportunities.read','crm.opportunities.write','crm.opportunities.read_content'];
+ let calls=[],viewer=false,draws=0,delayed;
+ const assert=(v,m)=>{if(!v)throw Error(m);},wait=async f=>{for(let i=0;i<180;i++){if(f())return;await new Promise(r=>setTimeout(r,10));}throw Error('Tiempo agotado');};
+ async function api(path){
+  calls.push(path);if(delayed){const d=delayed;delayed=null;await d;}
+  const url=new URL(path,location.origin),page=Number(url.searchParams.get('page')||1);
+  if(path.endsWith('/summary'))return {leads:10000,customers:0,inactive:0,follow_ups_due:0,can_create:!viewer,can_archive:!viewer,can_search_sensitive:!viewer};
+  if(path.endsWith('/assignees'))return [];
+  if(path.includes('/customers?'))return {items:[{id:'contact-'+page,display_name:'Resultado <img src=x> '+page,channel_type:'whatsapp',classification:'lead',service_interest:'undecided'}],page,total:23,has_next:page===1};
+  if(path.includes('/duplicates?'))return {items:[{source_id:'source-'+page,target_id:'principal',source_name:'Grupo '+page,target_name:'Principal',reasons:['nombre']}],page,total:24,scanned:10002,scan_limited:false,has_next:page===1};
+  throw Error('Ruta inesperada '+path);
+ }
+ const crm=async()=>{root.innerHTML=await LuriCRM.render('company',api,crm);LuriCRM.mount(root);draws++;},quality=async()=>{root.innerHTML=await LuriCustomerQuality.render('company',api,{},permissions,quality);LuriCustomerQuality.mount(root);draws++;};
+ const test=async(name,fn)=>{await fn();results.push('PASS '+name);out.textContent=results.join('\n');};
+ try{
+  await test('Búsqueda global envía término y modo al servidor y escapa HTML',async()=>{await crm();assert(!root.querySelector('img'),'HTML escapado');const f=root.querySelector('form');f.elements.search.value=' José Pérez ';f.elements.search_by.value='name';const n=draws;f.querySelector('button[type=submit]').click();await wait(()=>draws>n);assert(calls.some(p=>p.includes('search=Jos')&&p.includes('search_by=name')),'Consulta global');assert(root.querySelector('[name=search]').value==='José Pérez','Término conservado');});
+  await test('Paginación conserva búsqueda y reinicia página al aplicar filtros',async()=>{let n=draws;root.querySelector('[data-crm=next]').click();await wait(()=>draws>n);assert(calls.some(p=>p.includes('page=2')&&p.includes('search_by=name')),'Página 2 global');const f=root.querySelector('form');f.elements.search_by.value='email';f.elements.search.value='a@example.test';f.elements.status.value='archived';f.elements.classification.value='customer';f.elements.due.checked=true;n=draws;f.requestSubmit();await wait(()=>draws>n);const p=new URL(calls.filter(p=>p.includes('/customers?')).at(-1),location.origin).searchParams;assert(p.get('page')==='1'&&p.get('search_by')==='email'&&p.get('status')==='archived'&&p.get('classification')==='customer'&&p.get('due')==='true','Filtros combinados y página inicial');});
+  await test('Viewer sólo ofrece nombre y reset elimina la búsqueda anterior',async()=>{LuriCRM.reset();viewer=true;await crm();assert(root.querySelector('[name=search_by]').options.length===1,'Sin modos sensibles');assert(!root.querySelector('[name=search]').value,'Sin búsqueda previa');assert(!calls.filter(p=>p.includes('/customers?')).at(-1).includes('search='),'Consulta limpia');});
+  await test('Cambio de empresa descarta respuesta tardía',async()=>{let finish;delayed=new Promise(r=>finish=r);const pending=LuriCRM.render('old',api,crm);LuriCRM.reset();finish();assert(await pending==='','Sin contenido anterior');});
+  await test('Duplicados muestra volumen completo y conserva páginas disjuntas',async()=>{LuriCustomerQuality.reset();await quality();assert(root.textContent.includes('10002')&&root.textContent.includes('24 coincidencias'),'Volumen y total');let n=draws;root.querySelector('[data-quality=next]').click();await wait(()=>draws>n);assert(root.textContent.includes('Grupo 2')&&root.textContent.includes('Página 2')&&root.querySelector('[data-quality=next]').disabled,'Página final');n=draws;root.querySelector('[data-quality=previous]').click();await wait(()=>draws>n);assert(root.textContent.includes('Grupo 1')&&root.querySelector('[data-quality=previous]').disabled,'Página inicial');assert(!calls.some(p=>p.includes('customer-merges')),'Sin unión automática');});
+  out.textContent+='\n5 pruebas aprobadas.';
+ }catch(error){out.textContent+='\nFAIL '+error.message;throw error;}
+})();</script></html>

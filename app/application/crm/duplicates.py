@@ -3,15 +3,15 @@
 import hashlib
 import hmac
 import json
-import re
-from collections import defaultdict
 from datetime import UTC, datetime
 from typing import cast
 from uuid import UUID
 
 from sqlalchemy import delete, select, update
+from sqlalchemy.orm import load_only
 
 from app.application.audit.writer import append_user_audit
+from app.application.contacts.search import identities, normalized_name
 from app.application.crm.service import OpportunityService
 from app.domain.crm.contracts import CrmConflict
 from app.domain.crm.growth_contracts import (
@@ -53,8 +53,22 @@ class DuplicateService:
 
     def candidates(self, org: UUID, actor: User, page: int) -> DuplicateList:
         self._access(org, actor)
+        cipher = self.commercial.cipher
+        anchors: dict[tuple[str, str], tuple[UUID, str]] = {}
+        items = []
+        scanned = total = 0
+        start = (page - 1) * 20
         rows = self.session.scalars(
             select(ContactModel)
+            .options(
+                load_only(
+                    ContactModel.id,
+                    ContactModel.display_name_ciphertext,
+                    ContactModel.channel_type,
+                    ContactModel.external_identifier_ciphertext,
+                    ContactModel.registration_ciphertext,
+                )
+            )
             .where(
                 ContactModel.organization_id == org,
                 ContactModel.status == "active",
@@ -65,61 +79,49 @@ class DuplicateService:
                 ),
             )
             .order_by(ContactModel.created_at, ContactModel.id)
-            .limit(2001)
-        ).all()
-        limited = len(rows) > 2000
-        rows = rows[:2000]
-        cipher = self.commercial.cipher
-        groups: dict[tuple[str, str], list[ContactModel]] = defaultdict(list)
-        names = {}
+            .execution_options(yield_per=256)
+        )
         for row in rows:
+            scanned += 1
             name = (
                 cipher.decrypt(row.display_name_ciphertext)
                 if row.display_name_ciphertext
                 else "Sin nombre"
             )
-            names[row.id] = name
-            values = (
-                [("nombre", " ".join(name.casefold().split()))]
-                if row.display_name_ciphertext and len(name.strip()) >= 3
-                else []
-            )
-            identity = cipher.decrypt(row.external_identifier_ciphertext)
-            if row.channel_type in {"whatsapp", "phone", "sms"}:
-                phone = re.sub(r"\D", "", identity)
-                if len(phone) >= 8:
-                    values.append(("teléfono", phone))
-            if row.channel_type == "email":
-                values.append(("correo", identity.strip().casefold()))
-            if row.registration_ciphertext:
-                registration = json.loads(cipher.decrypt(row.registration_ciphertext))
-                if isinstance(registration, dict):
-                    for key in ("email", "correo"):
-                        value = registration.get(key)
-                        if isinstance(value, str) and "@" in value:
-                            values.append(("correo", value.strip().casefold()))
-            for kind, value in set(values):
-                groups[(kind, hashlib.sha256(value.encode()).hexdigest())].append(row)
-        pairs: dict[tuple[UUID, UUID], list[str]] = defaultdict(list)
-        for (reason, _), members in groups.items():
-            for row in members[1:]:
-                pairs[(row.id, members[0].id)].append(reason)
-        items = [
-            DuplicateCandidate(
-                source_id=a,
-                target_id=b,
-                source_name=names[a],
-                target_name=names[b],
-                reasons=sorted(reasons),
-            )
-            for (a, b), reasons in pairs.items()
-        ]
+            values = identities(row, cipher)
+            normalized = normalized_name(name)
+            if row.display_name_ciphertext and len(normalized) >= 3:
+                values.append(("nombre", normalized))
+            matches: dict[UUID, tuple[str, list[str]]] = {}
+            for kind, value in values:
+                key = (kind, hashlib.sha256(value.encode()).hexdigest())
+                anchor = anchors.get(key)
+                if anchor:
+                    if anchor[0] not in matches:
+                        matches[anchor[0]] = (anchor[1], [])
+                    matches[anchor[0]][1].append(kind)
+                else:
+                    anchors[key] = (row.id, name)
+            for target in sorted(matches, key=str):
+                target_name, reasons = matches[target]
+                if start <= total < start + 20:
+                    items.append(
+                        DuplicateCandidate(
+                            source_id=row.id,
+                            target_id=target,
+                            source_name=name,
+                            target_name=target_name,
+                            reasons=sorted(set(reasons)),
+                        )
+                    )
+                total += 1
         return DuplicateList(
-            items=items[(page - 1) * 20 : page * 20],
+            items=items,
             page=page,
-            has_next=page * 20 < len(items),
-            scanned=len(rows),
-            scan_limited=limited,
+            has_next=page * 20 < total,
+            scanned=scanned,
+            scan_limited=False,
+            total=total,
         )
 
     def _state(self, org: UUID, contact: UUID) -> tuple[MergeContact, str]:

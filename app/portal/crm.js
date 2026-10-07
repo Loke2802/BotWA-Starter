@@ -5,9 +5,9 @@ window.LuriCRM = (() => {
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"})[c]);
   const date = value => value ? new Intl.DateTimeFormat("es-PE", {dateStyle:"medium", timeStyle:"short"}).format(new Date(value)) : "Sin programar";
   let context, generation = 0, dialog;
-  let filters = {classification:"", status:"active", due:false, page:1};
+  let filters = {classification:"", status:"active", due:false, page:1, search:"",search_by:"name"};
   function close() { generation++; if (dialog) {dialog.close(); dialog.remove(); dialog = null;} }
-  function reset() { close(); filters = {classification:"", status:"active", due:false, page:1}; }
+  function reset() { close(); filters = {classification:"", status:"active", due:false, page:1,search:"",search_by:"name"}; }
   function options(values, selected) { return Object.entries(values).map(([key, value]) => `<option value="${esc(key)}" ${key === selected ? "selected" : ""}>${esc(value)}</option>`).join(""); }
   async function render(org, api, refresh) {
     close();
@@ -15,6 +15,7 @@ window.LuriCRM = (() => {
     const base = `/organizations/${org}/crm`;
     const query = new URLSearchParams({status:filters.status, page:String(filters.page), page_size:"20", due:String(filters.due)});
     if (filters.classification) query.set("classification", filters.classification);
+    if (filters.search) {query.set("search",filters.search);query.set("search_by",filters.search_by);}
     const [summary, result, assignees] = await Promise.all([api(`${base}/summary`), api(`${base}/customers?${query}`), api(`${base}/assignees`)]);
     if (ticket !== generation) return "";
     context = {org, base, api, refresh, summary, assignees, result};
@@ -30,26 +31,22 @@ window.LuriCRM = (() => {
         <label>Clasificación<select name="classification">${options({"":"Todos",...stages},filters.classification)}</select></label>
         <label>Mostrar<select name="status">${options({active:"Contactos activos",archived:"Archivados"},filters.status)}</select></label>
         <label class="crm-check"><input type="checkbox" name="due" ${filters.due?'checked':''}> Solo seguimientos pendientes</label>
-        <button class="secondary-button">Aplicar filtros</button>
-      </form><div class="crm-list-heading"><p>${result.total} contactos · Página ${result.page}</p><label>Buscar nombre en esta página<input id="crm-name-filter" type="search" placeholder="Escribe un nombre" maxlength="200"></label></div>
+        <label>Buscar por<select name="search_by">${options(summary.can_search_sensitive?{name:"Nombre",phone:"Teléfono completo",email:"Correo completo"}:{name:"Nombre"},filters.search_by)}</select></label>
+        <label>Buscar en toda la empresa<input name="search" type="search" value="${esc(filters.search)}" maxlength="200" placeholder="Nombre o identidad completa"></label>
+        <button type="submit" class="secondary-button">Aplicar filtros</button>
+      </form><div class="crm-list-heading"><p>${result.total} contactos · Página ${result.page}</p><small>Nombre: palabras parciales, sin distinguir mayúsculas ni acentos. Teléfono con código de país y correo completos requieren permiso de datos sensibles.</small></div>
       <div class="crm-cards">${result.items.length ? result.items.map(item=>`<button class="crm-contact" data-crm="open" data-id="${esc(item.id)}" data-name="${esc(item.display_name || 'Sin nombre')}"><span class="crm-avatar" aria-hidden="true">${esc((item.display_name || '?').slice(0,1).toUpperCase())}</span><span class="crm-contact-main"><strong>${esc(item.display_name || 'Sin nombre')}</strong><span>${esc(services[item.service_interest] || item.service_interest)} · ${esc(item.channel_type)}</span><span>Responsable: ${esc(names[item.assigned_user_id] || 'Sin asignar')}</span></span><span class="crm-contact-meta"><span class="status ${esc(item.classification)}">${esc(stages[item.classification])}</span><span>Seguimiento: ${esc(date(item.next_follow_up_at))}</span><span class="crm-link">Abrir ficha →</span></span></button>`).join('') : '<div class="crm-empty"><h4>No hay contactos con estos filtros</h4><p>Prueba otra clasificación o registra tu primer contacto.</p></div>'}</div>
-      <p id="crm-no-match" class="empty" hidden>No hay coincidencias en esta página.</p>
       <div class="crm-pagination"><button class="secondary-button" data-crm="previous" ${result.page<=1?'disabled':''}>← Anterior</button><span>${result.total ? (result.page-1)*20+1 : 0}–${Math.min(result.page*20,result.total)} de ${result.total}</span><button class="secondary-button" data-crm="next" ${!result.has_next?'disabled':''}>Siguiente →</button></div></article>`;
   }
   function mount(root) {
     root.querySelector('#crm-filters')?.addEventListener('submit', event=>{
       event.preventDefault(); const f = new FormData(event.currentTarget);
-      filters={classification:f.get('classification'),status:f.get('status'),due:f.has('due'),page:1};context.refresh();
-    });
-    root.querySelector('#crm-name-filter')?.addEventListener('input', event=>{
-      let matches=0; const term=event.target.value.toLocaleLowerCase('es').trim();
-      root.querySelectorAll('.crm-contact').forEach(card=>{card.hidden=!card.dataset.name.toLocaleLowerCase('es').includes(term);if(!card.hidden)matches++;});
-      root.querySelector('#crm-no-match').hidden=matches>0 || !context.result.items.length;
+      filters={classification:f.get('classification'),status:f.get('status'),due:f.has('due'),page:1,search:String(f.get('search')||'').trim(),search_by:f.get('search_by')||'name'};context.refresh();
     });
     root.querySelectorAll('[data-crm]').forEach(button=>button.addEventListener('click',async()=>{
       const action=button.dataset.crm;
       if(action==='previous'||action==='next'){filters.page+=action==='next'?1:-1;return context.refresh();}
-      if(action==='due'){filters={classification:'',status:'active',due:true,page:1};return context.refresh();}
+      if(action==='due'){filters={classification:'',status:'active',due:true,page:1,search:"",search_by:"name"};return context.refresh();}
       button.disabled=true;
       try { await open(button.dataset.id || null); }
       catch(error){ const notice=document.querySelector('#portal-notice');notice.textContent=error.message;notice.hidden=false; }

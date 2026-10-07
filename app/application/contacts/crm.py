@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 from app.application.audit.writer import append_user_audit
 from app.application.contacts.identity import ContactIdentityHasher
 from app.application.contacts.registration import preserve_registration
+from app.application.contacts.search import ContactSearch, SearchField
 from app.domain.contacts.crm_contracts import (
     CrmAssignee,
     CrmSummary,
@@ -19,7 +20,7 @@ from app.infrastructure.models.crm_contact_merge import ContactMergeModel
 from app.infrastructure.models.customer_profile import CustomerProfileModel
 from app.infrastructure.models.user import UserModel
 from app.infrastructure.repositories.audit_repository import SqlAlchemyAuditRepository
-from app.infrastructure.repositories.crm_identity import canonical
+from app.infrastructure.repositories.crm_identity import canonical, redirects, resolve
 from app.security.authorization import has_permission, require_scoped_permission
 from app.security.secret_cipher import SecretCipher
 from sqlalchemy import Select, func, select
@@ -88,6 +89,8 @@ class CrmService:
         identifier: str | None,
         page: int,
         page_size: int,
+        search: str | None = None,
+        search_by: SearchField = "name",
     ) -> CustomerList:
         require_scoped_permission(actor, "contacts.read", org)
         query = self._query(org).where(ContactModel.status == status)
@@ -122,6 +125,48 @@ class CrmService:
             query = query.where(
                 ContactModel.id
                 == (canonical(self.session, org, matched) if matched else uuid4())
+            )
+        if search and search.strip():
+            if search_by != "name":
+                require_scoped_permission(actor, "contacts.read_sensitive", org)
+            matcher = ContactSearch(search, search_by, self.cipher)
+            alias_matches: set[UUID] = set()
+            if status == "active":
+                links = redirects(self.session, org)
+                aliases = self.session.scalars(
+                    select(ContactModel)
+                    .join(
+                        ContactMergeModel,
+                        (ContactMergeModel.source_id == ContactModel.id)
+                        & (
+                            ContactMergeModel.organization_id
+                            == ContactModel.organization_id
+                        ),
+                    )
+                    .where(ContactModel.organization_id == org)
+                    .execution_options(yield_per=256)
+                )
+                for alias in aliases:
+                    if matcher.matches(alias):
+                        alias_matches.add(resolve(links, alias.id))
+            items = []
+            total = 0
+            start = (page - 1) * page_size
+            for contact, profile in self.session.execute(
+                query.order_by(
+                    ContactModel.created_at.desc(), ContactModel.id
+                ).execution_options(yield_per=256)
+            ):
+                if contact.id in alias_matches or matcher.matches(contact):
+                    if start <= total < start + page_size:
+                        items.append(self._item(contact, profile))
+                    total += 1
+            return CustomerList(
+                items=items,
+                total=total,
+                page=page,
+                page_size=page_size,
+                has_next=page * page_size < total,
             )
         total = (
             self.session.scalar(select(func.count()).select_from(query.subquery())) or 0
@@ -180,6 +225,7 @@ class CrmService:
             can_create=has_permission(actor, "contacts.update")
             and has_permission(actor, "contacts.read_sensitive"),
             can_archive=has_permission(actor, "contacts.archive"),
+            can_search_sensitive=has_permission(actor, "contacts.read_sensitive"),
         )
 
     def assignees(self, org: UUID, actor: User) -> list[CrmAssignee]:

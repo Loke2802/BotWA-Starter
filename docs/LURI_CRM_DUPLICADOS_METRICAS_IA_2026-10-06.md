@@ -7,8 +7,9 @@ Los commits anteriores se conservan. El checkout principal no fue modificado.
 ## Cambios entregados
 
 3. **Calidad de clientes** detecta coincidencias de nombre normalizado, teléfono
-   y correo, dentro de una empresa. Examina hasta 2000 contactos principales
-   activos, con aviso del límite y paginación de resultados. Un nombre coincidente
+   y correo, dentro de una empresa. La entrega original examinaba hasta 2000 contactos
+   principales activos; [la ampliación de búsqueda y volumen](LURI_CRM_BUSQUEDA_GLOBAL_DUPLICADOS_2026-10-06.md)
+   recorre todos los activos, con paginación de resultados. Un nombre coincidente
    es una pista, no una prueba. El usuario elige la ficha principal, revisa ambas
    identidades, notas, perfiles y cantidades de registros, y confirma explícitamente.
    La unión reúne conversaciones, oportunidades y actividades en una transacción.
@@ -130,7 +131,7 @@ Repetir comprobación HTTP del incremento:
 ## Pendientes de despliegue y validación real
 
 No se desplegó ni se contrató DigitalOcean. Quedan infraestructura y staging,
-backup/migración con datos reales, prueba de carga para volumen grande e índices
-o búsqueda paginada ampliada si supera el límite de 2000 contactos. También falta
+backup/migración con datos reales, prueba de carga concurrente e índices cifrados
+para volúmenes mayores. El corte de 2000 ya fue eliminado en la ampliación. También falta
 validar la IA habilitada con su proveedor y memoria reales, WhatsApp real y un
 piloto con usuarios. El trabajo local no acredita esos pasos ni autoriza publicar.

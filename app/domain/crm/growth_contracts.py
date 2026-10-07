@@ -19,6 +19,7 @@ class DuplicateList(BaseModel):
     has_next: bool
     scanned: int
     scan_limited: bool
+    total: int = 0
 
 
 class MergeContact(BaseModel):

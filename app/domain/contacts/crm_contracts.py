@@ -75,3 +75,4 @@ class CrmSummary(BaseModel):
     can_edit: bool
     can_create: bool
     can_archive: bool
+    can_search_sensitive: bool = False

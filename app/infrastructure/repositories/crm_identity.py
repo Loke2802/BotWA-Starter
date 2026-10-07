@@ -26,10 +26,27 @@ def canonical(session: Session, org: UUID, contact: UUID) -> UUID:
 
 
 def family(session: Session, org: UUID, contact: UUID) -> list[UUID]:
-    root = canonical(session, org, contact)
-    sources = session.scalars(
-        select(ContactMergeModel.source_id).where(
-            ContactMergeModel.organization_id == org
+    links = redirects(session, org)
+    root = resolve(links, contact)
+    return [root, *(s for s in links if resolve(links, s) == root)]
+
+
+def redirects(session: Session, org: UUID) -> dict[UUID, UUID]:
+    return {
+        row.source_id: row.target_id
+        for row in session.execute(
+            select(ContactMergeModel.source_id, ContactMergeModel.target_id).where(
+                ContactMergeModel.organization_id == org
+            )
         )
-    ).all()
-    return [root, *(s for s in sources if canonical(session, org, s) == root)]
+    }
+
+
+def resolve(links: dict[UUID, UUID], contact: UUID) -> UUID:
+    seen: set[UUID] = set()
+    while contact in links:
+        if contact in seen:
+            raise CrmConflict("La cadena de clientes unidos es inválida.")
+        seen.add(contact)
+        contact = links[contact]
+    return contact

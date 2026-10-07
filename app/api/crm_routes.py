@@ -83,6 +83,8 @@ def customers(
     identifier: str | None = Query(default=None, max_length=32),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
+    search: str | None = Query(default=None, max_length=200),
+    search_by: Literal["name", "phone", "email"] = "name",
 ) -> CustomerList:
     try:
         return service.list_customers(
@@ -94,6 +96,8 @@ def customers(
             identifier=identifier,
             page=page,
             page_size=page_size,
+            search=search,
+            search_by=search_by,
         )
     except ValueError as exc:
         raise fail(exc) from exc

@@ -85,9 +85,12 @@ def main() -> None:
     parser.add_argument("--database-port", type=int, default=15437)
     parser.add_argument("--server-port", type=int, default=8770)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--contact-count", type=int, default=10000)
     args = parser.parse_args()
     if not args.container.startswith("luri-crm-local-"):
         parser.error("Only an explicitly named disposable local container is accepted")
+    if args.contact_count < 2100:
+        parser.error("Volume verification requires at least 2100 synthetic contacts")
     check_free_port(args.server_port)
     output = args.output_dir.resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -125,10 +128,14 @@ def main() -> None:
             )
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         journey = Journey(f"http://127.0.0.1:{args.server_port}", manifest)
+        failed["stage"] = "volume_seeding"
+        print(f"Seeding {args.contact_count} encrypted synthetic contacts", flush=True)
+        journey.seed_search(args.database_port, args.contact_count)
         failed["stage"] = "authenticated_journey"
         with (run_dir / "server.log").open("w", encoding="utf-8") as log:
             process = start(manifest_path, args.server_port, args.database_port, log)
             journey.execute()
+            journey.check_search()
             journey.check_database(args.database_port)
             journey.save(report_path)
             stop(process)
@@ -145,6 +152,7 @@ def main() -> None:
             )
             journey.login()  # New normal login; no dependency or auth overrides.
             journey.check_records()
+            journey.check_search()
             journey.check_database(args.database_port)
             journey.passed("server_restart_preserves_sale_actions_history_and_metrics")
             journey.report.update(

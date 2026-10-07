@@ -31,7 +31,7 @@ def main() -> None:
             "BOTWA_AI_ENABLED": "false",
             "BOTWA_DATABASE_URL": (
                 f"postgresql+psycopg://botwa:crm_local_test@127.0.0.1:"
-                f"{args.database_port}/{database}?connect_timeout=5"
+                f"{args.database_port}/{database}?connect_timeout=15"
             ),
             "BOTWA_WHATSAPP_SECRET_ENCRYPTION_KEY": base64.urlsafe_b64encode(
                 b"o" * 32

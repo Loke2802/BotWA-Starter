@@ -4,6 +4,11 @@
 Este incremento añade pruebas ejecutables y evidencia; no modifica la lógica del
 CRM, no requiere otra migración y no realiza despliegue.
 
+La [ampliación posterior de búsqueda y duplicados](LURI_CRM_BUSQUEDA_GLOBAL_DUPLICADOS_2026-10-06.md)
+extiende el mismo comando: añade 10 000 contactos ficticios cifrados y verifica
+búsqueda global, permisos y duplicados completos antes y después del reinicio.
+Los resultados originales descritos abajo se conservan como evidencia histórica.
+
 ## Ejecutar con un comando
 
 Requisitos: Docker Desktop activo, el contenedor local existente

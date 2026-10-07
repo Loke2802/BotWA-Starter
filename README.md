@@ -2,6 +2,10 @@
 
 ## Luri CRM — incremento 1 (06/10/2026, rama local)
 
+[Búsqueda global y duplicados sin corte de 2000](docs/LURI_CRM_BUSQUEDA_GLOBAL_DUPLICADOS_2026-10-06.md):
+nombre, teléfono y correo con permisos, resultados paginados y ensayo con 10 000
+contactos cifrados en PostgreSQL local. Conserva fichas unidas e historial.
+
 [Recorrido integral reproducible](docs/LURI_CRM_RECORRIDO_INTEGRAL_LOCAL_2026-10-06.md):
 un comando prepara PostgreSQL ficticio, prueba conversación → ficha → oportunidad
 → acción → cierre → métricas, permisos y concurrencia, y verifica persistencia al

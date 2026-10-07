@@ -1,10 +1,10 @@
-from collections.abc import Generator
 from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from app.api.crm_routes import Actor
 from app.api.whatsapp_configuration_dependencies import get_whatsapp_secret_cipher
@@ -54,17 +54,14 @@ router = APIRouter(
 )
 
 
-def get_opportunity_service() -> Generator[OpportunityService]:
-    sessions = get_session()
-    session = next(sessions)
-    try:
-        yield OpportunityService(
-            session,
-            get_whatsapp_secret_cipher(),
-            get_settings().contact_identity_hmac_key,
-        )
-    finally:
-        sessions.close()
+def get_opportunity_service(
+    session: Annotated[Session, Depends(get_session)],
+) -> OpportunityService:
+    return OpportunityService(
+        session,
+        get_whatsapp_secret_cipher(),
+        get_settings().contact_identity_hmac_key,
+    )
 
 
 Service = Annotated[OpportunityService, Depends(get_opportunity_service)]

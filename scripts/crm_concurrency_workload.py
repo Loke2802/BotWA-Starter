@@ -34,6 +34,22 @@ def edit_winner(replies: list[tuple[str, int, Any]], version: int) -> dict[str, 
     return cast(dict[str, Any], winner)
 
 
+def complete_history(
+    journey: Journey, path: str, expected: int
+) -> list[dict[str, Any]]:
+    """Read every snapshot, including rehearsals longer than the API default page."""
+    if not 1 <= expected <= 1001:
+        raise ValueError("Bounded history verification requires 1..1001 versions")
+    result: list[dict[str, Any]] = []
+    for page in range(1, ceil(expected / 100) + 1):
+        rows = journey.request("GET", path + f"?page={page}&page_size=100")
+        assert isinstance(rows, list), "History must be a paginated list"
+        result.extend(rows)
+    assert len(result) == expected, "History is incomplete or duplicated"
+    assert sorted(row["version"] for row in result) == list(range(1, expected + 1))
+    return result
+
+
 class ConcurrentJourney:
     def __init__(self, journey: Journey, source_report: dict[str, Any]) -> None:
         self.journey, self.source = journey, source_report
@@ -227,8 +243,8 @@ class ConcurrentJourney:
                 )
             )
             assert j.request("GET", base + "/opportunities/" + current["id"]) == current
-        history = j.request(
-            "GET", base + "/opportunities/" + current["id"] + "/history"
+        history = complete_history(
+            j, base + "/opportunities/" + current["id"] + "/history", rounds + 1
         )
         assert sorted(row["version"] for row in history) == list(range(1, rounds + 2))
         assert (

@@ -1,8 +1,8 @@
-from collections.abc import Generator
 from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
 
 from app.api.dependencies import require_authenticated_user
 from app.api.whatsapp_configuration_dependencies import get_whatsapp_secret_cipher
@@ -25,19 +25,14 @@ from app.security.authorization import AuthorizationError
 router = APIRouter(prefix="/organizations/{organization_id}/crm", tags=["crm"])
 
 
-def get_crm_service() -> Generator[CrmService]:
-    sessions = get_session()
-    session = next(sessions)
-    try:
-        yield CrmService(
-            session,
-            get_whatsapp_secret_cipher(),
-            ContactIdentityHasher(
-                get_settings().contact_identity_hmac_key, ContactIdentityNormalizer()
-            ),
-        )
-    finally:
-        sessions.close()
+def get_crm_service(session: Annotated[Session, Depends(get_session)]) -> CrmService:
+    return CrmService(
+        session,
+        get_whatsapp_secret_cipher(),
+        ContactIdentityHasher(
+            get_settings().contact_identity_hmac_key, ContactIdentityNormalizer()
+        ),
+    )
 
 
 Service = Annotated[CrmService, Depends(get_crm_service)]

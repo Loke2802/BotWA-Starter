@@ -10,6 +10,7 @@ from app.infrastructure.models.contact_name_search import (
     ContactNameStateModel,
     ContactNameTokenModel,
 )
+from app.infrastructure.repositories.contact_search_ids import matching_contact_ids
 from app.security.secret_cipher import SecretCipher
 from sqlalchemy import Select, and_, delete, func, insert, select
 from sqlalchemy.orm import Session, load_only
@@ -59,21 +60,27 @@ class ContactNameIndex:
             self.hasher.name_digest(org, "gram", value)
             for value in query_grams(matcher.term)
         }
-        indexed = (
+        gram_matches = (
             select(token.contact_id)
-            .join(
-                state,
-                (state.organization_id == token.organization_id)
-                & (state.contact_id == token.contact_id),
-            )
-            .join(ContactModel, self.valid(org))
             .where(
                 token.organization_id == org,
                 token.kind == "gram",
                 token.digest.in_(digests),
             )
             .group_by(token.contact_id)
-            .having(func.count(func.distinct(token.digest)) == len(digests))
+            # The token primary key makes each (contact, kind, digest) unique.
+            .having(func.count() == len(digests))
+        ).subquery()
+        # Reduce gram matches before validating snapshots. Otherwise PostgreSQL
+        # can choose a token-index lookup for every contact in a broad search.
+        indexed = (
+            select(gram_matches.c.contact_id)
+            .join(
+                state,
+                (state.contact_id == gram_matches.c.contact_id)
+                & (state.organization_id == org),
+            )
+            .join(ContactModel, self.valid(org))
         )
         valid = select(state.contact_id).where(self.valid(org)).exists()
         if all(len(word) <= 2 for word in matcher.term.split()):
@@ -92,22 +99,28 @@ class ContactNameIndex:
                 return indexed
             return select(ContactModel.id).where(
                 ContactModel.organization_id == org,
-                ContactModel.id.in_(indexed) | ContactModel.id.in_(fallback),
+                ContactModel.id.in_(indexed)
+                | ContactModel.id.in_(
+                    matching_contact_ids(self.session, org, fallback)
+                ),
             )
+        candidate_ids = indexed.union_all(
+            select(ContactModel.id).where(ContactModel.organization_id == org, ~valid)
+        )
         candidates = self.session.scalars(
             select(ContactModel)
             .options(load_only(ContactModel.id, ContactModel.display_name_ciphertext))
             .where(
                 ContactModel.organization_id == org,
-                ContactModel.id.in_(indexed) | ~valid,
+                # Disjoint branches avoid a correlated validity lookup per row
+                # in the OR plan; current snapshots still gate indexed results.
+                ContactModel.id.in_(candidate_ids),
             )
             .execution_options(yield_per=256)
         )
         # Grams may occur in different words/order: always verify exact semantics.
         matches = [row.id for row in candidates if matcher.matches(row)]
-        return select(ContactModel.id).where(
-            ContactModel.organization_id == org, ContactModel.id.in_(matches)
-        )
+        return matching_contact_ids(self.session, org, matches)
 
     def replace(self, org: UUID, contacts: list[ContactModel]) -> None:
         if not contacts:

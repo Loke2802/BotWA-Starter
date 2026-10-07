@@ -78,7 +78,17 @@ class DuplicateIndex:
                 digest = self.hasher.name_digest(org, "exact", value)
                 signals[row.id].add(("nombre", digest))
                 fallback_names.add(digest)
-        valid_signals = (
+        # Raw groups are a superset: archived/stale members may add candidates,
+        # but current snapshots and active principals still gate every signal.
+        shared = (
+            select(token.field, token.digest)
+            .where(token.organization_id == org)
+            .group_by(token.field, token.digest)
+            .having(func.count() > 1)
+            .correlate(None)
+        )
+        key = tuple_(token.field, token.digest)
+        for ident, field, digest in self.session.execute(
             select(token.contact_id, token.field, token.digest)
             .join(
                 state,
@@ -86,22 +96,22 @@ class DuplicateIndex:
                 & (state.contact_id == token.contact_id),
             )
             .join(contact, exact.valid(org))
-            .where(active, token.organization_id == org)
-        ).subquery()
-        shared = (
-            select(valid_signals.c.field, valid_signals.c.digest)
-            .group_by(valid_signals.c.field, valid_signals.c.digest)
-            .having(func.count() > 1)
-            .correlate(None)
-        )
-        key = tuple_(valid_signals.c.field, valid_signals.c.digest)
-        for ident, field, digest in self.session.execute(
-            select(valid_signals)
-            .where(key.in_(shared) | key.in_(fallback_identity))
+            .where(
+                active,
+                token.organization_id == org,
+                key.in_(shared) | key.in_(fallback_identity),
+            )
             .execution_options(yield_per=256)
         ):
             signals[ident].add(("teléfono" if field == "phone" else "correo", digest))
-        valid_names = (
+        shared_names = (
+            select(nt.digest)
+            .where(nt.organization_id == org, nt.kind == "exact")
+            .group_by(nt.digest)
+            .having(func.count() > 1)
+            .correlate(None)
+        )
+        for ident, digest in self.session.execute(
             select(nt.contact_id, nt.digest)
             .join(
                 ns,
@@ -109,19 +119,11 @@ class DuplicateIndex:
                 & (ns.contact_id == nt.contact_id),
             )
             .join(contact, names.valid(org))
-            .where(active, nt.organization_id == org, nt.kind == "exact")
-        ).subquery()
-        shared_names = (
-            select(valid_names.c.digest)
-            .group_by(valid_names.c.digest)
-            .having(func.count() > 1)
-            .correlate(None)
-        )
-        for ident, digest in self.session.execute(
-            select(valid_names)
             .where(
-                valid_names.c.digest.in_(shared_names)
-                | valid_names.c.digest.in_(fallback_names)
+                active,
+                nt.organization_id == org,
+                nt.kind == "exact",
+                nt.digest.in_(shared_names) | nt.digest.in_(fallback_names),
             )
             .execution_options(yield_per=256)
         ):

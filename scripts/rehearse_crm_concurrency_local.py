@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from scripts.crm_concurrency_workload import ConcurrentJourney
+from scripts.crm_concurrency_workload import ConcurrentJourney, complete_history
 from scripts.crm_volume_recovery import restore_volume
 from scripts.rehearse_crm_journey_local import check_free_port, start, stop
 from scripts.verify_crm_journey_local import Journey, validate_target
@@ -90,10 +90,7 @@ def main() -> None:
                 + result["opportunity_id"]
             )
             assert journey.request("GET", path) == result["final_record"]
-            assert (
-                len(journey.request("GET", path + "/history"))
-                == result["history_versions"]
-            )
+            complete_history(journey, path + "/history", result["history_versions"])
             proof["server_restart_preserves_concurrent_writes"] = True
         print(
             "PASS concurrent sessions, versions, actions and tenant isolation",

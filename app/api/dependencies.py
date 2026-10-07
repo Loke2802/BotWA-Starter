@@ -296,22 +296,17 @@ def get_access_token_service() -> AccessTokenService:
     )
 
 
-def get_user_service() -> Generator[UserService]:
-    session_generator = get_session()
-    session = next(session_generator)
-    try:
-        repository = UserRepository(session=session)
-        organization_repository = OrganizationRepository(session=session)
-        yield UserService(
-            repository=repository,
-            organization_repository=organization_repository,
-            password_service=get_password_service(),
-            session=session,
-            audit_writer=SqlAlchemyAuditRepository(session),
-            plan_enforcement=PlanEnforcementService(SqlAlchemyPlanRepository(session)),
-        )
-    finally:
-        session_generator.close()
+def get_user_service(
+    session: Annotated[Session, Depends(get_session)],
+) -> UserService:
+    return UserService(
+        repository=UserRepository(session=session),
+        organization_repository=OrganizationRepository(session=session),
+        password_service=get_password_service(),
+        session=session,
+        audit_writer=SqlAlchemyAuditRepository(session),
+        plan_enforcement=PlanEnforcementService(SqlAlchemyPlanRepository(session)),
+    )
 
 
 def get_bot_service() -> Generator[BotService]:

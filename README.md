@@ -2,6 +2,10 @@
 
 ## Luri CRM — incremento 1 (06/10/2026, rama local)
 
+[Rendimiento y carga sostenida local](docs/LURI_CRM_RENDIMIENTO_CARGA_SOSTENIDA_2026-10-06.md):
+planes SQL, conjuntos grandes de candidatos y una sesión por petición autenticada.
+Ensayo reproducible sobre copias ficticias; conserva permisos e historial.
+
 [Nombres, duplicados y concurrencia local](docs/LURI_CRM_NOMBRES_DUPLICADOS_CONCURRENCIA_2026-10-06.md):
 índice de nombres protegidos, grupos de duplicados en SQL y ensayo HTTP simultáneo.
 La versión actual requiere migración `0032`; las entregas siguientes son antecedentes.

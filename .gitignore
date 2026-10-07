@@ -18,3 +18,4 @@ build/
 *.egg-info/
 /docs/validacion-local/journey/
 /docs/validacion-local/concurrency/
+/docs/validacion-local/performance/

@@ -1,7 +1,7 @@
 # ruff: noqa: F811
 """Protected partial names and duplicate detection agree with unindexed data."""
 
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from app.api.dependencies import require_authenticated_user
@@ -16,6 +16,7 @@ from app.infrastructure.models.contact_name_search import (
     ContactNameStateModel,
     ContactNameTokenModel,
 )
+from app.infrastructure.repositories.contact_search_ids import matching_contact_ids
 from scripts.crm_search_dataset import seed_search_dataset
 from sqlalchemy import func, insert, select, update
 from sqlalchemy.exc import IntegrityError
@@ -85,6 +86,11 @@ def test_name_index_viewer_bounds_decryption_and_detects_sql_changes(crm, monkey
     assert not reads
     broad = client.get(base, params={"search": "co", "page_size": 20}).json()
     assert broad["total"] >= 2000 and len(reads) == 20
+    # A long broad term crosses the compact UUID-set path and keeps exact pages.
+    reads.clear()
+    broad_long = client.get(base, params={"search": "contacto", "page_size": 20}).json()
+    assert broad_long == broad
+    assert len(reads) == broad["total"] + 20
     reads.clear()
     session.execute(
         update(ContactModel)
@@ -172,6 +178,13 @@ def test_name_index_rolls_back_and_is_scoped(crm):  # type: ignore[no-untyped-de
     session.add(row)
     index = ContactNameIndex(session, svc.cipher, svc.hasher)
     index.sync(row)
+    many_ids = [uuid4() for _ in range(200)] + [row.id]
+    assert session.scalars(
+        matching_contact_ids(session, actor.organization_id, many_ids)
+    ).all() == [row.id]
+    assert not session.scalars(
+        matching_contact_ids(session, other.organization_id, many_ids)
+    ).all()
     assert not session.scalars(
         index.matching(
             other.organization_id, ContactSearch("unica", "name", svc.cipher)

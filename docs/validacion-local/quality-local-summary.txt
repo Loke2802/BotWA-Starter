@@ -1,0 +1,47 @@
+LOCAL QUALITY GATE: passed
+Source unchanged: True
+Source SHA256: d68c16d12d866e685d954f2091e60f8a3c86d02e1941089a1fceb13a420bd05f
+
+ruff: passed (0.689s)
+All checks passed!
+
+
+
+black: passed (2.398s)
+
+All done! ✨ 🍰 ✨
+600 files would be left unchanged.
+
+
+mypy-tests: passed (28.604s)
+Success: no issues found in 577 source files
+
+
+
+mypy-scripts: passed (2.61s)
+Success: no issues found in 431 source files
+
+
+
+pytest: passed (1396.869s)
+........................................................................ [ 61%]
+.............................................                            [100%]
+============================== warnings summary ===============================
+..\..\.venv\Lib\site-packages\fastapi\testclient.py:1
+  D:\BotWA Starter\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+117 passed, 1 warning in 1390.38s (0:23:10)
+
+
+
+pytest-postgres: passed (24.359s)
+.......                                                                  [100%]
+============================== warnings summary ===============================
+tests/integration/test_crm_opportunities_postgresql.py::test_simultaneous_reviewed_merge_preserves_constrained_links
+  D:\BotWA Starter\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+7 passed, 1 warning in 14.17s

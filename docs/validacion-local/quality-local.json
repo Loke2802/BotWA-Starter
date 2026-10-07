@@ -1,0 +1,147 @@
+{
+  "status": "passed",
+  "environment": "local SQLite and optional synthetic PostgreSQL",
+  "suite": "crm",
+  "started_at": "2026-10-07T06:15:20.914471+00:00",
+  "source_sha256": "d68c16d12d866e685d954f2091e60f8a3c86d02e1941089a1fceb13a420bd05f",
+  "steps": [
+    {
+      "name": "ruff",
+      "status": "passed",
+      "returncode": 0,
+      "seconds": 0.689,
+      "command": [
+        "python",
+        "-m",
+        "ruff",
+        "check",
+        "app",
+        "tests",
+        "scripts",
+        "alembic/versions/20261006_0032_contact_names.py"
+      ],
+      "stdout": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T061520914065Z\\ruff.stdout.txt",
+      "stderr": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T061520914065Z\\ruff.stderr.txt"
+    },
+    {
+      "name": "black",
+      "status": "passed",
+      "returncode": 0,
+      "seconds": 2.398,
+      "command": [
+        "python",
+        "-m",
+        "black",
+        "--check",
+        "app",
+        "tests",
+        "scripts",
+        "alembic/versions/20261006_0032_contact_names.py"
+      ],
+      "stdout": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T061520914065Z\\black.stdout.txt",
+      "stderr": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T061520914065Z\\black.stderr.txt"
+    },
+    {
+      "name": "mypy-tests",
+      "status": "passed",
+      "returncode": 0,
+      "seconds": 28.604,
+      "command": [
+        "python",
+        "-m",
+        "mypy",
+        "app",
+        "tests",
+        "--explicit-package-bases"
+      ],
+      "stdout": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T061520914065Z\\mypy-tests.stdout.txt",
+      "stderr": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T061520914065Z\\mypy-tests.stderr.txt"
+    },
+    {
+      "name": "mypy-scripts",
+      "status": "passed",
+      "returncode": 0,
+      "seconds": 2.61,
+      "command": [
+        "python",
+        "-m",
+        "mypy",
+        "app",
+        "scripts",
+        "--explicit-package-bases"
+      ],
+      "stdout": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T061520914065Z\\mypy-scripts.stdout.txt",
+      "stderr": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T061520914065Z\\mypy-scripts.stderr.txt"
+    },
+    {
+      "name": "pytest",
+      "status": "passed",
+      "returncode": 0,
+      "seconds": 1396.869,
+      "command": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T061520914065Z\\pytest-temp",
+        "-o",
+        "faulthandler_timeout=60",
+        "tests\\test_crm.py",
+        "tests\\test_crm_authorization.py",
+        "tests\\test_crm_concurrency_runner.py",
+        "tests\\test_crm_customer_workspace.py",
+        "tests\\test_crm_follow_up.py",
+        "tests\\test_crm_growth.py",
+        "tests\\test_crm_journey_runner.py",
+        "tests\\test_crm_local_quality.py",
+        "tests\\test_crm_name_index.py",
+        "tests\\test_crm_opportunities.py",
+        "tests\\test_crm_opportunities_migration.py",
+        "tests\\test_crm_request_session.py",
+        "tests\\test_crm_search.py",
+        "tests\\test_crm_search_index.py",
+        "tests\\test_crm_sustained_runner.py",
+        "tests\\test_crm_volume_recovery.py",
+        "tests/test_portal_routes.py",
+        "tests/test_auth_service.py"
+      ],
+      "stdout": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T061520914065Z\\pytest.stdout.txt",
+      "stderr": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T061520914065Z\\pytest.stderr.txt"
+    },
+    {
+      "name": "pytest-postgres",
+      "status": "passed",
+      "returncode": 0,
+      "seconds": 24.359,
+      "command": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T061520914065Z\\postgres-temp",
+        "tests/integration/test_crm_postgresql.py",
+        "tests/integration/test_crm_opportunities_postgresql.py"
+      ],
+      "stdout": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T061520914065Z\\pytest-postgres.stdout.txt",
+      "stderr": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T061520914065Z\\pytest-postgres.stderr.txt"
+    }
+  ],
+  "browser_checks": "separate, not executed by this CLI",
+  "deployment_performed": false,
+  "migration_head": "20261006_0032",
+  "git_commit_at_start": "07aec7bbbcd6ac644fd62a2f98ccdb4b1ebcd7e8",
+  "postgres_guard": {
+    "container": "luri-crm-local-recovery",
+    "port": 15437,
+    "database": "crm_local_test",
+    "revision": "20261006_0032"
+  },
+  "source_unchanged_during_checks": true,
+  "finished_at": "2026-10-07T06:39:44.856483+00:00"
+}

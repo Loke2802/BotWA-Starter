@@ -2,6 +2,10 @@
 
 ## Luri CRM — incremento 1 (06/10/2026, rama local)
 
+[Validación local en un comando](docs/LURI_CRM_VALIDACION_REPRODUCIBLE_2026-10-07.md):
+formato, tipos, pruebas, PostgreSQL ficticio opcional y evidencia por ejecución;
+límites de tiempo y aislamiento de selectores, sin despliegue.
+
 [Historial completo y paginación estable](docs/LURI_CRM_HISTORIAL_PAGINADO_2026-10-07.md):
 201 versiones recorridas en el panel con login normal; navegación independiente
 desde conversación y ficha, conservando permisos y cambios previos.

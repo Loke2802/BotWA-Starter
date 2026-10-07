@@ -1,0 +1,63 @@
+ruff: passed (1.126s)
+
+stdout:
+All checks passed!
+
+black: passed (3.638s)
+
+stderr:
+All done! ✨ 🍰 ✨
+602 files would be left unchanged.
+
+mypy-tests: passed (18.79s)
+
+stdout:
+Success: no issues found in 579 source files
+
+mypy-scripts: passed (5.237s)
+
+stdout:
+Success: no issues found in 431 source files
+
+pytest: passed (502.808s)
+
+stdout:
+ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss...... [  5%]
+..................................................................{"event_type": "automation.execution.started", "plan_id": "18c9846e-fc9b-4811-a555-58b0e4150752", "event": "automation_event", "level": "info", "timestamp": "2026-10-07T13:38:52.312622Z"}
+{"event_type": "automation.task.started", "task_id": "a2bd110a-4487-4cf7-8e1f-d417cca37efe", "action": "respond", "event": "automation_event", "level": "info", "timestamp": "2026-10-07T13:38:52.312971Z"}
+{"event_type": "automation.task.completed", "task_id": "a2bd110a-4487-4cf7-8e1f-d417cca37efe", "event": "automation_event", "level": "info", "timestamp": "2026-10-07T13:38:52.314546Z"}
+...... [ 11%]
+........................................................................ [ 17%]
+........s............................................................... [ 23%]
+........................................................................ [ 29%]
+........................................................................ [ 35%]
+..................................................................s..... [ 41%]
+........................................................................ [ 47%]
+........................................................................ [ 53%]
+........................................................................ [ 59%]
+........................................................................ [ 65%]
+........................................................................ [ 71%]
+........................................................................ [ 77%]
+........................................................................ [ 83%]
+........................................................................ [ 89%]
+........................................................................ [ 95%]
+...........................................................              [100%]
+============================== warnings summary ===============================
+..\..\.venv\Lib\site-packages\fastapi\testclient.py:1
+  D:\BotWA Starter\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1143 passed, 68 skipped, 1 warning in 490.86s (0:08:10)
+
+pytest-postgres: passed (24.52s)
+
+stdout:
+.......                                                                  [100%]
+============================== warnings summary ===============================
+tests/integration/test_crm_opportunities_postgresql.py::test_simultaneous_reviewed_merge_preserves_constrained_links
+  D:\BotWA Starter\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+7 passed, 1 warning in 13.35s

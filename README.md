@@ -2,6 +2,10 @@
 
 ## Luri CRM — incremento 1 (06/10/2026, rama local)
 
+[Regresión completa local](docs/LURI_CRM_REGRESION_COMPLETA_LOCAL_2026-10-07.md):
+1143 pruebas aprobadas, 68 omitidas y 7 PostgreSQL aparte; esquema vacío
+compartido con un archivo independiente por prueba, código fijo y evidencia.
+
 [Historial móvil y navegación con teclado](docs/LURI_CRM_ACCESIBILIDAD_HISTORIAL_MOVIL_2026-10-07.md):
 controles visibles, textos largos y foco conservado al cambiar de página;
 pruebas de navegador y recorrido local autenticado.

@@ -129,9 +129,10 @@ el commit inicial del informe es `07aec7b`, con la herramienta aún sin commit.
 - [Resultado completo y comandos](validacion-local/quality-local.json).
 - [Salida real de cada comprobación](validacion-local/quality-local-summary.txt).
 
-La nueva ejecución completa con `--suite all` queda pendiente en condiciones
-con recursos suficientes o con un límite mayor. La ejecución específica del
-CRM aprobada y la suite completa anterior no sustituyen ese pendiente.
+En esta entrega quedó pendiente la nueva ejecución completa con `--suite all`.
+Se cerró posteriormente con 1143 aprobados, 68 omitidos y siete PostgreSQL
+aparte, tras evitar repetir la creación del esquema SQLite vacío por prueba.
+[Resultado posterior y preparación de pruebas](LURI_CRM_REGRESION_COMPLETA_LOCAL_2026-10-07.md).
 
 ## Entrega y límites
 

@@ -101,9 +101,10 @@ temporales de pruebas y se restauró el tamaño normal, dejando abierto el panel
 La suite completa anterior tuvo 1128 aprobados y 68 omitidos. La herramienta
 de validación posterior aprobó 117 pruebas CRM/portal/autenticación y otras
 7 PostgreSQL, con huella de código estable. Son ejecuciones distintas; no se
-sumaron ni se repitieron en esta entrega de presentación. La nueva ejecución
-completa de la herramienta sigue pendiente tras el límite de tiempo documentado
-en el informe de validación reproducible.
+sumaron ni se repitieron en esta entrega de presentación. La repetición completa
+pendiente se cerró posteriormente con 1143 aprobados, 68 omitidos y siete
+PostgreSQL aparte, sobre el código fijo y preparación de pruebas optimizada.
+[Resultado de la regresión completa](LURI_CRM_REGRESION_COMPLETA_LOCAL_2026-10-07.md).
 
 Quedan pruebas con lectores de pantalla y dispositivos reales, búsquedas
 amplias costosas, dimensionamiento con más carga y el piloto externo. El ensayo

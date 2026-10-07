@@ -1,0 +1,19 @@
+{
+  "synthetic_empty_schema": true,
+  "concurrent_with_full_suite": true,
+  "database_files": [
+    {
+      "name": "schema-one.db",
+      "schema_seconds": 50.016509199980646,
+      "observed_tables": 63
+    },
+    {
+      "name": "schema-two.db",
+      "schema_seconds": 51.387366600043606,
+      "observed_tables": 63
+    }
+  ],
+  "tables": 63,
+  "copy_seconds": 0.2038122999947518,
+  "copied_tables": 63
+}

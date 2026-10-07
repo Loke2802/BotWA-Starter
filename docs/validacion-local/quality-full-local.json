@@ -1,0 +1,129 @@
+{
+  "status": "passed",
+  "environment": "local SQLite and optional synthetic PostgreSQL",
+  "suite": "all",
+  "started_at": "2026-10-07T13:38:01.163341+00:00",
+  "source_sha256": "083dfa5315bc1ae84b8613e782e3a071aa2b1268ccfef466088d8c3ceaf9d780",
+  "steps": [
+    {
+      "name": "ruff",
+      "status": "passed",
+      "returncode": 0,
+      "seconds": 1.126,
+      "command": [
+        "python",
+        "-m",
+        "ruff",
+        "check",
+        "app",
+        "tests",
+        "scripts",
+        "alembic/versions/20261006_0032_contact_names.py"
+      ],
+      "stdout": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T133801147850Z\\ruff.stdout.txt",
+      "stderr": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T133801147850Z\\ruff.stderr.txt"
+    },
+    {
+      "name": "black",
+      "status": "passed",
+      "returncode": 0,
+      "seconds": 3.638,
+      "command": [
+        "python",
+        "-m",
+        "black",
+        "--check",
+        "app",
+        "tests",
+        "scripts",
+        "alembic/versions/20261006_0032_contact_names.py"
+      ],
+      "stdout": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T133801147850Z\\black.stdout.txt",
+      "stderr": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T133801147850Z\\black.stderr.txt"
+    },
+    {
+      "name": "mypy-tests",
+      "status": "passed",
+      "returncode": 0,
+      "seconds": 18.79,
+      "command": [
+        "python",
+        "-m",
+        "mypy",
+        "app",
+        "tests",
+        "--explicit-package-bases"
+      ],
+      "stdout": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T133801147850Z\\mypy-tests.stdout.txt",
+      "stderr": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T133801147850Z\\mypy-tests.stderr.txt"
+    },
+    {
+      "name": "mypy-scripts",
+      "status": "passed",
+      "returncode": 0,
+      "seconds": 5.237,
+      "command": [
+        "python",
+        "-m",
+        "mypy",
+        "app",
+        "scripts",
+        "--explicit-package-bases"
+      ],
+      "stdout": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T133801147850Z\\mypy-scripts.stdout.txt",
+      "stderr": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T133801147850Z\\mypy-scripts.stderr.txt"
+    },
+    {
+      "name": "pytest",
+      "status": "passed",
+      "returncode": 0,
+      "seconds": 502.808,
+      "command": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T133801147850Z\\pytest-temp",
+        "-o",
+        "faulthandler_timeout=60"
+      ],
+      "stdout": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T133801147850Z\\pytest.stdout.txt",
+      "stderr": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T133801147850Z\\pytest.stderr.txt"
+    },
+    {
+      "name": "pytest-postgres",
+      "status": "passed",
+      "returncode": 0,
+      "seconds": 24.52,
+      "command": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T133801147850Z\\postgres-temp",
+        "tests/integration/test_crm_postgresql.py",
+        "tests/integration/test_crm_opportunities_postgresql.py"
+      ],
+      "stdout": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T133801147850Z\\pytest-postgres.stdout.txt",
+      "stderr": "D:\\BotWA Starter\\.worktrees\\luri-crm-increment-1\\.audit-results\\crm-local\\20261007T133801147850Z\\pytest-postgres.stderr.txt"
+    }
+  ],
+  "browser_checks": "separate, not executed by this CLI",
+  "deployment_performed": false,
+  "migration_head": "20261006_0032",
+  "git_commit_at_start": "eb3862231c440777db67f33142fdc76fbdc7d85b",
+  "postgres_guard": {
+    "container": "luri-crm-local-recovery",
+    "port": 15437,
+    "database": "crm_local_test",
+    "revision": "20261006_0032"
+  },
+  "source_unchanged_during_checks": true,
+  "finished_at": "2026-10-07T13:47:23.468417+00:00"
+}

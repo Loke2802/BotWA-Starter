@@ -20,7 +20,6 @@ from app.domain.crm.contracts import OpportunityCreate
 from app.domain.crm.customer_contracts import ActivityInput
 from app.domain.user.contracts import User
 from app.infrastructure import database
-from app.infrastructure.database import Base
 from app.infrastructure.models.audit import AuditEventModel
 from app.infrastructure.models.bot import BotModel
 from app.infrastructure.models.conversation import ConversationModel
@@ -42,6 +41,7 @@ from sqlalchemy import Engine, create_engine, event, func, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from tests.crm_opportunity_support import opportunity_service, payload, seed
+from tests.sqlite_schema_support import SqliteSchemaTemplates
 
 
 class ObservedCipher(SecretCipher):
@@ -95,8 +95,11 @@ class AuthenticatedCrm:
 
 @pytest.fixture
 def authenticated_crm(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    sqlite_schema: SqliteSchemaTemplates,
 ) -> Generator[AuthenticatedCrm]:
+    sqlite_schema.prepare(tmp_path / "authorized.sqlite")
     engine = create_engine(
         f"sqlite:///{tmp_path/'authorized.sqlite'}",
         connect_args={"check_same_thread": False},
@@ -106,7 +109,6 @@ def authenticated_crm(
     def foreign_keys(connection: Any, _: Any) -> None:
         connection.execute("PRAGMA foreign_keys=ON")
 
-    Base.metadata.create_all(engine)
     headers, users = {}, {}
     with Session(engine) as session:
         actor, other, contact, conversation = seed(session)

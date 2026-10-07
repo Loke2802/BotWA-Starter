@@ -20,7 +20,6 @@ from app.domain.generative_ai.contracts import (
     ProviderError,
     Usage,
 )
-from app.infrastructure.database import Base
 from app.infrastructure.generative_ai.openai_provider import OpenAIProvider
 from app.infrastructure.models.ai_generation import AIJobModel, AIMemoryModel
 from app.infrastructure.models.bot import BotModel
@@ -34,6 +33,7 @@ from pydantic import BaseModel, SecretStr, ValidationError
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
+from tests.sqlite_schema_support import SqliteSchemaTemplates
 from tests.test_luri_stabilization import seed_channel, settings
 from tests.test_whatsapp_live_processor_repository import cipher, parsed
 
@@ -196,9 +196,11 @@ class Runtime:
 
 
 @pytest.fixture
-def runtime(tmp_path: Any, monkeypatch: pytest.MonkeyPatch) -> Generator[Runtime]:
+def runtime(
+    tmp_path: Any, monkeypatch: pytest.MonkeyPatch, sqlite_schema: SqliteSchemaTemplates
+) -> Generator[Runtime]:
+    sqlite_schema.prepare(tmp_path / "ai.db")
     engine = create_engine(f"sqlite:///{tmp_path / 'ai.db'}")
-    Base.metadata.create_all(engine)
     yield Runtime(sessionmaker(bind=engine, autoflush=False), monkeypatch)
     engine.dispose()
 

@@ -1,11 +1,12 @@
 """Authenticated CRM requests work with one pooled connection and fresh access."""
 
+from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
 from app.api import crm_opportunity_routes, crm_routes
 from app.api.dependencies import get_access_token_service
 from app.infrastructure import database
-from app.infrastructure.database import Base
 from app.infrastructure.models.user import UserModel
 from app.main import create_app
 from fastapi.testclient import TestClient
@@ -14,9 +15,15 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import QueuePool
 
 from tests.crm_opportunity_support import opportunity_service, seed
+from tests.sqlite_schema_support import SqliteSchemaTemplates
 
 
-def test_crm_shares_connection_and_rechecks_access(tmp_path, monkeypatch):  # type: ignore[no-untyped-def]
+def test_crm_shares_connection_and_rechecks_access(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    sqlite_schema: SqliteSchemaTemplates,
+) -> None:
+    sqlite_schema.prepare(tmp_path / "one-connection.sqlite")
     engine = create_engine(
         f"sqlite:///{tmp_path/'one-connection.sqlite'}",
         connect_args={"check_same_thread": False},
@@ -27,7 +34,6 @@ def test_crm_shares_connection_and_rechecks_access(tmp_path, monkeypatch):  # ty
     )
     pool = engine.pool
     assert isinstance(pool, QueuePool)
-    Base.metadata.create_all(engine)
     with Session(engine) as session:
         actor, other, contact, _ = seed(session)
         service = opportunity_service(session)

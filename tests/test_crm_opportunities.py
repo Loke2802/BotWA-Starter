@@ -10,7 +10,6 @@ from app.application.contacts.crm import CrmService
 from app.application.contacts.identity import ContactIdentityHasher
 from app.domain.contacts.contracts import ContactIdentityNormalizer
 from app.domain.user.contracts import User
-from app.infrastructure.database import Base
 from app.infrastructure.models.audit import AuditEventModel
 from app.infrastructure.models.contact import ContactModel
 from app.infrastructure.models.conversation import ConversationModel
@@ -28,13 +27,16 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from tests.crm_opportunity_support import opportunity_service, payload, seed
+from tests.sqlite_schema_support import SqliteSchemaTemplates
 
 
 @pytest.fixture
 def crm_opportunities(
     tmp_path: Path,
+    sqlite_schema: SqliteSchemaTemplates,
 ) -> Generator[tuple[TestClient, Session, User, User, UUID, UUID]]:
     # File database: verify persistence after connection/session replacement.
+    sqlite_schema.prepare(tmp_path / "crm.sqlite")
     engine = create_engine(
         f"sqlite:///{tmp_path / 'crm.sqlite'}",
         connect_args={"check_same_thread": False},
@@ -44,7 +46,6 @@ def crm_opportunities(
     def foreign_keys(connection, _):  # type: ignore[no-untyped-def]
         connection.execute("PRAGMA foreign_keys=ON")
 
-    Base.metadata.create_all(engine)
     with Session(engine) as session:
         actor, other, contact_id, conversation_id = seed(session)
         app = create_app()

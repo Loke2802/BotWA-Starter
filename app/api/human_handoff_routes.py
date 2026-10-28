@@ -6,12 +6,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.api.dependencies import require_permission
 from app.api.human_handoff_dependencies import get_human_handoff_service
+from app.api.webchat_dependencies import get_webchat_service_factory
 from app.api.whatsapp_live_dependencies import get_whatsapp_live_message_processor
 from app.application.human_handoff.service import (
     HandoffConflictError,
     HandoffForbiddenError,
     HumanHandoffService,
 )
+from app.application.webchat.service import WebchatService
 from app.application.whatsapp_live.processor import (
     WhatsAppLiveMessageProcessor,
     WhatsAppRuntimeRoutingError,
@@ -24,6 +26,7 @@ from app.domain.human_handoff.contracts import (
     HandoffTransferRequest,
 )
 from app.domain.user.contracts import User
+from app.domain.webchat.contracts import WebchatError
 
 router = APIRouter(prefix="/organizations/{organization_id}", tags=["human-handoff"])
 
@@ -157,10 +160,21 @@ async def send_handoff_message(
         WhatsAppLiveMessageProcessor, Depends(get_whatsapp_live_message_processor)
     ],
     actor: Annotated[User, Depends(require_permission("handoff.reply"))],
+    webchat: Annotated[
+        Callable[[], WebchatService], Depends(get_webchat_service_factory)
+    ],
 ) -> dict[str, str]:
     try:
         service.authorize_reply(organization_id, conversation_id, actor)
         conversation = service._conversation(conversation_id, organization_id)
+        if conversation.channel == "web":
+            return webchat().reply(
+                conversation_id,
+                organization_id,
+                payload.text,
+                payload.idempotency_key,
+                actor.id,
+            )
         if (
             conversation.channel_configuration_id is None
             or conversation.external_customer_id is None
@@ -177,6 +191,8 @@ async def send_handoff_message(
             idempotency_key=payload.idempotency_key,
             author_user_id=actor.id,
         )
+    except WebchatError as exc:
+        raise HTTPException(exc.status_code, str(exc)) from exc
     except ValueError as exc:
         _raise(exc)
     if attempt.last_error_code is not None:

@@ -89,6 +89,8 @@ def webchat_engine() -> Generator[Engine]:
     engine = create_engine(
         "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
+    with engine.connect() as connection:
+        connection.exec_driver_sql("PRAGMA foreign_keys=ON")
     yield engine
     engine.dispose()
 
@@ -98,11 +100,12 @@ def webchat_runtime(engine: Engine) -> Generator[Runtime]:
     Base.metadata.create_all(engine)
     session = sessionmaker(bind=engine)()
     org_id, bot_id, user_id = uuid4(), uuid4(), uuid4()
+    session.add(
+        OrganizationModel(id=org_id, name="Example", slug=str(org_id), status="active")
+    )
+    session.flush()
     session.add_all(
         [
-            OrganizationModel(
-                id=org_id, name="Example", slug=str(org_id), status="active"
-            ),
             BotModel(
                 id=bot_id,
                 organization_id=org_id,
@@ -118,14 +121,17 @@ def webchat_runtime(engine: Engine) -> Generator[Runtime]:
                 role="organization_owner",
                 status="active",
             ),
-            BusinessConfigurationModel(
-                bot_id=bot_id,
-                business_name="Example",
-                description="Test",
-                service_instructions="Test",
-                handoff_enabled=True,
-            ),
         ]
+    )
+    session.flush()
+    session.add(
+        BusinessConfigurationModel(
+            bot_id=bot_id,
+            business_name="Example",
+            description="Test",
+            service_instructions="Test",
+            handoff_enabled=True,
+        )
     )
     session.commit()
     session.add_all(
@@ -413,7 +419,17 @@ def test_wrong_tenant_or_channel_cannot_read(webchat: Runtime) -> None:
     webchat.session.commit()
     assert webchat.post("/history", token).status_code == 401
     row.channel = "web"
-    row.organization_id = uuid4()
+    foreign_org = uuid4()
+    webchat.session.add(
+        OrganizationModel(
+            id=foreign_org,
+            name="Other",
+            slug=str(foreign_org),
+            status="active",
+        )
+    )
+    webchat.session.flush()
+    row.organization_id = foreign_org
     webchat.session.commit()
     assert webchat.post("/history", token).status_code == 401
 

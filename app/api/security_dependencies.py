@@ -46,8 +46,15 @@ def client_origin(request: Request) -> str:
     peer = request.client.host if request.client is not None else "unknown"
     if peer not in settings.trusted_proxy_hosts:
         return peer
-    forwarded = request.headers.get("x-forwarded-for", "")
-    return forwarded.split(",", maxsplit=1)[0].strip() or peer
+    # Proxies append to X-Forwarded-For, so only the right-most hops are ours;
+    # the left-most entry is whatever the client chose to send.
+    hops = [
+        hop.strip() for hop in request.headers.get("x-forwarded-for", "").split(",")
+    ]
+    for hop in reversed([hop for hop in hops if hop]):
+        if hop not in settings.trusted_proxy_hosts:
+            return hop
+    return peer
 
 
 def enforce_rate_limit(

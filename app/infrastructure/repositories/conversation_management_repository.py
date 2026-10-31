@@ -22,11 +22,17 @@ class SqlAlchemyConversationManagementRepository(ConversationManagementRepositor
         self._session = session
 
     def get_or_create(
-        self, conversation: ConversationModel
+        self, conversation: ConversationModel, *, alternate_id: UUID | None = None
     ) -> tuple[ConversationModel, bool]:
         existing = self._get_identity(conversation)
         if existing is not None:
             return existing, False
+        # The derived ID ignores the line; another line of the bot may hold it.
+        if (
+            alternate_id is not None
+            and self._session.get(ConversationModel, conversation.id) is not None
+        ):
+            conversation.id = alternate_id
         try:
             self._session.add(conversation)
             self._session.flush()
@@ -134,13 +140,33 @@ class SqlAlchemyConversationManagementRepository(ConversationManagementRepositor
     def _get_identity(
         self, conversation: ConversationModel
     ) -> ConversationModel | None:
-        stmt = select(ConversationModel).where(
+        identity = (
             ConversationModel.organization_id == conversation.organization_id,
             ConversationModel.bot_id == conversation.bot_id,
             ConversationModel.channel == conversation.channel,
             ConversationModel.external_customer_id == conversation.external_customer_id,
         )
-        return self._session.scalars(stmt).one_or_none()
+        line = conversation.channel_configuration_id
+        stmt = select(ConversationModel).where(
+            *identity,
+            (
+                ConversationModel.channel_configuration_id.is_(None)
+                if line is None
+                else ConversationModel.channel_configuration_id == line
+            ),
+        )
+        existing = self._session.scalars(stmt).one_or_none()
+        if existing is not None or line is None:
+            return existing
+        # Rows from before line identity have no line; the first line adopts them.
+        legacy = self._session.scalars(
+            select(ConversationModel)
+            .where(*identity, ConversationModel.channel_configuration_id.is_(None))
+            .with_for_update()
+        ).one_or_none()
+        if legacy is not None:
+            legacy.channel_configuration_id = line
+        return legacy
 
 
 class SqlAlchemyConversationMessageManagementRepository(

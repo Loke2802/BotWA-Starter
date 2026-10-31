@@ -19,17 +19,25 @@ window.LuriConversations = (() => {
     return `/organizations/${c.org}/conversations?${query}`;
   }
   async function loadChannels(c) {
+    c.channelsError = false;
     if (!can(c, "bots.read") || !can(c, "whatsapp_config.read")) return [];
     try {
       const result = await c.api("/bots");
       const bots = (result.bots || []).filter(bot => bot.organization_id === c.org);
       const channels = [];
       for (const bot of bots) {
-        const response = await c.api(`/organizations/${c.org}/bots/${bot.id}/whatsapp-configurations?page=1&page_size=100`);
-        for (const item of response.items || []) channels.push({...item, bot_id:bot.id});
+        // Read every page; the cap only guards against an inconsistent total.
+        for (let page = 1; page <= 50; page++) {
+          const response = await c.api(`/organizations/${c.org}/bots/${bot.id}/whatsapp-configurations?page=${page}&page_size=100`);
+          for (const item of response.items || []) channels.push({...item, bot_id:bot.id});
+          if (page * 100 >= (response.total || 0)) break;
+        }
       }
       return channels.sort((a, b) => a.display_name.localeCompare(b.display_name, "es"));
     } catch (_error) {
+      // The inbox stays usable, but must say line names are missing rather than
+      // labelling every conversation as a generic "WhatsApp".
+      c.channelsError = true;
       return [];
     }
   }
@@ -45,17 +53,17 @@ window.LuriConversations = (() => {
   }
   function channelName(c, id) {
     if (!id) return "Canal sin identificar";
-    return c.channels.find(item => item.id === id)?.display_name || "WhatsApp";
+    return c.channels.find(item => item.id === id)?.display_name || (c.channelsError ? "Línea no disponible" : "WhatsApp");
   }
   function filtersMarkup(c) {
     const channelOptions = c.channels.map(item => `<option value="${esc(item.id)}" ${item.id === c.filters.channelConfigurationId ? "selected" : ""}>${esc(item.display_name)}${item.status !== "active" ? ` · ${esc(item.status)}` : ""}</option>`).join("");
     return `<form id="conversation-filters" class="conversation-filters">
       <label>Línea de WhatsApp<select id="conversation-channel-filter"><option value="">Todos los números</option>${channelOptions}</select></label>
       <label>Estado<select id="conversation-status-filter"><option value="">Todos</option><option value="open" ${c.filters.status === "open" ? "selected" : ""}>Abiertas</option><option value="closed" ${c.filters.status === "closed" ? "selected" : ""}>Cerradas</option><option value="archived" ${c.filters.status === "archived" ? "selected" : ""}>Archivadas</option></select></label>
-      <label>Cliente / teléfono<input id="conversation-customer-filter" inputmode="tel" value="${esc(c.filters.customer)}" placeholder="51999999999" /></label>
+      ${can(c, "contacts.read_sensitive") ? `<label>Teléfono completo<input id="conversation-customer-filter" inputmode="tel" value="${esc(c.filters.customer)}" placeholder="51999999999" /></label>` : ""}
       <button type="submit" class="primary-button compact-button">Aplicar filtros</button>
       ${button("clear-filters", "Limpiar")}
-    </form>`;
+    </form>${c.channelsError ? '<p class="form-error" role="alert">No se pudieron cargar las líneas de WhatsApp: se muestran todas las conversaciones. Actualiza la página para reintentar.</p>' : ""}`;
   }
   function listMarkup(c) {
     const filtered = Boolean(c.filters.status || c.filters.channelConfigurationId || c.filters.customer);
@@ -128,17 +136,29 @@ window.LuriConversations = (() => {
   async function applyFilters(c, event) {
     event.preventDefault();
     if (!live(c) || c.busy) return;
+    // Only separators are dropped; anything else is rejected instead of being
+    // silently erased into "no filter" (a name would otherwise list everyone).
+    const customer = (c.root.querySelector("#conversation-customer-filter")?.value || "").trim().replace(/[\s()+.-]/g, "");
+    if (customer && !/^\d{8,15}$/.test(customer)) {
+      showError(c, "Escribe el teléfono completo con código de país, solo números (8 a 15 dígitos).");
+      return;
+    }
+    const previous = {filters:c.filters, page:c.page};
     c.filters = {
       status:c.root.querySelector("#conversation-status-filter")?.value || "",
       channelConfigurationId:c.root.querySelector("#conversation-channel-filter")?.value || "",
-      customer:(c.root.querySelector("#conversation-customer-filter")?.value || "").trim().replace(/\D/g, ""),
+      customer,
     };
     c.page = 1;
     c.busy = true;
     try {
       await loadList(c);
       if (live(c)) c.root.innerHTML = listMarkup(c);
-    } catch (error) { showError(c, errorText(error)); }
+    } catch (error) {
+      // Keep state consistent with the list still on screen.
+      c.filters = previous.filters; c.page = previous.page;
+      showError(c, errorText(error));
+    }
     finally { c.busy = false; }
   }
   async function send(c, event) {

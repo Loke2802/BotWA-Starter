@@ -30,9 +30,7 @@ from tests.test_conversation_management import cipher, inbound
 from tests.test_crm_opportunities import crm_opportunities  # noqa: F401
 
 
-def test_inbound_after_merge_uses_principal_and_keeps_source_archived(
-    crm_opportunities,
-):  # type: ignore[no-untyped-def]
+def test_inbound_after_merge_lands_on_principal(crm_opportunities):  # type: ignore[no-untyped-def]
     _, session, actor, _, principal_id, _ = crm_opportunities
     org = actor.organization_id
     # Receipt and channel rows are outside this test; it covers contact identity.

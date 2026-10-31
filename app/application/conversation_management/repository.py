@@ -30,6 +30,7 @@ class ConversationManagementRepository(ABC):
         has_outbound: bool | None,
         offset: int,
         limit: int,
+        channel_configuration_id: UUID | None = None,
     ) -> tuple[list[ConversationModel], int]: ...
 
     @abstractmethod

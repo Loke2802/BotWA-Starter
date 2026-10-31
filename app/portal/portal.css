@@ -153,3 +153,19 @@ button:focus-visible,textarea:focus-visible { outline:3px solid #14b8a6; outline
  .view-heading { flex-wrap:wrap; gap:15px; }
  .sidebar-footer { display:flex; justify-content:space-between; margin-top:12px; padding-top:10px; }
 }
+
+/* Unified WhatsApp inbox: filters stay compact while every row keeps its line identity. */
+.conversation-filters { display:grid; grid-template-columns:minmax(190px,1fr) minmax(150px,.7fr) minmax(190px,1fr) auto auto; gap:12px; align-items:end; margin:0 0 20px; padding-bottom:20px; border-bottom:1px solid #e4e8f0; }
+.conversation-filters label { min-width:0; }
+.conversation-filters .secondary-button { align-self:end; }
+.conversation-row-main { display:grid; gap:5px; flex:1; min-width:150px; }
+.conversation-row-main>span { color:#64748b; font-size:12px; }
+.conversation-channel-badge { background:#e3f6f3; border-radius:999px; color:#007f79; font-size:12px; font-weight:800; max-width:220px; overflow:hidden; padding:5px 10px; text-overflow:ellipsis; white-space:nowrap; }
+@media(max-width:900px) {
+  .conversation-filters { grid-template-columns:1fr 1fr; }
+}
+@media(max-width:600px) {
+  .conversation-filters { grid-template-columns:1fr; }
+  .conversation-filters .primary-button,.conversation-filters .secondary-button { width:100%; }
+  .conversation-channel-badge { max-width:100%; }
+}

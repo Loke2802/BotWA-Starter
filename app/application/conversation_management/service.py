@@ -248,6 +248,10 @@ class ConversationManagementService:
         page_size: int,
     ) -> tuple[list[ConversationSummary], int]:
         self._validate(organization_id, actor, "conversation.read", bot_id)
+        if external_customer_id is not None:
+            # An exact phone lookup reveals whether a number is a customer even
+            # though list rows stay masked, so it needs sensitive contact access.
+            self._validate(organization_id, actor, "contacts.read_sensitive", None)
         models, total = self._conversations.list_scoped(
             organization_id,
             bot_id=bot_id,

@@ -10,6 +10,7 @@ from app.application.conversation_management.managed_handler import (
 )
 from app.application.conversation_management.service import (
     ConversationManagementConflictError,
+    ConversationManagementForbiddenError,
     ConversationManagementService,
 )
 from app.domain.access.contracts import Role
@@ -396,3 +397,33 @@ def test_managed_flow_uses_persisted_id_of_second_line(session: Session) -> None
     assert second_id != candidate
     assert core.received == [second_id]
     assert outbound.metadata["conversation_id"] == str(second_id)
+
+
+@pytest.mark.parametrize("role", ["operator", "viewer"])
+def test_exact_phone_filter_requires_sensitive_contact_access(
+    session: Session, role: Role
+) -> None:
+    organization_id, bot_id = uuid4(), uuid4()
+    managed = service(session, organization_id, bot_id)
+    message = inbound(organization_id, bot_id)
+    managed.record_inbound(message, uuid4(), uuid4())
+
+    def by_phone(actor_role: Role) -> int:
+        _, total = managed.list(
+            organization_id,
+            actor(organization_id, actor_role),
+            bot_id=None,
+            channel_type=None,
+            management_status=None,
+            external_customer_id=message.external_sender_id,
+            has_inbound=None,
+            has_outbound=None,
+            page=1,
+            page_size=20,
+        )
+        return total
+
+    # Masked rows must not become a phone-number oracle for restricted roles.
+    with pytest.raises(ConversationManagementForbiddenError):
+        by_phone(role)
+    assert by_phone("organization_owner") == 1

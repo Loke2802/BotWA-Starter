@@ -4,8 +4,10 @@ FROM postgres:17-alpine@sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6
 
 RUN apk add --no-cache age rclone
 
-COPY --chmod=0555 backup.sh /usr/local/bin/luri-backup
-COPY --chmod=0555 restore.sh /usr/local/bin/luri-restore
+# Plain COPY + chmod: COPY --chmod needs BuildKit, which not every builder has.
+COPY backup.sh /usr/local/bin/luri-backup
+COPY restore.sh /usr/local/bin/luri-restore
+RUN chmod 0555 /usr/local/bin/luri-backup /usr/local/bin/luri-restore
 
 USER postgres
 WORKDIR /tmp

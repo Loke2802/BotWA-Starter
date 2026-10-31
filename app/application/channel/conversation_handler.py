@@ -29,7 +29,9 @@ class ChannelConversationHandler(ChannelMessageHandler):
         self._knowledge_provider = knowledge_provider
         self._persist_core_messages = persist_core_messages
 
-    def handle(self, message: InboundChannelMessage) -> OutboundChannelMessage:
+    def handle(
+        self, message: InboundChannelMessage, *, conversation_id: UUID | None = None
+    ) -> OutboundChannelMessage:
         context = message.resolved_context
         metadata = dict(message.metadata)
         metadata.update(
@@ -53,7 +55,8 @@ class ChannelConversationHandler(ChannelMessageHandler):
             if knowledge:
                 metadata["knowledge_entry_id"] = str(knowledge[0].id)
 
-        conversation_id = self.conversation_id_for(message)
+        if conversation_id is None:
+            conversation_id = self.conversation_id_for(message)
         core_message = ConversationMessage(
             content=message.text,
             customer_id=message.external_sender_id,

@@ -48,8 +48,29 @@ class ConversationModel(Base):
             "bot_id",
             "management_status",
         ),
+        # Managed identity is per WhatsApp line (20261030_0027); rows from
+        # before line identity keep the per-bot key while they have no line.
         Index(
-            "uq_conversation_managed_identity",
+            "uq_conversation_managed_line_identity",
+            "organization_id",
+            "bot_id",
+            "channel",
+            "channel_configuration_id",
+            "external_customer_id",
+            unique=True,
+            postgresql_where=text(
+                "((organization_id IS NOT NULL) AND (bot_id IS NOT NULL) AND "
+                "(external_customer_id IS NOT NULL) AND "
+                "(channel_configuration_id IS NOT NULL))"
+            ),
+            sqlite_where=text(
+                "((organization_id IS NOT NULL) AND (bot_id IS NOT NULL) AND "
+                "(external_customer_id IS NOT NULL) AND "
+                "(channel_configuration_id IS NOT NULL))"
+            ),
+        ),
+        Index(
+            "uq_conversation_managed_unlined_identity",
             "organization_id",
             "bot_id",
             "channel",
@@ -57,11 +78,13 @@ class ConversationModel(Base):
             unique=True,
             postgresql_where=text(
                 "((organization_id IS NOT NULL) AND (bot_id IS NOT NULL) AND "
-                "(external_customer_id IS NOT NULL))"
+                "(external_customer_id IS NOT NULL) AND "
+                "(channel_configuration_id IS NULL))"
             ),
             sqlite_where=text(
                 "((organization_id IS NOT NULL) AND (bot_id IS NOT NULL) AND "
-                "(external_customer_id IS NOT NULL))"
+                "(external_customer_id IS NOT NULL) AND "
+                "(channel_configuration_id IS NULL))"
             ),
         ),
         CheckConstraint(

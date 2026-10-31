@@ -1,6 +1,6 @@
 from builtins import list as builtin_list
 from datetime import UTC, datetime
-from uuid import UUID, uuid4
+from uuid import UUID, uuid4, uuid5
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -89,7 +89,11 @@ class ConversationManagementService:
                 started_at=message.timestamp,
                 created_at=datetime.now(UTC),
                 updated_at=datetime.now(UTC),
-            )
+            ),
+            alternate_id=uuid5(
+                conversation_id,
+                f"channel_configuration:{context.channel_configuration_id}",
+            ),
         )
         self._associate_contact(conversation, contact_id, context.organization_id)
         if conversation.management_status == "archived":

@@ -9,7 +9,7 @@ from app.infrastructure.models.message import MessageModel
 class ConversationManagementRepository(ABC):
     @abstractmethod
     def get_or_create(
-        self, conversation: ConversationModel
+        self, conversation: ConversationModel, *, alternate_id: UUID | None = None
     ) -> tuple[ConversationModel, bool]: ...
 
     @abstractmethod

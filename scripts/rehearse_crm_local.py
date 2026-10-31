@@ -83,7 +83,7 @@ def main() -> None:
 
     for database in databases.values():
         docker("createdb", "-U", "botwa", database)
-    migrate(databases["source"], "20260921_0026")
+    migrate(databases["source"], "20261030_0027")
     engine = create_engine(url(databases["source"]))
     with Session(engine) as session:
         actor, other, contact, conversation = seed(session, legacy=True)
@@ -327,7 +327,7 @@ def main() -> None:
     # that a destructive downgrade is refused rather than deleting CRM data.
     env = {**os.environ, "BOTWA_DATABASE_URL": url(databases["after"])}
     downgrade = subprocess.run(
-        [sys.executable, "-m", "alembic", "downgrade", "20260921_0026"],
+        [sys.executable, "-m", "alembic", "downgrade", "20261030_0027"],
         cwd=ROOT,
         env=env,
         capture_output=True,

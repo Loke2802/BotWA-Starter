@@ -6,6 +6,7 @@ from app.application.contacts.repository import ContactRepository
 from app.application.contacts.search_index import ContactSearchIndex
 from app.domain.contacts.contracts import ContactIdentity
 from app.infrastructure.models.contact import ContactModel
+from app.infrastructure.repositories.crm_identity import canonical
 from app.infrastructure.unit_of_work import commit, rollback
 from app.security.secret_cipher import SecretCipher
 from sqlalchemy import inspect
@@ -43,6 +44,14 @@ class ContactResolutionService:
             contact = self._create(identity)
         if contact.organization_id != organization_id:
             raise ContactResolutionError("contact tenant mismatch")
+        principal_id = canonical(self._session, organization_id, contact.id)
+        if principal_id != contact.id:
+            # A reviewed merge keeps the source identity archived and moves its
+            # conversations to the principal; reactivating it would undo the merge.
+            principal = self._session.get(ContactModel, principal_id)
+            if principal is None or principal.organization_id != organization_id:
+                raise ContactResolutionError("merged contact principal unavailable")
+            contact = principal
         if contact.status == "archived":
             contact.status = "active"
             contact.updated_at = datetime.now(UTC)

@@ -1,0 +1,150 @@
+# REVIEW TEMPLATE ONLY. DO NOT SUBMIT with REPLACE_ placeholders.
+# Sanitized reference of rebuilt staging. This is NOT a secret backup or an
+# export of the provider spec. Preserve existing encrypted keys when updating.
+# DB trusted source must remain only the identified luri-staging app.
+name: luri-staging
+# App Platform region slug nyc maps to the NYC1 VPC/datacenter.
+region: nyc
+vpc:
+  id: REPLACE_WITH_VPC_ID
+databases:
+  - name: luri-staging-db
+    engine: PG
+    production: true
+    cluster_name: luri-staging-db
+domains:
+  - domain: staging-api.kalivur.com
+    type: PRIMARY
+# External DNS remains Cloudflare. Do NOT add zone: kalivur.com.
+alerts:
+  - rule: DEPLOYMENT_FAILED
+  - rule: DOMAIN_FAILED
+envs:
+  - key: BOTWA_ENVIRONMENT
+    value: production
+    scope: RUN_TIME
+  - key: BOTWA_BUILD_SHA
+    value: 6163751304a261e9a1faf1ad10554951626dcfbe
+    scope: RUN_TIME
+  - key: BOTWA_DATABASE_URL
+    value: postgresql+psycopg://${luri-staging-db.USERNAME}:${luri-staging-db.PASSWORD}@REPLACE_WITH_PRIVATE_DB_HOST:25060/defaultdb?sslmode=require
+    type: SECRET
+    scope: RUN_TIME
+  - key: BOTWA_USE_DATABASE
+    value: 'true'
+    scope: RUN_TIME
+  - key: BOTWA_AI_ENABLED
+    value: 'false'
+    scope: RUN_TIME
+  - key: BOTWA_AI_PILOT_SCOPES
+    value: '[]'
+    scope: RUN_TIME
+  - key: BOTWA_BILLING_ENABLED
+    value: 'false'
+    scope: RUN_TIME
+  - key: BOTWA_PUBLIC_BOOTSTRAP_ENABLED
+    value: 'false'
+    scope: RUN_TIME
+  - key: BOTWA_LEGACY_CORE_API_ENABLED
+    value: 'false'
+    scope: RUN_TIME
+  - key: BOTWA_LEGACY_WHATSAPP_ENABLED
+    value: 'false'
+    scope: RUN_TIME
+  - key: BOTWA_OPENAPI_ENABLED
+    value: 'false'
+    scope: RUN_TIME
+  - key: BOTWA_WHATSAPP_LIVE_CLIENT_MODE
+    value: disabled
+    scope: RUN_TIME
+  - key: BOTWA_ALLOWED_HOSTS
+    value: ${APP_DOMAIN},luri-staging-lmfuf.ondigitalocean.app,staging-api.kalivur.com,localhost,127.0.0.1
+    scope: RUN_TIME
+  - key: BOTWA_HTTPS_ENABLED
+    value: 'true'
+    scope: RUN_TIME
+  - key: BOTWA_AUTH_SECRET_KEY
+    value: REPLACE_WITH_STAGING_AUTH_SIGNING_KEY
+    type: SECRET
+    scope: RUN_TIME
+  - key: BOTWA_RATE_LIMIT_HMAC_KEY
+    value: REPLACE_WITH_STAGING_RATE_LIMIT_KEY
+    type: SECRET
+    scope: RUN_TIME
+  - key: BOTWA_AUDIT_CURSOR_SIGNING_KEY
+    value: REPLACE_WITH_STAGING_AUDIT_CURSOR_KEY
+    type: SECRET
+    scope: RUN_TIME
+  - key: BOTWA_CONTACT_IDENTITY_HMAC_KEY
+    value: REPLACE_WITH_STAGING_CONTACT_HMAC_KEY
+    type: SECRET
+    scope: RUN_TIME
+  - key: BOTWA_INTEGRATION_OAUTH_STATE_SECRET
+    value: REPLACE_WITH_STAGING_OAUTH_STATE_KEY
+    type: SECRET
+    scope: RUN_TIME
+  - key: BOTWA_WHATSAPP_SECRET_ENCRYPTION_KEY
+    value: REPLACE_WITH_STAGING_FERNET_KEY
+    type: SECRET
+    scope: RUN_TIME
+  - key: BOTWA_METRICS_ENABLED
+    value: 'true'
+    scope: RUN_TIME
+  - key: BOTWA_METRICS_BEARER_TOKEN
+    value: REPLACE_WITH_STAGING_METRICS_TOKEN
+    type: SECRET
+    scope: RUN_TIME
+services:
+  - name: loke-2802-botwa-starter
+    # Final test state: API transport disabled; worker inherits app-level disabled.
+    envs:
+      - key: BOTWA_WHATSAPP_LIVE_CLIENT_MODE
+        value: "disabled"
+        scope: RUN_TIME
+      - key: BOTWA_WHATSAPP_OUTBOUND_ALLOWED_RECIPIENTS
+        # Sanitized placeholder: actual runtime keeps the one owner-approved phone.
+        value: "<AUTHORIZED_TEST_RECIPIENT_ONLY>"
+        scope: RUN_TIME
+    image:
+      registry_type: GHCR
+      registry: loke2802
+      repository: botwa-starter
+      digest: sha256:c37815ae38202bd48a0d487adcd4b65aa335de9f712c16a37d5790b24d026c13
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    http_port: 8000
+    health_check:
+      # TCP provider probe: its HTTP Host was rejected by allowed-host checks.
+      # Do not weaken allowed hosts. Verify HTTP /health/ready separately.
+      initial_delay_seconds: 15
+      period_seconds: 10
+      timeout_seconds: 5
+      failure_threshold: 6
+workers:
+  - name: loke-2802-botwa-starter3
+    image:
+      registry_type: GHCR
+      registry: loke2802
+      repository: botwa-starter
+      digest: sha256:c37815ae38202bd48a0d487adcd4b65aa335de9f712c16a37d5790b24d026c13
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    run_command: python -m app.operations.automation_worker
+jobs:
+  - name: loke-2802-botwa-starter2
+    kind: PRE_DEPLOY
+    image:
+      registry_type: GHCR
+      registry: loke2802
+      repository: botwa-starter
+      digest: sha256:c37815ae38202bd48a0d487adcd4b65aa335de9f712c16a37d5790b24d026c13
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    run_command: alembic upgrade head
+ingress:
+  rules:
+    - component:
+        name: loke-2802-botwa-starter
+      match:
+        path:
+          prefix: /

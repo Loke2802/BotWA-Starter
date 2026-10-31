@@ -1,5 +1,6 @@
 from collections.abc import Generator
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from uuid import UUID, uuid4
 
 import pytest
@@ -180,8 +181,8 @@ def test_second_claim_returns_conflict(session: Session) -> None:
 
 
 class _Management:
-    def record_inbound(self, *args: object) -> None:
-        pass
+    def record_inbound(self, *args: object) -> SimpleNamespace:
+        return SimpleNamespace(id=args[1])
 
     def mark_inbound_processed(self, *args: object) -> None:
         pass
@@ -197,7 +198,9 @@ class _Core:
     def conversation_id_for(self, _message: object) -> UUID:
         return self.id
 
-    def handle(self, message: InboundChannelMessage) -> OutboundChannelMessage:
+    def handle(
+        self, message: InboundChannelMessage, *, conversation_id: UUID | None = None
+    ) -> OutboundChannelMessage:
         self.calls += 1
         return OutboundChannelMessage(
             channel_type="whatsapp",

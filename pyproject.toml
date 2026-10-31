@@ -10,10 +10,11 @@ requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.13.0",
     "argon2-cffi>=23.1.0",
+    "certifi>=2026.10.19",
     "colorama>=0.4.6; sys_platform == 'win32'",
     "cryptography>=45.0.0",
     "fastapi>=0.115.0",
-    "PyJWT>=2.9.0",
+    "PyJWT>=2.15.1",
     "psycopg[binary]>=3.2.0",
     "pydantic>=2.9.0",
     "pydantic-settings>=2.5.0",

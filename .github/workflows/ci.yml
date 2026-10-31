@@ -132,7 +132,7 @@ jobs:
       - name: Upgrade a fresh database
         run: alembic upgrade head && alembic current | grep '20260926_0027 (head)'
       - name: Validate adjacent migration cycle
-        run: alembic downgrade 20260921_0026 && alembic upgrade 20260926_0027 && alembic current | grep '20260926_0027 (head)'
+        run: alembic downgrade 20261030_0027 && alembic upgrade 20260926_0027 && alembic current | grep '20260926_0027 (head)'
       - name: Run all deterministic PostgreSQL integration tests
         run: python scripts/run_postgresql_tests.py
 

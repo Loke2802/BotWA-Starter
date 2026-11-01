@@ -96,7 +96,9 @@ def seed_knowledge(
     session.commit()
 
 
-def settings(*, mode: str = "fake", recipients: tuple[str, ...] = ()) -> Settings:
+def settings(
+    *, mode: str = "fake", recipients: tuple[str, ...] = (), restrict: bool = True
+) -> Settings:
     return Settings(
         _env_file=None,
         environment="test",
@@ -104,6 +106,7 @@ def settings(*, mode: str = "fake", recipients: tuple[str, ...] = ()) -> Setting
         contact_identity_hmac_key="audit-test-identity-key-at-least-32-characters",
         whatsapp_live_client_mode=mode,
         whatsapp_outbound_allowed_recipients=recipients,
+        whatsapp_outbound_restrict_recipients=restrict,
     )
 
 
@@ -280,6 +283,30 @@ async def test_meta_allowlisted_recipient_is_delivered(session: Session) -> None
     )
     assert result[0].status == "processed"
     assert len(client.calls) == 1
+
+
+async def test_meta_unrestricted_recipients_skip_allowlist(session: Session) -> None:
+    model = seed_channel(session, "123456789")
+    client = FakeWhatsAppCloudApiClient()
+    processor = get_whatsapp_live_message_processor(
+        session, cipher(), client, settings(mode="meta", restrict=False)
+    )
+    result = await processor.process(
+        parsed(model.phone_number_id),
+        public_webhook_id=model.public_webhook_id,
+        correlation_id=uuid4(),
+    )
+    assert result[0].status == "processed"
+    assert len(client.calls) == 1
+
+
+def test_recipient_restriction_defaults_on_and_parses_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("BOTWA_WHATSAPP_OUTBOUND_RESTRICT_RECIPIENTS", raising=False)
+    assert Settings(_env_file=None).whatsapp_outbound_restrict_recipients is True
+    monkeypatch.setenv("BOTWA_WHATSAPP_OUTBOUND_RESTRICT_RECIPIENTS", "false")
+    assert Settings(_env_file=None).whatsapp_outbound_restrict_recipients is False
 
 
 def test_recipient_csv_setting() -> None:

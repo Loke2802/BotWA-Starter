@@ -91,6 +91,15 @@ def get_whatsapp_cloud_api_client(
     )
 
 
+def _outbound_recipient_allowlist(settings: Settings) -> frozenset[str] | None:
+    if (
+        settings.whatsapp_live_client_mode != "meta"
+        or not settings.whatsapp_outbound_restrict_recipients
+    ):
+        return None
+    return frozenset(settings.whatsapp_outbound_allowed_recipients)
+
+
 def get_whatsapp_live_message_processor(
     session: Annotated[Session, Depends(get_session)],
     secret_cipher: Annotated[
@@ -173,11 +182,7 @@ def get_whatsapp_live_message_processor(
         secret_cipher,
         client,
         max_text_chars=settings.whatsapp_outbound_max_text_chars,
-        allowed_recipients=(
-            frozenset(settings.whatsapp_outbound_allowed_recipients)
-            if settings.whatsapp_live_client_mode == "meta"
-            else None
-        ),
+        allowed_recipients=_outbound_recipient_allowlist(settings),
     )
     return WhatsAppLiveMessageProcessor(
         configuration_repository=configuration_repository,
@@ -196,9 +201,5 @@ def get_whatsapp_live_message_processor(
         conversation_management=management,
         outbound_enabled=settings.whatsapp_live_client_mode != "disabled",
         notification_recipients_for=notification_recipients,
-        outbound_recipient_allowlist=(
-            frozenset(settings.whatsapp_outbound_allowed_recipients)
-            if settings.whatsapp_live_client_mode == "meta"
-            else None
-        ),
+        outbound_recipient_allowlist=_outbound_recipient_allowlist(settings),
     )

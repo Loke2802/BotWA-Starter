@@ -58,6 +58,7 @@ class Settings(BaseSettings):
     contact_identity_hmac_key: str = ""
     whatsapp_live_client_mode: str = "disabled"
     whatsapp_outbound_allowed_recipients: Annotated[tuple[str, ...], NoDecode] = ()
+    whatsapp_outbound_restrict_recipients: bool = True
     lead_notification_recipients: Annotated[tuple[str, ...], NoDecode] = ()
     lead_notification_scopes: dict[str, tuple[str, ...]] = Field(default_factory=dict)
 

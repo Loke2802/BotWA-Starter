@@ -33,7 +33,7 @@ Cada negocio define sus criterios; no hay reglas de juguetes hardcodeadas. Se pr
 
 El catálogo utiliza entradas publicadas de conocimiento con `metadata.catalog_item`. Las fuentes no publicadas, de otro bot o con metadata inválida no son candidatos. La búsqueda es lexical, con un máximo de 12 entradas; puede no encontrar un producto existente. «No recuperado» no significa «no existe». Las políticas en texto solo se responden copiando íntegra una entrada corta (hasta 800 caracteres), para evitar eliminar una negación o condición al escoger fragmentos. Las entradas largas requieren preparación editorial antes de usarlas en este recorrido.
 
-La interfaz del proveedor es independiente; el único adaptador/modelo habilitado es OpenAI `gpt-5.6-luna`. No hay routing ni fallback a otro modelo. [Documentación del modelo](https://developers.openai.com/api/docs/models/gpt-5.6-luna).
+La interfaz del proveedor es independiente; el único adaptador es OpenAI y el modelo se elige con `BOTWA_AI_MODEL`: `gpt-6-luna` (por defecto, USD 0,10/0,50 por millón de tokens de entrada/salida) o `gpt-6.1-terra` (USD 1,00/5,00), según la página oficial de precios consultada el 3/11/2026. El modelo es global para todos los bots: no hay selección por bot, routing ni fallback a otro modelo. [Luna](https://developers.openai.com/api/docs/models/gpt-6-luna) · [Terra](https://developers.openai.com/api/docs/models/gpt-6.1-terra) · [Precios](https://developers.openai.com/api/docs/pricing).
 
 ## Migración y archivos
 
@@ -66,6 +66,7 @@ Todas usan prefijo `BOTWA_`. Ninguna requiere cambiar el comando del worker.
 | `BOTWA_AI_ENABLED` | `false` | API y worker; poner `true` solo al preparar el piloto. |
 | `BOTWA_AI_PILOT_SCOPES` | `[]` | API y worker; JSON de cadenas `organization UUID:bot UUID`. |
 | `BOTWA_AI_OPENAI_API_KEY` | sin valor | Solo worker; secreto cifrado del entorno. |
+| `BOTWA_AI_MODEL` | `gpt-6-luna` | Worker; `gpt-6-luna` (económico) o `gpt-6.1-terra`. Cualquier otro valor impide arrancar. |
 | `BOTWA_AI_TIMEOUT_SECONDS` | `20` | Worker; entre 1 y 60. |
 | `BOTWA_AI_MAX_OUTPUT_TOKENS` | `1600` | Worker; entre 256 y 4000, por llamada. |
 | `BOTWA_AI_MAX_ATTEMPTS` | `2` | Worker; entre 1 y 3, por trabajo. |
@@ -82,7 +83,7 @@ Se reutilizan `BOTWA_DATABASE_URL`, las claves de cifrado de WhatsApp, la config
 
 ## Configurar OpenAI sin exponer secretos
 
-1. En la plataforma OpenAI, preparar un proyecto dedicado al piloto, con facturación y límites adecuados. Comprobar acceso a `gpt-5.6-luna` antes de habilitar el bot. Esta comprobación operativa sigue pendiente; publicar el modelo no garantiza acceso de la cuenta.
+1. En la plataforma OpenAI, preparar un proyecto dedicado al piloto, con facturación y límites adecuados. Comprobar acceso al modelo configurado en `BOTWA_AI_MODEL` antes de habilitar el bot. Esta comprobación operativa sigue pendiente; publicar el modelo no garantiza acceso de la cuenta.
 2. Crear una clave de proyecto/cuenta de servicio con el mínimo acceso necesario para Responses. No usar una clave personal compartida con otros entornos.
 3. Guardarla directamente en el campo secreto/cifrado de variables del componente worker como `BOTWA_AI_OPENAI_API_KEY`. No pegarla en chats, Git, un JSON de bot, comandos con el valor literal ni logs. No hace falta enviarla al componente API.
 4. Mantener desactivado el bot mientras se preparan variables y migración. Cambiar variables de proceso requiere reiniciar/desplegar el componente; este documento no ejecuta ese paso.

@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     ai_enabled: bool = False
     ai_pilot_scopes: tuple[str, ...] = ()
     ai_openai_api_key: SecretStr | None = None
+    ai_model: Literal["gpt-6-luna", "gpt-6.1-terra"] = "gpt-6-luna"
     ai_timeout_seconds: float = Field(default=20, ge=1, le=60)
     ai_max_output_tokens: int = Field(default=1600, ge=256, le=4000)
     ai_max_attempts: int = Field(default=2, ge=1, le=3)

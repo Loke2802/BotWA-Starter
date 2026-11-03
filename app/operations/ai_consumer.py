@@ -217,6 +217,7 @@ def run_ai_lane(stop_event: Event, *, once: bool = False) -> None:
             settings.ai_openai_api_key or SecretStr(""),
             settings.ai_timeout_seconds,
             settings.ai_max_output_tokens,
+            model=settings.ai_model,
         ),
     )
 

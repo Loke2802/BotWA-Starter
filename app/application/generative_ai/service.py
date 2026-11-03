@@ -25,7 +25,7 @@ from app.domain.generative_ai.contracts import (
     ProviderError,
 )
 from app.domain.generative_ai.ports import AIProvider
-from app.infrastructure.generative_ai.openai_provider import MODEL, PROMPT_VERSION
+from app.infrastructure.generative_ai.openai_provider import PROMPT_VERSION
 from app.infrastructure.generative_ai.response_prompts import PROMPTS
 from app.infrastructure.models.ai_generation import (
     AIAttemptModel,
@@ -335,7 +335,7 @@ class AIService:
                     AIAttemptModel(
                         job_id=job_id,
                         stage=stage,
-                        model=MODEL,
+                        model=self.settings.ai_model,
                         prompt_version=PROMPTS[stage][0],
                         started_at=datetime.now(UTC),
                         result="reserved",
@@ -436,7 +436,7 @@ class AIService:
                     id=attempt_id,
                     job_id=job_id,
                     stage=stage,
-                    model=MODEL,
+                    model=self.settings.ai_model,
                     prompt_version=PROMPT_VERSION,
                     started_at=now,
                 )

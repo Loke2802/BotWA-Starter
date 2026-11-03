@@ -114,7 +114,7 @@ class ResponseProvider(FakeProvider):
             }
         return Generation(
             data=json.dumps(response),
-            usage=Usage(input_tokens=30, output_tokens=20, model="gpt-5.6-luna"),
+            usage=Usage(input_tokens=30, output_tokens=20, model="gpt-6-luna"),
         )
 
 

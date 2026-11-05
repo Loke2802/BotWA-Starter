@@ -147,3 +147,48 @@ def render(
     if introduction and (result.recommendations or result.question_key):
         text.insert(0, introduction)
     return "\n\n".join(text)[:3500], used
+
+
+def salvage(
+    result: AdviserResult,
+    config: AIConfig,
+    memory: dict[str, Any],
+    sources: dict[str, dict[str, Any]],
+) -> AdviserResult:
+    """Drop only the parts render() would reject, so one unsupported
+    recommendation, quote or question degrades to the pending question
+    instead of failing the whole job into FALLBACK."""
+
+    def renders(candidate: AdviserResult) -> bool:
+        try:
+            render(candidate, config, memory, sources)
+        except ProviderError:
+            return False
+        return True
+
+    empty = result.model_copy(
+        update={"question_key": None, "recommendations": [], "knowledge": []}
+    )
+    question_key = (
+        result.question_key
+        if result.question_key
+        and renders(empty.model_copy(update={"question_key": result.question_key}))
+        else None
+    )
+    recommendations = [
+        item
+        for item in result.recommendations
+        if renders(empty.model_copy(update={"recommendations": [item]}))
+    ]
+    knowledge = [
+        quote
+        for quote in result.knowledge
+        if renders(empty.model_copy(update={"knowledge": [quote]}))
+    ]
+    return result.model_copy(
+        update={
+            "question_key": question_key,
+            "recommendations": recommendations,
+            "knowledge": knowledge,
+        }
+    )

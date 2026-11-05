@@ -16,7 +16,12 @@ from app.application.audit.writer import append_non_user_audit
 from app.application.generative_ai import response_pipeline
 from app.application.generative_ai.policy import config_hash, configuration
 from app.application.generative_ai.response_validation import digest
-from app.application.generative_ai.validation import FALLBACK, apply_discovery, render
+from app.application.generative_ai.validation import (
+    FALLBACK,
+    apply_discovery,
+    render,
+    salvage,
+)
 from app.domain.generative_ai.contracts import (
     AdviserResult,
     AIConfig,
@@ -575,6 +580,7 @@ class AIService:
                         AdviserResult,
                     )
                 )
+            result = salvage(result, config, memory, sources)
             reply, used = render(result, config, memory, sources)
             reply = await response_pipeline.compose(
                 self, job_id, token, result, config, memory, sources, reply, used

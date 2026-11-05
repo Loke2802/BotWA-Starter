@@ -8,7 +8,12 @@ import httpx
 import pytest
 from app.api.whatsapp_live_dependencies import get_whatsapp_live_message_processor
 from app.application.generative_ai.service import AIService
-from app.application.generative_ai.validation import apply_discovery, render
+from app.application.generative_ai.validation import (
+    FALLBACK,
+    apply_discovery,
+    render,
+    salvage,
+)
 from app.domain.bot.contracts import BotUpdate
 from app.domain.generative_ai.contracts import (
     AdviserResult,
@@ -297,6 +302,37 @@ async def test_bounded_provider_failures(runtime: Runtime) -> None:
         assert job.error_code == "TIMEOUT"
 
 
+async def test_unsupported_recommendation_degrades_instead_of_fallback(
+    runtime: Runtime,
+) -> None:
+    with runtime.sessions() as session:
+        entry = session.get(KnowledgeEntryModel, runtime.item_id)
+        assert entry is not None
+        entry.metadata_data = {
+            "catalog_item": {
+                "name": "Dino",
+                "attributes": [
+                    {
+                        "key": "age",
+                        "label": "Edad recomendada",
+                        "value": "8 a 10 años",
+                        "minimum": 8,
+                        "maximum": 10,
+                    }
+                ],
+            }
+        }
+        session.commit()
+    await runtime.inbound()
+    assert await runtime.service.run_once()
+    with runtime.sessions() as session:
+        job = session.scalars(select(AIJobModel)).one()
+        assert job.status == "ready" and job.error_code is None
+        reply = json.loads(cipher().decrypt(job.result_ciphertext or ""))["reply"]
+    assert reply != FALLBACK
+    assert "Dino" not in reply
+
+
 async def test_unpublished_source_cancels_dispatch(runtime: Runtime) -> None:
     await runtime.inbound()
     await runtime.service.run_once()
@@ -537,6 +573,85 @@ def test_known_need_is_not_asked_again() -> None:
     )
     with pytest.raises(ProviderError, match="REPEATED"):
         render(result, CONFIG, {"age": {"value": "5"}}, {})
+
+
+def test_salvage_drops_only_unsupported_parts() -> None:
+    catalog = {
+        "name": "Dino",
+        "attributes": [
+            {
+                "key": "age",
+                "label": "Edad",
+                "value": "4 a 7",
+                "minimum": 4,
+                "maximum": 7,
+            }
+        ],
+    }
+    too_old = {
+        "name": "Robot",
+        "attributes": [
+            {
+                "key": "age",
+                "label": "Edad",
+                "value": "8 a 10",
+                "minimum": 8,
+                "maximum": 10,
+            }
+        ],
+    }
+    sources: dict[str, dict[str, Any]] = {
+        "ok": {"version": "1", "catalog": catalog},
+        "bad": {"version": "1", "catalog": too_old},
+        "k": {"version": "1", "catalog": None, "content": "Envíos en Lima."},
+    }
+    match = [{"need_key": "age", "attribute_key": "age"}]
+    result = AdviserResult.model_validate(
+        {
+            "tone": "options",
+            "question_key": "age",
+            "handoff_requested": False,
+            "recommendations": [
+                {"item_ref": "ok", "matches": match},
+                {"item_ref": "bad", "matches": match},
+                {"item_ref": "missing", "matches": match},
+            ],
+            "knowledge": [
+                {"source_ref": "k", "quote": "Envíos en Lima."},
+                {"source_ref": "k", "quote": "Envíos gratis en Lima."},
+            ],
+        }
+    )
+    memory = {"age": {"value": "5"}}
+    salvaged = salvage(result, CONFIG, memory, sources)
+    assert salvaged.question_key is None
+    assert [r.item_ref for r in salvaged.recommendations] == ["ok"]
+    assert [q.quote for q in salvaged.knowledge] == ["Envíos en Lima."]
+    text, used = render(salvaged, CONFIG, memory, sources)
+    assert "Dino" in text and "Robot" not in text
+    assert set(used) == {"ok", "k"}
+
+
+def test_salvage_falls_back_to_pending_question_not_generic_reply() -> None:
+    result = AdviserResult.model_validate(
+        {
+            "tone": "options",
+            "question_key": None,
+            "handoff_requested": False,
+            "recommendations": [
+                {
+                    "item_ref": "p",
+                    "matches": [{"need_key": "age", "attribute_key": "age"}],
+                }
+            ],
+            "knowledge": [],
+        }
+    )
+    salvaged = salvage(result, CONFIG, {}, {})
+    assert salvaged.recommendations == []
+    text, _ = render(salvaged, CONFIG, {}, {})
+    assert text == "¿Qué edad tiene?"
+    assert text != FALLBACK
 
 
 def test_number_substring_is_not_evidence() -> None:

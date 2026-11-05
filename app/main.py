@@ -188,6 +188,9 @@ def create_app() -> FastAPI:
     from app.api.public_contacts_routes import install_public_contacts
 
     install_public_contacts(app)
+    from app.api.webchat_routes import install_webchat
+
+    install_webchat(app)
     return app
 
 

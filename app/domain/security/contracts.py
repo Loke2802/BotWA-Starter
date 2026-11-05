@@ -6,6 +6,9 @@ SecurityRateLimitScope = Literal[
     "public_bootstrap",
     "whatsapp_webhook",
     "billing_webhook",
+    "webchat_session",
+    "webchat_read",
+    "webchat_write",
 ]
 
 

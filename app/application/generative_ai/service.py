@@ -46,6 +46,7 @@ from app.infrastructure.settings import Settings
 from app.security.secret_cipher import SecretCipher
 
 ACTIVE = ("pending", "retry", "running", "ready")
+MEMORY_RETENTION = timedelta(days=30)
 
 
 def utc(value: datetime) -> datetime:
@@ -217,15 +218,38 @@ class AIService:
             config = self._eligible(session, job)
             if config is None:
                 raise ProviderError("POLICY_CHANGED")
-            memory_row = session.get(AIMemoryModel, job.conversation_id)
+            # Serialize the age check with ingress and supervised retention.
+            session.scalar(
+                select(ConversationModel.id)
+                .where(
+                    ConversationModel.id == job.conversation_id,
+                    ConversationModel.organization_id == job.organization_id,
+                    ConversationModel.bot_id == job.bot_id,
+                )
+                .with_for_update()
+            )
+            memory_row = session.get(
+                AIMemoryModel, job.conversation_id, with_for_update=True
+            )
             memory: dict[str, Any] = {}
+            expired_reset = False
+            history_cutoff = datetime.now(UTC) - MEMORY_RETENTION
             if memory_row:
                 if (
                     memory_row.organization_id != job.organization_id
                     or memory_row.bot_id != job.bot_id
                 ):
                     raise ProviderError("SCOPE_MISMATCH")
-                memory = json.loads(self.cipher.decrypt(memory_row.ciphertext))
+                if (
+                    memory_row.updated_at is None
+                    or utc(memory_row.updated_at) < history_cutoff
+                ):
+                    memory_row.revision += 1
+                    memory_row.ciphertext = self.cipher.encrypt("{}")
+                    memory_row.updated_at = datetime.now(UTC)
+                    expired_reset = True
+                else:
+                    memory = json.loads(self.cipher.decrypt(memory_row.ciphertext))
             checkpoint = session.get(AIResponseCheckpointModel, job_id)
             if checkpoint is not None:
                 response_pipeline.check_memory(session, job, checkpoint)
@@ -233,19 +257,42 @@ class AIService:
                     raise ProviderError("CHECKPOINT_MISSING")
                 cached = json.loads(self.cipher.decrypt(checkpoint.ciphertext))
                 return dict(cached["snapshot"])
-            rows = session.scalars(
-                select(MessageModel)
+            # After a prior 30-day gap, a delayed webhook may be inserted now
+            # with an old event timestamp. Keep the current receipt, not that
+            # older event, so expired facts cannot re-enter model context.
+            old_job = session.scalar(
+                select(AIJobModel.id)
                 .where(
-                    MessageModel.conversation_id == job.conversation_id,
-                    MessageModel.organization_id == job.organization_id,
-                    MessageModel.bot_id == job.bot_id,
-                    or_(
-                        MessageModel.direction == "inbound",
-                        MessageModel.delivery_status.in_(("sent", "delivered", "read")),
-                    ),
+                    AIJobModel.conversation_id == job.conversation_id,
+                    AIJobModel.organization_id == job.organization_id,
+                    AIJobModel.bot_id == job.bot_id,
+                    AIJobModel.id != job.id,
+                    AIJobModel.created_at < history_cutoff,
                 )
-                .order_by(MessageModel.created_at.desc(), MessageModel.id.desc())
-                .limit(20)
+                .limit(1)
+            )
+            history_query = select(MessageModel).where(
+                MessageModel.conversation_id == job.conversation_id,
+                MessageModel.organization_id == job.organization_id,
+                MessageModel.bot_id == job.bot_id,
+                MessageModel.created_at >= history_cutoff,
+                or_(
+                    MessageModel.direction == "inbound",
+                    MessageModel.delivery_status.in_(("sent", "delivered", "read")),
+                ),
+            )
+            if expired_reset or old_job is not None:
+                history_query = history_query.where(
+                    or_(
+                        MessageModel.inbound_receipt_id == job.receipt_id,
+                        MessageModel.occurred_at.is_(None),
+                        MessageModel.occurred_at >= history_cutoff,
+                    )
+                )
+            rows = session.scalars(
+                history_query.order_by(
+                    MessageModel.created_at.desc(), MessageModel.id.desc()
+                ).limit(20)
             ).all()
             history = []
             for row in reversed(rows):
@@ -276,6 +323,7 @@ class AIService:
                         ),
                     )
                 )
+            if expired_reset or config.conversational_response.enabled:
                 session.commit()
             return snapshot
 
@@ -620,6 +668,7 @@ class AIService:
                     session.add(row)
                 row.revision += 1
                 row.ciphertext = self.cipher.encrypt(json.dumps(memory))
+                row.updated_at = datetime.now(UTC)
                 if checkpoint is not None:
                     checkpoint.committed_revision = row.revision
                     checkpoint.reply_digest = digest(reply)

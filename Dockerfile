@@ -26,8 +26,10 @@ LABEL org.opencontainers.image.source="https://github.com/Loke2802/BotWA-Starter
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends --only-upgrade \
+        apt \
         bsdutils \
         gzip \
+        libapt-pkg7.0 \
         libblkid1 \
         liblastlog2-2 \
         libmount1 \

@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from app.api.dependencies import get_auth_service
-from app.api.security_dependencies import get_rate_limit_service
+from app.api.security_dependencies import client_origin, get_rate_limit_service
 from app.domain.user.contracts import TokenResponse
 from app.infrastructure.database import Base
 from app.infrastructure.logging import SensitiveQueryParameterFilter
@@ -143,7 +143,37 @@ def test_security_headers_are_present_and_hsts_is_explicit() -> None:
     assert response.headers["x-content-type-options"] == "nosniff"
     assert response.headers["referrer-policy"] == "no-referrer"
     assert response.headers["cache-control"] == "no-store"
+    assert response.headers["x-frame-options"] == "DENY"
+    assert response.headers["content-security-policy"] == "frame-ancestors 'none'"
     assert "strict-transport-security" not in response.headers
+
+
+@pytest.mark.parametrize(
+    ("peer", "forwarded", "expected"),
+    [
+        # Untrusted peers are the client; their X-Forwarded-For is ignored.
+        ("203.0.113.9", "198.51.100.1", "203.0.113.9"),
+        # The proxy appends the real client after whatever the client sent.
+        ("10.0.0.2", "198.51.100.1, 203.0.113.9", "203.0.113.9"),
+        # Further trusted proxies on the right are skipped.
+        ("10.0.0.2", "198.51.100.1, 203.0.113.9, 10.0.0.3", "203.0.113.9"),
+        # Nothing usable: fall back to the proxy itself.
+        ("10.0.0.2", "", "10.0.0.2"),
+    ],
+)
+def test_client_origin_ignores_client_supplied_forwarded_hops(
+    monkeypatch: pytest.MonkeyPatch, peer: str, forwarded: str, expected: str
+) -> None:
+    settings = Settings(
+        environment="test", trusted_proxy_hosts=("10.0.0.2", "10.0.0.3")
+    )
+    monkeypatch.setattr("app.api.security_dependencies.get_settings", lambda: settings)
+    headers = [(b"x-forwarded-for", forwarded.encode())] if forwarded else []
+    request = Request(
+        {"type": "http", "headers": headers, "client": (peer, 50000), "method": "GET"}
+    )
+
+    assert client_origin(request) == expected
 
 
 def test_rate_limiter_persists_only_hmac_key_and_enforces_threshold() -> None:

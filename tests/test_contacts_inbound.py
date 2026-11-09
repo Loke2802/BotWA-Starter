@@ -72,7 +72,9 @@ class RecordingCore(ChannelConversationHandler):
     def conversation_id_for(message: InboundChannelMessage) -> UUID:
         return ChannelConversationHandler.conversation_id_for(message)
 
-    def handle(self, message: InboundChannelMessage) -> OutboundChannelMessage:
+    def handle(
+        self, message: InboundChannelMessage, *, conversation_id: UUID | None = None
+    ) -> OutboundChannelMessage:
         self.calls += 1
         return OutboundChannelMessage(
             channel_type=message.channel_type,

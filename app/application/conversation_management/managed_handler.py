@@ -65,6 +65,8 @@ class ManagedChannelConversationHandler(ChannelMessageHandler):
             UUID(receipt_id),
             contact_id,
         )
+        # A second line of the same bot gets its own ID; use the persisted one.
+        conversation_id = conversation.id
         if self._automations is not None:
             self._automations.record_inbound(
                 organization_id=message.resolved_context.organization_id,
@@ -135,7 +137,7 @@ class ManagedChannelConversationHandler(ChannelMessageHandler):
                 },
             )
         try:
-            outbound = self._handler.handle(message)
+            outbound = self._handler.handle(message, conversation_id=conversation_id)
         except Exception:
             self._management.mark_inbound_failed(
                 message.external_message_id,

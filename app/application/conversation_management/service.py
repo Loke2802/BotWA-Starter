@@ -1,6 +1,6 @@
 from builtins import list as builtin_list
 from datetime import UTC, datetime
-from uuid import UUID, uuid4
+from uuid import UUID, uuid4, uuid5
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -89,7 +89,11 @@ class ConversationManagementService:
                 started_at=message.timestamp,
                 created_at=datetime.now(UTC),
                 updated_at=datetime.now(UTC),
-            )
+            ),
+            alternate_id=uuid5(
+                conversation_id,
+                f"channel_configuration:{context.channel_configuration_id}",
+            ),
         )
         self._associate_contact(conversation, contact_id, context.organization_id)
         if conversation.management_status == "archived":
@@ -242,8 +246,13 @@ class ConversationManagementService:
         has_outbound: bool | None,
         page: int,
         page_size: int,
+        channel_configuration_id: UUID | None = None,
     ) -> tuple[list[ConversationSummary], int]:
         self._validate(organization_id, actor, "conversation.read", bot_id)
+        if external_customer_id is not None:
+            # An exact phone lookup reveals whether a number is a customer even
+            # though list rows stay masked, so it needs sensitive contact access.
+            self._validate(organization_id, actor, "contacts.read_sensitive", None)
         models, total = self._conversations.list_scoped(
             organization_id,
             bot_id=bot_id,
@@ -254,6 +263,7 @@ class ConversationManagementService:
             has_outbound=has_outbound,
             offset=(page - 1) * page_size,
             limit=page_size,
+            channel_configuration_id=channel_configuration_id,
         )
         return [_summary(model) for model in models], total
 
@@ -415,6 +425,7 @@ def _summary(model: ConversationModel) -> ConversationSummary:
         organization_id=model.organization_id,
         bot_id=model.bot_id,
         channel_type=model.channel,
+        channel_configuration_id=model.channel_configuration_id,
         status=model.management_status or "open",
         masked_customer_identifier=model.masked_customer_identifier or "***",
         started_at=model.started_at,
@@ -428,7 +439,6 @@ def _summary(model: ConversationModel) -> ConversationSummary:
 def _detail(model: ConversationModel) -> ConversationDetail:
     return ConversationDetail(
         **_summary(model).model_dump(),
-        channel_configuration_id=model.channel_configuration_id,
         inbound_message_count=model.inbound_message_count,
         outbound_message_count=model.outbound_message_count,
         last_inbound_at=model.last_inbound_at,

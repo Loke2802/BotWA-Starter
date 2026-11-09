@@ -16,7 +16,12 @@ from app.application.audit.writer import append_non_user_audit
 from app.application.generative_ai import response_pipeline
 from app.application.generative_ai.policy import config_hash, configuration
 from app.application.generative_ai.response_validation import digest
-from app.application.generative_ai.validation import FALLBACK, apply_discovery, render
+from app.application.generative_ai.validation import (
+    FALLBACK,
+    apply_discovery,
+    render,
+    salvage,
+)
 from app.domain.generative_ai.contracts import (
     AdviserResult,
     AIConfig,
@@ -25,7 +30,7 @@ from app.domain.generative_ai.contracts import (
     ProviderError,
 )
 from app.domain.generative_ai.ports import AIProvider
-from app.infrastructure.generative_ai.openai_provider import MODEL, PROMPT_VERSION
+from app.infrastructure.generative_ai.openai_provider import PROMPT_VERSION
 from app.infrastructure.generative_ai.response_prompts import PROMPTS
 from app.infrastructure.models.ai_generation import (
     AIAttemptModel,
@@ -335,7 +340,7 @@ class AIService:
                     AIAttemptModel(
                         job_id=job_id,
                         stage=stage,
-                        model=MODEL,
+                        model=self.settings.ai_model,
                         prompt_version=PROMPTS[stage][0],
                         started_at=datetime.now(UTC),
                         result="reserved",
@@ -436,7 +441,7 @@ class AIService:
                     id=attempt_id,
                     job_id=job_id,
                     stage=stage,
-                    model=MODEL,
+                    model=self.settings.ai_model,
                     prompt_version=PROMPT_VERSION,
                     started_at=now,
                 )
@@ -575,6 +580,7 @@ class AIService:
                         AdviserResult,
                     )
                 )
+            result = salvage(result, config, memory, sources)
             reply, used = render(result, config, memory, sources)
             reply = await response_pipeline.compose(
                 self, job_id, token, result, config, memory, sources, reply, used

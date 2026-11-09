@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     ai_enabled: bool = False
     ai_pilot_scopes: tuple[str, ...] = ()
     ai_openai_api_key: SecretStr | None = None
+    ai_model: Literal["gpt-6-luna", "gpt-6.1-terra"] = "gpt-6-luna"
     ai_timeout_seconds: float = Field(default=20, ge=1, le=60)
     ai_max_output_tokens: int = Field(default=1600, ge=256, le=4000)
     ai_max_attempts: int = Field(default=2, ge=1, le=3)
@@ -65,6 +66,7 @@ class Settings(BaseSettings):
     contact_identity_hmac_key: str = ""
     whatsapp_live_client_mode: str = "disabled"
     whatsapp_outbound_allowed_recipients: Annotated[tuple[str, ...], NoDecode] = ()
+    whatsapp_outbound_restrict_recipients: bool = True
     lead_notification_recipients: Annotated[tuple[str, ...], NoDecode] = ()
     lead_notification_scopes: dict[str, tuple[str, ...]] = Field(default_factory=dict)
 

@@ -8,7 +8,12 @@ import httpx
 import pytest
 from app.api.whatsapp_live_dependencies import get_whatsapp_live_message_processor
 from app.application.generative_ai.service import AIService
-from app.application.generative_ai.validation import apply_discovery, render
+from app.application.generative_ai.validation import (
+    FALLBACK,
+    apply_discovery,
+    render,
+    salvage,
+)
 from app.domain.bot.contracts import BotUpdate
 from app.domain.generative_ai.contracts import (
     AdviserResult,
@@ -28,6 +33,7 @@ from app.infrastructure.models.knowledge_entry import KnowledgeEntryModel
 from app.infrastructure.models.whatsapp_message_transport import (
     OutboundMessageAttemptModel,
 )
+from app.infrastructure.settings import Settings
 from app.infrastructure.whatsapp.fake_client import FakeWhatsAppCloudApiClient
 from app.operations.ai_consumer import dispatch_one
 from pydantic import BaseModel, SecretStr, ValidationError
@@ -109,7 +115,7 @@ class FakeProvider:
             )
         return Generation(
             data=response.model_dump_json(),
-            usage=Usage(input_tokens=50, output_tokens=20, model="gpt-5.6-luna"),
+            usage=Usage(input_tokens=50, output_tokens=20, model="gpt-6-luna"),
         )
 
 
@@ -296,6 +302,37 @@ async def test_bounded_provider_failures(runtime: Runtime) -> None:
         assert job.error_code == "TIMEOUT"
 
 
+async def test_unsupported_recommendation_degrades_instead_of_fallback(
+    runtime: Runtime,
+) -> None:
+    with runtime.sessions() as session:
+        entry = session.get(KnowledgeEntryModel, runtime.item_id)
+        assert entry is not None
+        entry.metadata_data = {
+            "catalog_item": {
+                "name": "Dino",
+                "attributes": [
+                    {
+                        "key": "age",
+                        "label": "Edad recomendada",
+                        "value": "8 a 10 años",
+                        "minimum": 8,
+                        "maximum": 10,
+                    }
+                ],
+            }
+        }
+        session.commit()
+    await runtime.inbound()
+    assert await runtime.service.run_once()
+    with runtime.sessions() as session:
+        job = session.scalars(select(AIJobModel)).one()
+        assert job.status == "ready" and job.error_code is None
+        reply = json.loads(cipher().decrypt(job.result_ciphertext or ""))["reply"]
+    assert reply != FALLBACK
+    assert "Dino" not in reply
+
+
 async def test_unpublished_source_cancels_dispatch(runtime: Runtime) -> None:
     await runtime.inbound()
     await runtime.service.run_once()
@@ -358,18 +395,19 @@ def test_recommendation_rejects_unknown_item() -> None:
         render(result, CONFIG, {"age": {"value": "5"}}, {})
 
 
-async def test_openai_wire_is_strict_and_no_tools_or_storage() -> None:
+@pytest.mark.parametrize("model", ["gpt-6-luna", "gpt-6.1-terra"])
+async def test_openai_wire_is_strict_and_no_tools_or_storage(model: str) -> None:
     def respond(request: httpx.Request) -> httpx.Response:
         payload = json.loads(request.content)
         assert str(request.url) == "https://api.openai.com/v1/responses"
-        assert payload["model"] == "gpt-5.6-luna"
+        assert payload["model"] == model
         assert payload["tools"] == [] and payload["store"] is False
         assert payload["text"]["format"]["strict"] is True
         return httpx.Response(
             200,
             json={
                 "status": "completed",
-                "model": "gpt-5.6-luna",
+                "model": model,
                 "usage": {"input_tokens": 10, "output_tokens": 20},
                 "output": [
                     {
@@ -381,7 +419,7 @@ async def test_openai_wire_is_strict_and_no_tools_or_storage() -> None:
         )
 
     provider = OpenAIProvider(
-        SecretStr("fake-test-key"), 2, 1000, httpx.MockTransport(respond)
+        SecretStr("fake-test-key"), 2, 1000, httpx.MockTransport(respond), model=model
     )
     result = await provider.generate(stage="discovery", context="{}", schema=Discovery)
     assert result.usage.input_tokens == 10
@@ -398,6 +436,7 @@ async def test_provider_errors_are_sanitized(status: int, retryable: bool) -> No
         httpx.MockTransport(
             lambda request: httpx.Response(status, text="private body")
         ),
+        model="gpt-6-luna",
     )
     with pytest.raises(ProviderError) as failure:
         await provider.generate(stage="discovery", context="{}", schema=Discovery)
@@ -536,6 +575,85 @@ def test_known_need_is_not_asked_again() -> None:
         render(result, CONFIG, {"age": {"value": "5"}}, {})
 
 
+def test_salvage_drops_only_unsupported_parts() -> None:
+    catalog = {
+        "name": "Dino",
+        "attributes": [
+            {
+                "key": "age",
+                "label": "Edad",
+                "value": "4 a 7",
+                "minimum": 4,
+                "maximum": 7,
+            }
+        ],
+    }
+    too_old = {
+        "name": "Robot",
+        "attributes": [
+            {
+                "key": "age",
+                "label": "Edad",
+                "value": "8 a 10",
+                "minimum": 8,
+                "maximum": 10,
+            }
+        ],
+    }
+    sources: dict[str, dict[str, Any]] = {
+        "ok": {"version": "1", "catalog": catalog},
+        "bad": {"version": "1", "catalog": too_old},
+        "k": {"version": "1", "catalog": None, "content": "Envíos en Lima."},
+    }
+    match = [{"need_key": "age", "attribute_key": "age"}]
+    result = AdviserResult.model_validate(
+        {
+            "tone": "options",
+            "question_key": "age",
+            "handoff_requested": False,
+            "recommendations": [
+                {"item_ref": "ok", "matches": match},
+                {"item_ref": "bad", "matches": match},
+                {"item_ref": "missing", "matches": match},
+            ],
+            "knowledge": [
+                {"source_ref": "k", "quote": "Envíos en Lima."},
+                {"source_ref": "k", "quote": "Envíos gratis en Lima."},
+            ],
+        }
+    )
+    memory = {"age": {"value": "5"}}
+    salvaged = salvage(result, CONFIG, memory, sources)
+    assert salvaged.question_key is None
+    assert [r.item_ref for r in salvaged.recommendations] == ["ok"]
+    assert [q.quote for q in salvaged.knowledge] == ["Envíos en Lima."]
+    text, used = render(salvaged, CONFIG, memory, sources)
+    assert "Dino" in text and "Robot" not in text
+    assert set(used) == {"ok", "k"}
+
+
+def test_salvage_falls_back_to_pending_question_not_generic_reply() -> None:
+    result = AdviserResult.model_validate(
+        {
+            "tone": "options",
+            "question_key": None,
+            "handoff_requested": False,
+            "recommendations": [
+                {
+                    "item_ref": "p",
+                    "matches": [{"need_key": "age", "attribute_key": "age"}],
+                }
+            ],
+            "knowledge": [],
+        }
+    )
+    salvaged = salvage(result, CONFIG, {}, {})
+    assert salvaged.recommendations == []
+    text, _ = render(salvaged, CONFIG, {}, {})
+    assert text == "¿Qué edad tiene?"
+    assert text != FALLBACK
+
+
 def test_number_substring_is_not_evidence() -> None:
     discovery = Discovery(
         new_topic=False,
@@ -600,9 +718,23 @@ async def test_missing_key_never_makes_http_request() -> None:
     def forbidden(request: httpx.Request) -> httpx.Response:
         raise AssertionError("must not use HTTP")
 
-    provider = OpenAIProvider(SecretStr(""), 2, 1000, httpx.MockTransport(forbidden))
+    provider = OpenAIProvider(
+        SecretStr(""), 2, 1000, httpx.MockTransport(forbidden), model="gpt-6-luna"
+    )
     with pytest.raises(ProviderError, match="MISSING_PROVIDER_KEY"):
         await provider.generate(stage="discovery", context="{}", schema=Discovery)
+
+
+def test_ai_model_defaults_to_luna_and_rejects_unlisted_models(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("BOTWA_AI_MODEL", raising=False)
+    assert Settings(_env_file=None).ai_model == "gpt-6-luna"
+    monkeypatch.setenv("BOTWA_AI_MODEL", "gpt-6.1-terra")
+    assert Settings(_env_file=None).ai_model == "gpt-6.1-terra"
+    monkeypatch.setenv("BOTWA_AI_MODEL", "gpt-6-astra")
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)
 
 
 def test_automation_lane_runs_while_ai_is_waiting(

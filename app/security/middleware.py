@@ -104,6 +104,9 @@ class SecurityHeadersMiddleware:
                         (b"x-content-type-options", b"nosniff"),
                         (b"referrer-policy", b"no-referrer"),
                         (b"cache-control", b"no-store"),
+                        # The portal is never embedded; refuse framing (clickjacking).
+                        (b"x-frame-options", b"DENY"),
+                        (b"content-security-policy", b"frame-ancestors 'none'"),
                     ]
                 )
                 if self.hsts_enabled:

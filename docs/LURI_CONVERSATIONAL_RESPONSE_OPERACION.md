@@ -142,6 +142,27 @@ Pruebas nuevas: contratos y placeholders; cláusulas; revisión estricta; reserv
 
 Pendiente deliberadamente: evaluación A/B de 30–50 conversaciones, llamadas reales, medición de naturalidad/coste reales, activación piloto, despliegue y merge. No se incorporan nuevos modelos, herramientas, pagos, reservas, infraestructura ni autonomía comercial.
 
+## Continuidad del servicio consultado
+
+Las instrucciones `luri-adviser-2` y `luri-response-2` orientan la conversación
+al proyecto solicitado. Conocer un catálogo amplio no justifica ofrecer otros
+servicios, reiniciar la presentación del negocio o volver a pedir datos ya
+aportados. Una petición explícita del cliente puede cambiar el tema o abarcar
+varios servicios. La redacción puede adaptar una pregunta permitida al proyecto,
+sin introducir nuevas premisas comerciales.
+
+Esta orientación no añade hechos ni permisos al contexto del redactor. Solo se
+proyectan las recomendaciones y citas que superan las validaciones existentes;
+un servicio recuperado pero no seleccionado no obtiene una referencia utilizable
+en la respuesta. Los datos de empresa se mantienen en conocimiento publicado del
+tenant/bot, no en el prompt global. No cambia el número de llamadas ni los flags.
+
+La prueba sintética de foco comprueba que un catálogo con dos servicios no
+autoriza al redactor a introducir el servicio no seleccionado ni a repetir una
+pregunta resuelta. No mide el comportamiento semántico real del modelo. Durante
+el piloto hay que observar continuidad del tema, repeticiones, fidelidad de
+hechos y fallback; los prompts por sí solos no garantizan esas cualidades.
+
 ## Inventario de archivos
 
 | Grupo | Archivos |

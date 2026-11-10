@@ -1,11 +1,18 @@
 """Real PG leases, transactions and idempotency; external providers stay fake."""
 
+import asyncio
 import os
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime, timedelta
 from threading import Barrier
 
 import pytest
 from app.infrastructure.models.ai_generation import AIJobModel
+from app.infrastructure.models.human_handoff import HandoffSessionModel
+from app.infrastructure.models.message import MessageModel
+from app.infrastructure.models.whatsapp_message_transport import (
+    OutboundMessageAttemptModel,
+)
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from tests.test_generative_ai import (
@@ -22,6 +29,13 @@ from tests.test_generative_ai import (
 )
 from tests.test_generative_ai import (
     test_unpublished_source_cancels_dispatch as check_unpublish,
+)
+from tests.test_whatsapp_coexistence import candidate, receive
+from tests.test_whatsapp_coexistence import (
+    test_echo_cancels_enqueued_delivery as check_echo_delivery,
+)
+from tests.test_whatsapp_coexistence import (
+    test_echo_during_generation_fences_stale_owner as check_echo_generation,
 )
 
 URL = os.getenv("BOTWA_TRANSPORT_POSTGRES_URL")
@@ -52,6 +66,72 @@ async def test_postgres_restart_fencing(pg_runtime: Runtime) -> None:
 
 async def test_postgres_recheck_publication(pg_runtime: Runtime) -> None:
     await check_unpublish(pg_runtime)
+
+
+async def test_postgres_echo_during_generation(pg_runtime: Runtime) -> None:
+    await check_echo_generation(pg_runtime)
+
+
+async def test_postgres_echo_fences_outbox(
+    pg_runtime: Runtime, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await check_echo_delivery(pg_runtime, monkeypatch)
+
+
+def test_postgres_concurrent_echoes_are_recorded_once(pg_runtime: Runtime) -> None:
+    barrier = Barrier(2)
+    echo = candidate(pg_runtime)
+
+    def accept() -> None:
+        barrier.wait(timeout=5)
+        asyncio.run(receive(pg_runtime, echo))
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(accept) for _ in range(2)]
+        for future in futures:
+            future.result(timeout=15)
+    with pg_runtime.sessions() as session:
+        assert len(session.scalars(select(MessageModel)).all()) == 1
+        assert len(session.scalars(select(HandoffSessionModel)).all()) == 1
+
+
+async def test_postgres_echo_does_not_wait_on_locked_delivery(
+    pg_runtime: Runtime, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.application.whatsapp_live.processor import WhatsAppLiveMessageProcessor
+    from app.operations.ai_consumer import dispatch_one
+
+    await pg_runtime.inbound()
+    assert await pg_runtime.service.run_once()
+
+    async def defer(*args: object, **kwargs: object) -> bool:
+        return False
+
+    with monkeypatch.context() as patch:
+        patch.setattr(WhatsAppLiveMessageProcessor, "retry_attempt", defer)
+        await dispatch_one(pg_runtime.service)
+    with pg_runtime.sessions() as locker:
+        locker.scalar(select(OutboundMessageAttemptModel).with_for_update())
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(
+                asyncio.run, receive(pg_runtime, candidate(pg_runtime))
+            )
+            try:
+                future.result(timeout=10)
+            finally:
+                locker.rollback()
+    with pg_runtime.sessions() as session:
+        job = session.scalars(select(AIJobModel)).one()
+        assert job.status == "ready"
+        job.available_at = datetime.now(UTC) - timedelta(seconds=1)
+        session.commit()
+    assert await dispatch_one(pg_runtime.service)
+    with pg_runtime.sessions() as session:
+        assert session.scalars(select(AIJobModel)).one().status == "cancelled"
+        assert (
+            session.scalars(select(OutboundMessageAttemptModel)).one().status
+            == "failed"
+        )
 
 
 async def test_postgres_concurrent_consumers_claim_once(pg_runtime: Runtime) -> None:

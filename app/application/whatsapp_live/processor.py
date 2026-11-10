@@ -115,6 +115,27 @@ class WhatsAppLiveMessageProcessor:
             )
         expected_configuration_id = configuration.id
         results: list[MessageProcessingResult] = []
+        # A human intervention in the same envelope must fence automation before
+        # processing any client message. These are outbound observations, never
+        # inbound receipts or work to deliver again.
+        for echo in payload.echoes:
+            context = self._resolve_expected(
+                echo.phone_number_id, expected_configuration_id
+            )
+            from app.application.whatsapp_live.coexistence import (
+                BusinessAppEchoService,
+            )
+
+            with atomic_transport(self._session):
+                created = BusinessAppEchoService(
+                    self._session, self._secret_cipher
+                ).record(echo, context)
+            self._session.commit()
+            safe_metric(
+                "record_whatsapp_message",
+                "business_app_echo",
+                "processed" if created else "duplicate",
+            )
         for status_event in payload.statuses:
             self._process_status(
                 status_event,

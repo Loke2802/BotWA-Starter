@@ -228,6 +228,29 @@ class HumanHandoffService:
             organization_id, conversation_id, "assistant_requested", "system"
         )
 
+    def observe_business_app_reply(
+        self, organization_id: UUID, bot_id: UUID, conversation_id: UUID
+    ) -> None:
+        """Internal verified-webhook entrypoint. Never impersonate a portal user.
+
+        A human is already replying outside Luri: blocking automation is a safety
+        action, regardless of plan or business handoff configuration. Waiting
+        state lets a real portal operator claim and return the thread explicitly.
+        """
+        conversation = self._conversation(conversation_id, organization_id)
+        if conversation.bot_id != bot_id:
+            raise HandoffForbiddenError("bot scope mismatch")
+        existing = self._repository.get(conversation_id, organization_id, lock=True)
+        if existing and existing.bot_id != bot_id:
+            raise HandoffForbiddenError("handoff bot scope mismatch")
+        if existing and existing.status in {"waiting_human", "human_active"}:
+            existing.last_activity_at = datetime.now(UTC)
+            self._commit()
+            return
+        self._request_internal(
+            organization_id, conversation_id, "business_app_reply", "system"
+        )
+
     @observe_handoff("claim")
     def claim(
         self, organization_id: UUID, conversation_id: UUID, actor: User

@@ -48,11 +48,23 @@ class WhatsAppStatusEvent(BaseModel):
     error_code: str | None = Field(default=None, max_length=100)
 
 
+class WhatsAppBusinessAppEcho(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid", str_strip_whitespace=True)
+
+    external_message_id: str = Field(min_length=1, max_length=255)
+    external_recipient_id: str = Field(min_length=1, max_length=255)
+    phone_number_id: str = Field(min_length=1, max_length=100)
+    timestamp: datetime
+    message_type: str = Field(min_length=1, max_length=50)
+    text: str | None = Field(default=None, max_length=65_536)
+
+
 class WhatsAppParsedWebhook(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     messages: tuple[WhatsAppInboundCandidate, ...] = ()
     statuses: tuple[WhatsAppStatusEvent, ...] = ()
+    echoes: tuple[WhatsAppBusinessAppEcho, ...] = ()
 
 
 class WhatsAppSendResponse(BaseModel):

@@ -254,7 +254,9 @@ class AIService:
             ).all()
             history = []
             for row in reversed(rows):
-                if row.text_ciphertext:
+                if row.text_ciphertext and not (row.metadata_data or {}).get(
+                    "business_app_content_invalidated"
+                ):
                     history.append(
                         {
                             "ref": str(row.id),

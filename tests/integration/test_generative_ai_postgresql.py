@@ -3,6 +3,7 @@
 import asyncio
 import os
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime, timedelta
 from threading import Barrier
 
 import pytest
@@ -119,6 +120,11 @@ async def test_postgres_echo_does_not_wait_on_locked_delivery(
                 future.result(timeout=10)
             finally:
                 locker.rollback()
+    with pg_runtime.sessions() as session:
+        job = session.scalars(select(AIJobModel)).one()
+        assert job.status == "ready"
+        job.available_at = datetime.now(UTC) - timedelta(seconds=1)
+        session.commit()
     assert await dispatch_one(pg_runtime.service)
     with pg_runtime.sessions() as session:
         assert session.scalars(select(AIJobModel)).one().status == "cancelled"

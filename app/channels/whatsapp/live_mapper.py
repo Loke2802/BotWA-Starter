@@ -7,6 +7,7 @@ from app.domain.channel.contracts import (
     ResolvedChannelContext,
 )
 from app.domain.whatsapp_live.contracts import (
+    WhatsAppBusinessAppEcho,
     WhatsAppInboundCandidate,
     WhatsAppMessageType,
     WhatsAppParsedWebhook,
@@ -72,6 +73,7 @@ class WhatsAppWebhookParser:
 
         messages: list[WhatsAppInboundCandidate] = []
         statuses: list[WhatsAppStatusEvent] = []
+        echoes: list[WhatsAppBusinessAppEcho] = []
         event_count = 0
         for entry in entries:
             if not isinstance(entry, dict):
@@ -91,6 +93,18 @@ class WhatsAppWebhookParser:
                 phone_number_id = metadata.get("phone_number_id")
                 if not isinstance(phone_number_id, str) or not phone_number_id.strip():
                     continue
+                field = change.get("field")
+                if field == "smb_message_echoes":
+                    event_count += self._map_echoes(
+                        value.get("message_echoes"), phone_number_id, echoes
+                    )
+                    if event_count > max_events:
+                        raise WhatsAppWebhookPayloadError(
+                            "WhatsApp webhook event limit exceeded"
+                        )
+                    continue
+                if field != "messages":
+                    continue
                 event_count += self._map_messages(
                     value.get("messages"),
                     phone_number_id,
@@ -108,7 +122,38 @@ class WhatsAppWebhookParser:
         return WhatsAppParsedWebhook(
             messages=tuple(messages),
             statuses=tuple(statuses),
+            echoes=tuple(echoes),
         )
+
+    @staticmethod
+    def _map_echoes(
+        raw_echoes: object,
+        phone_number_id: str,
+        echoes: list[WhatsAppBusinessAppEcho],
+    ) -> int:
+        if raw_echoes is None:
+            return 0
+        if not isinstance(raw_echoes, list):
+            return 1
+        for raw in raw_echoes:
+            if not isinstance(raw, dict):
+                continue
+            try:
+                body = raw.get("text")
+                text = body.get("body") if isinstance(body, dict) else None
+                echoes.append(
+                    WhatsAppBusinessAppEcho(
+                        external_message_id=raw["id"],
+                        external_recipient_id=raw["to"],
+                        phone_number_id=phone_number_id,
+                        timestamp=_timestamp(raw.get("timestamp")),
+                        message_type=raw["type"],
+                        text=text if isinstance(text, str) else None,
+                    )
+                )
+            except (KeyError, ValueError, TypeError, OverflowError, OSError):
+                continue
+        return len(raw_echoes)
 
     @staticmethod
     def _map_messages(

@@ -14,7 +14,9 @@ from app.application.generative_ai.response_validation import (
 )
 from app.domain.generative_ai.contracts import (
     AdviserResult,
+    AIConfig,
     Generation,
+    NeedDefinition,
     ProviderError,
     Usage,
 )
@@ -538,6 +540,82 @@ def synthetic_context() -> Any:
             }
         },
     )
+
+
+def test_service_focus_keeps_unselected_catalog_out_of_response_authority() -> None:
+    config = AIConfig(
+        needs=[
+            NeedDefinition(
+                key="objetivo",
+                question="¿Qué buscas con este proyecto?",
+                attribute="objetivo",
+            )
+        ]
+    )
+    sources = {
+        ref: {
+            "version": "v1",
+            "catalog": {
+                "name": name,
+                "attributes": [{"key": "objetivo", "label": "Objetivo", "value": goal}],
+            },
+        }
+        for ref, name, goal in [
+            ("web", "Página web", "mostrar mi negocio"),
+            ("social", "Gestión de redes", "gestionar mis redes"),
+        ]
+    }
+    result = AdviserResult.model_validate(
+        {
+            "tone": "options",
+            "question_key": None,
+            "handoff_requested": False,
+            "recommendations": [
+                {
+                    "item_ref": "web",
+                    "matches": [{"need_key": "objetivo", "attribute_key": "objetivo"}],
+                }
+            ],
+            "knowledge": [],
+        }
+    )
+    context = build_context(
+        "service_focus",
+        result,
+        config,
+        {"objetivo": {"value": "mostrar mi negocio", "message_ref": "inbound"}},
+        sources,
+    )
+    assert list(context.products.values()) == ["Página web"]
+    assert "Gestión de redes" not in context.model_dump_json()
+    assert not context.allowed_questions
+    invalid_segments: list[tuple[dict[str, Any], str]] = [
+        (
+            {
+                "text": "{{product:product_1}}",
+                "claim_refs": [context.authorized_claims[0].id],
+            },
+            "INVALID_PLACEHOLDER",
+        ),
+        (
+            {
+                "kind": "question",
+                "text": "¿Qué buscas con este proyecto?",
+                "question_ref": "question_objetivo",
+            },
+            "REPEATED_OR_UNKNOWN_QUESTION",
+        ),
+    ]
+    for overrides, code in invalid_segments:
+        draft = ConversationalDraft.model_validate(
+            {
+                "schema_version": "1",
+                "context_id": context.context_id,
+                "segments": [segment(**overrides)],
+            }
+        )
+        with pytest.raises(ProviderError, match=code):
+            validate_draft(context, draft, 3500)
 
 
 @pytest.mark.parametrize(

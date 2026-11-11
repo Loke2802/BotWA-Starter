@@ -14,7 +14,11 @@ from sqlalchemy.orm import Session
 
 from app.application.audit.writer import append_non_user_audit
 from app.application.generative_ai import response_pipeline
-from app.application.generative_ai.policy import config_hash, configuration
+from app.application.generative_ai.policy import (
+    config_hash,
+    configuration,
+    recipient_allowed,
+)
 from app.application.generative_ai.response_validation import digest
 from app.application.generative_ai.validation import (
     FALLBACK,
@@ -110,6 +114,7 @@ class AIService:
             or conversation is None
             or conversation.organization_id != job.organization_id
             or conversation.bot_id != job.bot_id
+            or not recipient_allowed(config, conversation.external_customer_id or "")
             or conversation.inbound_message_count != job.sequence
         ):
             return None
@@ -408,7 +413,7 @@ class AIService:
             context["config"] = {
                 k: v
                 for k, v in context["config"].items()
-                if k != "conversational_response"
+                if k not in {"conversational_response", "pilot_recipients"}
             }
         now, attempt_id = datetime.now(UTC), uuid4()
         with self.sessions() as session:

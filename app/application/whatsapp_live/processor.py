@@ -385,7 +385,10 @@ class WhatsAppLiveMessageProcessor:
             self._session.rollback()
             return False
         if attempt.idempotency_key and attempt.idempotency_key.startswith("ai:"):
-            from app.application.generative_ai.policy import config_hash
+            from app.application.generative_ai.policy import (
+                config_hash,
+                recipient_allowed,
+            )
             from app.application.generative_ai.policy import (
                 configuration as ai_configuration,
             )
@@ -419,6 +422,9 @@ class WhatsAppLiveMessageProcessor:
                     or conversation.bot_id != job.bot_id
                     or conversation.inbound_message_count != job.sequence
                     or config is None
+                    or not recipient_allowed(
+                        config, conversation.external_customer_id or ""
+                    )
                     or config_hash(config) != job.config_hash
                     or blocked(self._session, job)
                 ):

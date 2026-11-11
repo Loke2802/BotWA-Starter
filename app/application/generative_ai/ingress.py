@@ -4,7 +4,11 @@ from uuid import UUID, uuid4
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.application.generative_ai.policy import config_hash, configuration
+from app.application.generative_ai.policy import (
+    config_hash,
+    configuration,
+    recipient_allowed,
+)
 from app.domain.channel.contracts import InboundChannelMessage
 from app.infrastructure.models.ai_generation import AIJobModel
 from app.infrastructure.models.conversation import ConversationModel
@@ -22,6 +26,9 @@ class AIIngress:
         )
         if config is None:
             return False
+        if not recipient_allowed(config, message.external_sender_id):
+            # History/receipt still commit, but neither AI nor legacy replies run.
+            return True
         conversation = self.session.scalars(
             select(ConversationModel)
             .where(

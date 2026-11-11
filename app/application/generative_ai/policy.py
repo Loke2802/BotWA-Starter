@@ -36,6 +36,12 @@ def configuration(
 
 def config_hash(config: AIConfig) -> str:
     # Preserve PR44 hashes for queued jobs and configuration without the new flag.
-    return hashlib.sha256(
-        config.model_dump_json(exclude={"conversational_response"}).encode()
-    ).hexdigest()
+    excluded = {"conversational_response"}
+    if config.pilot_recipients is None:
+        excluded.add("pilot_recipients")
+    return hashlib.sha256(config.model_dump_json(exclude=excluded).encode()).hexdigest()
+
+
+def recipient_allowed(config: AIConfig, recipient: str) -> bool:
+    """None preserves existing bots; an explicit empty pilot list denies all."""
+    return config.pilot_recipients is None or recipient in config.pilot_recipients

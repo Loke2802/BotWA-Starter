@@ -1,8 +1,10 @@
 """Provider-neutral, bounded contracts. Model output never grants authority."""
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+type PilotRecipient = Annotated[str, Field(pattern=r"^[1-9][0-9]{7,14}$")]
 
 
 class StrictModel(BaseModel):
@@ -27,11 +29,16 @@ class AIConfig(StrictModel):
     needs: list[NeedDefinition] = Field(default_factory=list, max_length=20)
     daily_jobs: int = Field(default=50, ge=1, le=500)
     conversational_response: ResponseConfig = Field(default_factory=ResponseConfig)
+    pilot_recipients: list[PilotRecipient] | None = Field(default=None, max_length=20)
 
     @model_validator(mode="after")
     def unique_keys(self) -> "AIConfig":
         if len({item.key for item in self.needs}) != len(self.needs):
             raise ValueError("duplicate need key")
+        if self.pilot_recipients is not None and len(set(self.pilot_recipients)) != len(
+            self.pilot_recipients
+        ):
+            raise ValueError("duplicate pilot recipient")
         return self
 
 

@@ -238,6 +238,80 @@ async def test_durable_webhook_generation_outbox_idempotency(runtime: Runtime) -
         assert "Dino" in cipher().decrypt(attempts[0].message_ciphertext)
 
 
+def set_pilot_recipients(runtime: Runtime, recipients: list[str]) -> None:
+    with runtime.sessions() as session:
+        bot = session.get(BotModel, runtime.channel.bot_id)
+        assert bot
+        config = AIConfig.model_validate(bot.settings["generative_ai"]).model_dump()
+        config["pilot_recipients"] = recipients
+        bot.settings = {**bot.settings, "generative_ai": config}
+        session.commit()
+
+
+async def test_pilot_denied_sender_keeps_history_without_ai_or_legacy_reply(
+    runtime: Runtime,
+) -> None:
+    from app.infrastructure.models.message import MessageModel
+
+    set_pilot_recipients(runtime, [])
+    await runtime.inbound()
+    assert not await runtime.service.run_once()
+    with runtime.sessions() as session:
+        messages = session.scalars(select(MessageModel)).all()
+        assert len(messages) == 1 and messages[0].direction == "inbound"
+        assert messages[0].text_ciphertext and not messages[0].content
+        assert not session.scalars(select(AIJobModel)).all()
+        assert not session.scalars(select(OutboundMessageAttemptModel)).all()
+    assert not runtime.provider.calls
+
+
+async def test_pilot_allowed_sender_generates(runtime: Runtime) -> None:
+    set_pilot_recipients(runtime, ["51999999999"])
+    await runtime.inbound()
+    assert await runtime.service.run_once()
+    assert len(runtime.provider.calls) == 2
+    assert all(
+        "pilot_recipients" not in call["config"] for call in runtime.provider.calls
+    )
+
+
+async def test_pilot_revocation_cancels_queued_generation(runtime: Runtime) -> None:
+    set_pilot_recipients(runtime, ["51999999999"])
+    await runtime.inbound()
+    set_pilot_recipients(runtime, [])
+    assert not await runtime.service.run_once()
+    with runtime.sessions() as session:
+        assert session.scalars(select(AIJobModel)).one().status == "cancelled"
+    assert not runtime.provider.calls
+
+
+async def test_pilot_revocation_blocks_ready_response(runtime: Runtime) -> None:
+    set_pilot_recipients(runtime, ["51999999999"])
+    await runtime.inbound()
+    assert await runtime.service.run_once()
+    set_pilot_recipients(runtime, [])
+    await dispatch_one(runtime.service)
+    with runtime.sessions() as session:
+        assert session.scalars(select(AIJobModel)).one().status != "sent"
+        assert not session.scalars(select(OutboundMessageAttemptModel)).all()
+
+
+def test_pilot_contract_and_legacy_hash() -> None:
+    import hashlib
+
+    from app.application.generative_ai.policy import config_hash, recipient_allowed
+
+    legacy = CONFIG.model_dump_json(
+        exclude={"conversational_response", "pilot_recipients"}
+    )
+    assert config_hash(CONFIG) == hashlib.sha256(legacy.encode()).hexdigest()
+    assert recipient_allowed(CONFIG, "51999999999")
+    assert not recipient_allowed(AIConfig(pilot_recipients=[]), "51999999999")
+    for invalid in [["+51999999999"], ["51999999999"] * 2, ["bad"]]:
+        with pytest.raises(ValidationError):
+            AIConfig(pilot_recipients=invalid)
+
+
 async def test_no_checked_out_connection_during_provider(runtime: Runtime) -> None:
     await runtime.inbound()
     engine = runtime.sessions.kw["bind"]

@@ -1,6 +1,7 @@
 from enum import StrEnum
 from functools import lru_cache
 from typing import Annotated, Literal
+from uuid import UUID
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -19,6 +20,12 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    webchat_enabled: bool = False
+    webchat_organization_id: UUID | None = None
+    webchat_bot_id: UUID | None = None
+    webchat_origins: str = ""
+    webchat_session_ttl_seconds: int = Field(default=86400, ge=300, le=86400)
 
     ai_enabled: bool = False
     ai_pilot_scopes: tuple[str, ...] = ()

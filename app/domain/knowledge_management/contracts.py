@@ -49,9 +49,14 @@ class CatalogValidation(BaseModel):
         cls, value: dict[str, object] | None
     ) -> dict[str, object] | None:
         from app.domain.generative_ai.contracts import CatalogItem
+        from app.domain.generative_ai.knowledge_expression import (
+            KnowledgeExpressionPolicy,
+        )
 
         if value is not None and "catalog_item" in value:
             CatalogItem.model_validate(value["catalog_item"])
+        if value is not None and "response_expression" in value:
+            KnowledgeExpressionPolicy.model_validate(value["response_expression"])
         return value
 
 

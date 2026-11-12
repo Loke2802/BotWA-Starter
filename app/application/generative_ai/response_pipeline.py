@@ -16,6 +16,7 @@ from app.application.generative_ai.response_validation import (
 from app.domain.generative_ai.contracts import AdviserResult, AIConfig, ProviderError
 from app.domain.generative_ai.response_contracts import (
     ConversationalDraft,
+    CustomerTurn,
     SemanticReview,
 )
 from app.infrastructure.models.ai_generation import (
@@ -107,7 +108,24 @@ async def compose(
             if cp.response_revoked:
                 raise ProviderError("RESPONSE_CONFIG_CHANGED")
             context_id = str(cp.context_id)
-        context = build_context(context_id, result, config, memory, sources)
+        # Only the latest inbound from the already tenant-scoped snapshot. It
+        # supplies conversational intent, never authority for business claims.
+        latest = next(
+            (
+                m
+                for m in reversed(data["snapshot"]["history"])
+                if m["direction"] == "inbound"
+            ),
+            None,
+        )
+        turn = (
+            CustomerTurn(message_ref=latest["ref"], text=latest["text"])
+            if latest
+            else None
+        )
+        context = build_context(
+            context_id, result, config, memory, sources, customer_turn=turn
+        )
         data["context"] = context.model_dump()
         save(service, job_id, token, data, "context_validated")
         # Both slots are reserved before spending anything on naturalization.
@@ -150,7 +168,10 @@ async def compose(
             "CONTEXT_VERSION_CHANGED",
         }:
             raise
-        text, outcome = base_reply, "fallback"
+        # A rejected naturalization must not mechanically repeat an unsuitable
+        # knowledge CTA when an authorized unanswered question can advance.
+        pending = next((n for n in config.needs if n.key not in memory), None)
+        text, outcome = pending.question if pending else base_reply, "fallback"
         reason = exc.code if isinstance(exc, ProviderError) else "INVALID_SCHEMA"
     with service.sessions() as session:
         job = service._owned(session, job_id, token)

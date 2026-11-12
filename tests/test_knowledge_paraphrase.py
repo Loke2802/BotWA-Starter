@@ -112,6 +112,14 @@ def test_descriptive_source_can_be_reworded_without_copying() -> None:
 
 
 @pytest.mark.parametrize(
+    "content",
+    ["Somos una agencia integral de marketing.", "We are a marketing agency."],
+)
+def test_agency_description_is_not_misclassified_as_an_age_range(content: str) -> None:
+    assert allows_paraphrase(content, policy(content))
+
+
+@pytest.mark.parametrize(
     "expression",
     [
         None,
@@ -151,6 +159,12 @@ def test_missing_invalid_or_stale_permission_keeps_literal_contract(
         "Only available today.",
         "Incluye mantenimiento.",
         "Plazo de ５ días.",
+        "La inversión se define a medida.",
+        "El presupuesto se prepara para cada proyecto.",
+        "Ofrecemos financiación personalizada.",
+        "La cotización se prepara para tu proyecto.",
+        "El alcance se define según el proyecto.",
+        "Ages four to seven.",
     ],
 )
 def test_sensitive_knowledge_cannot_opt_out_of_immutable_clauses(content: str) -> None:

@@ -30,18 +30,19 @@ def content_digest(content: str) -> str:
 SENSITIVE = re.compile(
     r"\d|https?://|www\.|@|[%$€£]|s/|\b(?:"
     r"precio\w*|cost[oea]\w*|tarifa\w*|pago\w*|pag[ao]r\w*|cuota\w*|"
+    r"inversion\w*|presupuesto\w*|financi\w*|cotiza\w*|"
     r"descuento\w*|promocion\w*|oferta\w*|gratis|gratuit\w*|compromiso\w*|"
     r"stock|disponib\w*|garanti\w*|asegur\w*|segur\w*|certific\w*|"
     r"plazo\w*|entrega\w*|horario\w*|edad\w*|ano\w*|mes\w*|dia\w*|hora\w*|"
     r"politica\w*|condicion\w*|termino\w*|contrat\w*|reembolso\w*|"
     r"devolucion\w*|cancel\w*|privacidad|dato\w*|consent\w*|"
     r"no|sin|excepto|salvo|solo|solamente|si|cuando|requiere\w*|depende\w*|"
-    r"sujet\w*|siempre|nunca|hasta|desde|"
+    r"sujet\w*|segun|siempre|nunca|hasta|desde|"
     r"inclu\w*|exclu\w*|limite\w*|minim\w*|maxim\w*|"
     r"telefono\w*|whatsapp|correo\w*|direccion\w*|contact\w*|"
     r"soles|dolar\w*|euros|usd|pen|precio|vale|valor|"
     r"price\w*|cost\w*|free|warrant\w*|refund\w*|stock|available|"
-    r"not|only|if|when|unless|except|until|deadline\w*|day\w*|hour\w*|age\w*"
+    r"not|only|if|when|unless|except|until|deadline\w*|day\w*|hour\w*|age(?:s|d)?"
     r")\b",
     re.I,
 )

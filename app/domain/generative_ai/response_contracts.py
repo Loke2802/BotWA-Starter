@@ -31,6 +31,7 @@ class BusinessFact(ResponseModel):
     source_version: str
     minimum: float | None = None
     maximum: float | None = None
+    authorized_text: str | None = Field(default=None, max_length=800)
 
 
 class AuthorizedClaim(ResponseModel):
@@ -40,6 +41,7 @@ class AuthorizedClaim(ResponseModel):
         "attribute_equals",
         "need_matches_attribute",
         "source_clause",
+        "source_statement",
         "same_published_attribute",
     ]
     fact_refs: list[Ref] = Field(max_length=10)
@@ -53,6 +55,11 @@ class AllowedQuestion(ResponseModel):
     id: str
     need_key: str
     purpose: str
+
+
+class CustomerTurn(ResponseModel):
+    message_ref: Ref
+    text: str = Field(min_length=1, max_length=1200)
 
 
 class ValidatedResponseContext(ResponseModel):
@@ -69,6 +76,7 @@ class ValidatedResponseContext(ResponseModel):
     products: dict[str, str]
     canonical_values: dict[str, str]
     canonical_clauses: dict[str, str]
+    customer_turn: CustomerTurn | None = None
     style: Literal["luri-clear-warm-professional-v1"] = (
         "luri-clear-warm-professional-v1"
     )

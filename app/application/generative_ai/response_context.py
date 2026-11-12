@@ -4,11 +4,13 @@ from typing import Any
 
 from app.application.generative_ai.validation import render
 from app.domain.generative_ai.contracts import AdviserResult, AIConfig, CatalogItem
+from app.domain.generative_ai.knowledge_expression import allows_paraphrase
 from app.domain.generative_ai.response_contracts import (
     AllowedQuestion,
     AuthorizedClaim,
     BusinessFact,
     CustomerNeed,
+    CustomerTurn,
     ValidatedResponseContext,
 )
 
@@ -19,6 +21,8 @@ def build_context(
     config: AIConfig,
     memory: dict[str, Any],
     sources: dict[str, dict[str, Any]],
+    *,
+    customer_turn: CustomerTurn | None = None,
 ) -> ValidatedResponseContext:
     # The projection cannot be used as a bypass around the existing validators.
     render(result, config, memory, sources)
@@ -113,28 +117,33 @@ def build_context(
     for index, quote in enumerate(result.knowledge):
         ref = f"knowledge_{index}"
         source = sources[quote.source_ref]
-        clauses[ref] = quote.quote
+        paraphrase = allows_paraphrase(
+            source["content"], source.get("response_expression")
+        )
+        if not paraphrase:
+            clauses[ref] = quote.quote
         facts.append(
             BusinessFact(
                 id=ref,
                 subject=ref,
-                predicate="source_clause",
+                predicate="source_statement" if paraphrase else "source_clause",
                 value_ref=None,
-                clause_ref=ref,
+                clause_ref=None if paraphrase else ref,
                 source_ref=quote.source_ref,
                 source_version=source["version"],
+                authorized_text=quote.quote if paraphrase else None,
             )
         )
         claims.append(
             AuthorizedClaim(
                 id=f"claim_{ref}",
                 subject_refs=[],
-                predicate="source_clause",
+                predicate="source_statement" if paraphrase else "source_clause",
                 fact_refs=[ref],
                 need_refs=[],
                 allowed_value_refs=[],
-                required_clause_refs=[ref],
-                expression_policy="canonical_clause",
+                required_clause_refs=[] if paraphrase else [ref],
+                expression_policy="paraphrase" if paraphrase else "canonical_clause",
             )
         )
     next_steps = {"human_offer": "Preguntar si desea atención humana; no transferir."}
@@ -166,4 +175,5 @@ def build_context(
         products=products,
         canonical_values=values,
         canonical_clauses=clauses,
+        customer_turn=customer_turn,
     )

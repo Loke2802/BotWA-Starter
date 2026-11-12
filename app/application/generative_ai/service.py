@@ -33,6 +33,7 @@ from app.domain.generative_ai.contracts import (
     Discovery,
     ProviderError,
 )
+from app.domain.generative_ai.knowledge_expression import allows_paraphrase
 from app.domain.generative_ai.ports import AIProvider
 from app.infrastructure.generative_ai.openai_provider import PROMPT_VERSION
 from app.infrastructure.generative_ai.response_prompts import PROMPTS
@@ -65,12 +66,16 @@ def source_data(row: KnowledgeEntryModel) -> dict[str, Any]:
     catalog = row.metadata_data.get("catalog_item")
     if catalog is not None:
         catalog = CatalogItem.model_validate(catalog).model_dump()
-    return {
+    result: dict[str, Any] = {
         "version": utc(row.updated_at).isoformat(),
         "title": row.title,
         "content": row.content[:2000],
         "catalog": catalog,
     }
+    policy = row.metadata_data.get("response_expression")
+    if catalog is None and allows_paraphrase(row.content, policy):
+        result["response_expression"] = policy
+    return result
 
 
 def blocked(session: Session, job: AIJobModel) -> bool:

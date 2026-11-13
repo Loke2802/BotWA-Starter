@@ -8,6 +8,10 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.application.generative_ai.response_context import build_context
+from app.application.generative_ai.response_continuation import (
+    recent_responses,
+    safe_continuation,
+)
 from app.application.generative_ai.response_validation import (
     digest,
     validate_draft,
@@ -95,6 +99,15 @@ async def compose(
         return base_reply
     data.update(base_reply=base_reply, used=used)
     save(service, job_id, token, data, "base_validated")
+    recent = recent_responses(data["snapshot"]["history"])
+    customer_text = next(
+        (
+            m["text"]
+            for m in reversed(data["snapshot"]["history"])
+            if m["direction"] == "inbound"
+        ),
+        "",
+    )
     try:
         with service.sessions() as session:
             job = service._owned(session, job_id, token)
@@ -124,7 +137,13 @@ async def compose(
             else None
         )
         context = build_context(
-            context_id, result, config, memory, sources, customer_turn=turn
+            context_id,
+            result,
+            config,
+            memory,
+            sources,
+            customer_turn=turn,
+            recent_responses=recent,
         )
         data["context"] = context.model_dump()
         save(service, job_id, token, data, "context_validated")
@@ -168,10 +187,18 @@ async def compose(
             "CONTEXT_VERSION_CHANGED",
         }:
             raise
-        # A rejected naturalization must not mechanically repeat an unsuitable
-        # knowledge CTA when an authorized unanswered question can advance.
-        pending = next((n for n in config.needs if n.key not in memory), None)
-        text, outcome = pending.question if pending else base_reply, "fallback"
+        # Reject generated prose, keep only revalidated safe facts and one next
+        # step. A commercial uncertainty must not become a dead-end response.
+        text = safe_continuation(
+            result,
+            config,
+            memory,
+            sources,
+            recent,
+            customer_text,
+            service.settings.whatsapp_outbound_max_text_chars,
+        )
+        outcome = "fallback"
         reason = exc.code if isinstance(exc, ProviderError) else "INVALID_SCHEMA"
     with service.sessions() as session:
         job = service._owned(session, job_id, token)

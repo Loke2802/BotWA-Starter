@@ -92,6 +92,21 @@ tenant or changes the human takeover state.
 
 ## Verification and limitations
 
+Two descriptive sources do not establish a comparative relationship. When a
+customer asks about differences but `authorized_comparisons` is empty, the
+renderer may explain each selected `source_statement` on its own evidence and
+state what cannot be concluded. It must not rank options or infer suitability,
+exclusivity or superiority. The comparison validator and independent semantic
+review remain unchanged; changing a segment label never grants authority.
+
+The `luri-response-4` instructions make this distinction explicit and prioritize
+answering the supported part of the current question before asking for more
+needs. Offline regressions verify that two descriptions can pass structural
+validation, an unlicensed comparison still fails, and a hidden comparison still
+fails a rejecting semantic review. These tests use authored drafts/reviews;
+they do not prove that a live model follows the instructions or detects all
+unsupported implications. Live conversational acceptance remains separate.
+
 Synthetic tests cover opt-in, absent/malformed/stale policy, sensitive clauses,
 catalog isolation, unselected sources, new-number/reference rejection, real
 durable job → review → outbox flow with fake providers, reviewer rejection,

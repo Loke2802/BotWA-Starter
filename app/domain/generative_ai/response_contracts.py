@@ -77,6 +77,9 @@ class ValidatedResponseContext(ResponseModel):
     canonical_values: dict[str, str]
     canonical_clauses: dict[str, str]
     customer_turn: CustomerTurn | None = None
+    recent_responses: list[Annotated[str, Field(min_length=1, max_length=1200)]] = (
+        Field(default_factory=list, max_length=3)
+    )
     style: Literal["luri-clear-warm-professional-v1"] = (
         "luri-clear-warm-professional-v1"
     )

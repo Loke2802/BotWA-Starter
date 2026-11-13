@@ -382,7 +382,9 @@ async def test_rejected_paraphrase_asks_pending_question_instead_of_pasting(
     await dispatch_one(runtime.service)
     with runtime.sessions() as session:
         outbound = session.scalars(select(OutboundMessageAttemptModel)).one()
-        assert cipher().decrypt(outbound.message_ciphertext) == (
+        text = cipher().decrypt(outbound.message_ciphertext)
+        assert text == (
+            "El dinosaurio permite explorar historias mediante el juego.\n\n"
             "¿A qué se dedica tu negocio?"
         )
 

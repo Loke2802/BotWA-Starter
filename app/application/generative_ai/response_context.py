@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from app.application.generative_ai.response_continuation import already_said
 from app.application.generative_ai.validation import render
 from app.domain.generative_ai.contracts import AdviserResult, AIConfig, CatalogItem
 from app.domain.generative_ai.knowledge_expression import allows_paraphrase
@@ -23,9 +24,11 @@ def build_context(
     sources: dict[str, dict[str, Any]],
     *,
     customer_turn: CustomerTurn | None = None,
+    recent_responses: list[str] | None = None,
 ) -> ValidatedResponseContext:
     # The projection cannot be used as a bypass around the existing validators.
     render(result, config, memory, sources)
+    recent = [t[:1200] for t in (recent_responses or []) if t.strip()][-3:]
     values: dict[str, str] = {}
     needs = []
     for key, value in memory.items():
@@ -146,7 +149,13 @@ def build_context(
                 expression_policy="paraphrase" if paraphrase else "canonical_clause",
             )
         )
-    next_steps = {"human_offer": "Preguntar si desea atención humana; no transferir."}
+    next_steps = {
+        "human_offer": "Preguntar si desea atención humana; no transferir.",
+        "clarify_request": (
+            "Pedir el detalle que necesita aclarar para continuar con su consulta; "
+            "no volver a pedir necesidades ya respondidas ni prometer acciones."
+        ),
+    }
     if comparisons:
         next_steps["compare_options"] = (
             "Preguntar si desea comparar las opciones mediante los claims "
@@ -169,11 +178,12 @@ def build_context(
         allowed_questions=[
             AllowedQuestion(id=f"question_{n.key}", need_key=n.key, purpose=n.question)
             for n in config.needs
-            if n.key not in memory
+            if n.key not in memory and not already_said(n.question, recent)
         ],
         allowed_next_steps=next_steps,
         products=products,
         canonical_values=values,
         canonical_clauses=clauses,
         customer_turn=customer_turn,
+        recent_responses=recent,
     )

@@ -100,7 +100,7 @@ def test_previously_asked_configured_question_is_not_asked_again() -> None:
     assert text.endswith(HUMAN_OFFER) and CONFIG.needs[0].question not in text
 
 
-def test_previous_answers_are_not_repeated_or_promoted_to_business_evidence() -> None:
+def test_previous_answers_do_not_veto_selected_facts_or_gain_authority() -> None:
     result, sources = evidence()
     previous = [
         CORPORATE,
@@ -115,8 +115,61 @@ def test_previous_answers_are_not_repeated_or_promoted_to_business_evidence() ->
         [f.model_dump() for f in context.business_facts]
     )
     text = safe_continuation(result, AIConfig(), {}, sources, previous)
-    assert CORPORATE not in text and CATALOG in text
+    assert CORPORATE in text and CATALOG in text
     assert text.endswith(CLARIFY_REQUEST) and "unlimited" not in text
+
+
+def test_repeat_request_keeps_the_only_selected_fact_after_review_rejection() -> None:
+    # Regression: the only selected, still-valid fact appeared in recent output.
+    # Repetition must not turn available evidence into a global lack of evidence.
+    result, sources = evidence()
+    result = result.model_copy(update={"knowledge": result.knowledge[:1]})
+    text = safe_continuation(
+        result,
+        AIConfig(),
+        {},
+        sources,
+        [CORPORATE],
+        "Antes de decidir, ¿qué me aporta la web corporativa?",
+    )
+    assert text == "\n\n".join([CORPORATE, HUMAN_OFFER])
+    assert CATALOG not in text and UNCONFIRMED not in text
+
+
+def test_selected_catalog_facts_survive_repetition_without_repeating_question() -> None:
+    result, _ = evidence()
+    result = AdviserResult.model_validate(
+        {
+            **result.model_dump(),
+            "knowledge": [],
+            "recommendations": [
+                {
+                    "item_ref": "service",
+                    "matches": [{"need_key": "objetivo", "attribute_key": "objetivo"}],
+                }
+            ],
+        }
+    )
+    sources = {
+        "service": {
+            "version": "v1",
+            "catalog": {
+                "name": "Servicio web",
+                "attributes": [
+                    {"key": "objetivo", "label": "Objetivo", "value": "presentar"}
+                ],
+            },
+        }
+    }
+    memory = {"objetivo": {"value": "presentar"}}
+    previous = "Servicio web: coincide con lo que buscas. Objetivo: presentar."
+    text = safe_continuation(result, CONFIG, memory, sources, [previous, HUMAN_OFFER])
+    assert text == "\n\n".join([previous, CLARIFY_REQUEST])
+    assert UNCONFIRMED not in text and HUMAN_OFFER not in text
+    with pytest.raises(ProviderError, match="UNSUPPORTED_RECOMMENDATION"):
+        safe_continuation(
+            result, CONFIG, {"objetivo": {"value": "otra cosa"}}, sources, [previous]
+        )
 
 
 def test_history_projection_is_bounded_and_does_not_include_inbound_commands() -> None:
@@ -281,6 +334,9 @@ async def test_rejected_draft_keeps_facts_and_skips_recent_question(
     provider = prepare(runtime)
     provider.reject = True
     question = "¿A qué se dedica tu negocio?"
+    prior_reply = (
+        "El dinosaurio permite explorar historias mediante el juego.\n\n" + question
+    )
     with runtime.sessions() as session:
         bot = session.get(BotModel, runtime.channel.bot_id)
         assert bot
@@ -301,7 +357,7 @@ async def test_rejected_draft_keeps_facts_and_skips_recent_question(
                 role="assistant",
                 direction="outbound",
                 content="[encrypted]",
-                text_ciphertext=cipher().encrypt(question),
+                text_ciphertext=cipher().encrypt(prior_reply),
                 delivery_status="sent",
                 created_at=datetime.now(UTC),
             )
@@ -310,10 +366,20 @@ async def test_rejected_draft_keeps_facts_and_skips_recent_question(
     await runtime.service.run_once()
     await dispatch_one(runtime.service)
     with runtime.sessions() as session:
+        cp = session.scalars(select(AIResponseCheckpointModel)).one()
+        assert cp.outcome == "fallback" and cp.reason_code == "REVIEW_UNSUPPORTED_CLAIM"
         out = session.scalars(select(OutboundMessageAttemptModel)).one()
         text = cipher().decrypt(out.message_ciphertext)
         assert "El dinosaurio permite explorar historias" in text
         assert text.endswith(HUMAN_OFFER) and question not in text
+        assert UNCONFIRMED not in text
+        assert out.attempt_count == 1
     projected = next(c for c in provider.calls if "authorized_claims" in c)
-    assert projected["recent_responses"] == [question]
+    assert projected["recent_responses"] == [prior_reply]
     assert projected["allowed_questions"] == []
+    assert provider.stages == [
+        "discovery",
+        "adviser",
+        "conversational_render",
+        "semantic_review",
+    ]

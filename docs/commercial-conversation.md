@@ -47,7 +47,8 @@ For ordinary drafting/review errors, the exceptional fallback:
 1. Revalidates the selected references and exact quotations with the existing
    renderer. It does not select extra retrieved sources.
 2. May retain the original short, explicitly approved descriptive statements and
-   validated catalog wording. Repeated statements are omitted. Unclassified or
+   validated catalog wording, even when stated in recent replies: history does
+   not revoke the authority of a still-selected fact. Unclassified or
    protected free-form knowledge is not freely rewritten by this fallback.
 3. Adds one unanswered, not-recently-asked configured question. If none exists,
    it may offer human help without announcing or executing a transfer. If that
@@ -78,6 +79,7 @@ The following rubric is also required for a separately authorized live evaluatio
 | Some information is unavailable | Answer the supported part, delimit the gap and propose one useful step | Global refusal that discards available facts |
 | All configured needs are known | Continue resolving the request or offer an appropriate next step | Repeat discovery questions or end with no way forward |
 | A recent question was ignored | Avoid mechanically asking it again | Loop through the same wording |
+| Customer asks again about an already explained service | Preserve selected, revalidated facts in the rejection fallback while avoiding repeated questions | Say information is unavailable solely because a fact appeared earlier |
 | A draft includes a forbidden literal | Reject it and continue safely without another provider call | Relax literal controls or retry indefinitely |
 | Human help was already offered | Clarify the unresolved detail without another identical offer | Repeated handoff pressure or pretending a transfer occurred |
 | Customer declines to continue | Acknowledge and stop selling | Another sales question |

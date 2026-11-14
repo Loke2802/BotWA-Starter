@@ -68,19 +68,20 @@ def safe_continuation(
             memory,
             sources,
         )
-        if not already_said(catalog_text, recent):
-            facts.append(catalog_text)
+        facts.append(catalog_text)
     for quote in result.knowledge:
         source = sources[quote.source_ref]
         if (
             not source.get("catalog")
             and allows_paraphrase(source["content"], source.get("response_expression"))
             and not any(mark in quote.quote for mark in ("?", "¿"))
-            and not already_said(quote.quote, recent)
         ):
             # The exceptional path uses the original short descriptive fact.
             # No paraphrase, inferred benefit, price or new promise is inserted.
             facts.append(quote.quote)
+    # Selected, revalidated facts still answer this turn even if stated before.
+    # History may suppress a repeated question/offer, never veto business evidence
+    # and turn a known fact into a claim that no information is available.
     pending = next(
         (
             n.question

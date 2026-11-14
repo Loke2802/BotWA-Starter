@@ -45,6 +45,11 @@ from app.security.secret_cipher import EnvironmentSecretCipher
 
 logger = structlog.get_logger(__name__)
 
+HANDOFF_UNAVAILABLE = (
+    "Por ahora no puedo pasarte con un asesor por este medio, "
+    "pero sigo aquí para ayudarte."
+)
+
 
 async def dispatch_one(service: AIService) -> bool:
     """Only handles outbox entries owned by ai_job; legacy recovery stays off."""
@@ -147,9 +152,11 @@ async def dispatch_one(service: AIService) -> bool:
                             job.organization_id, job.bot_id, job.conversation_id
                         )
                 except ValueError:
-                    result["reply"] = (
-                        "No puedo transferir esta conversación automáticamente. "
-                        "Puedes contactar al negocio por su canal de atención habitual."
+                    # Handoff unavailable (disabled, plan or already active): say
+                    # so honestly but keep the validated reply so the customer can
+                    # go on instead of being sent to another channel.
+                    result["reply"] = "\n\n".join(
+                        part for part in (HANDOFF_UNAVAILABLE, result["reply"]) if part
                     )
                 else:
                     job.status = "handoff"

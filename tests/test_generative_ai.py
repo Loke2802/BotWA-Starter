@@ -937,3 +937,25 @@ async def test_assistant_requests_real_handoff_without_impersonation(
             session.scalars(select(HandoffSessionModel)).one().status == "waiting_human"
         )
         assert not session.scalars(select(OutboundMessageAttemptModel)).all()
+
+
+async def test_unavailable_handoff_keeps_conversation_going(runtime: Runtime) -> None:
+    from app.infrastructure.models.human_handoff import HandoffSessionModel
+    from app.operations.ai_consumer import HANDOFF_UNAVAILABLE
+
+    await runtime.inbound()
+    await runtime.service.run_once()
+    with runtime.sessions() as session:
+        job = session.scalars(select(AIJobModel)).one()
+        # No business configuration: handoff is disabled for this bot.
+        job.result_ciphertext = cipher().encrypt(
+            json.dumps({"reply": "¿Qué edad tiene?", "handoff": True})
+        )
+        session.commit()
+    await dispatch_one(runtime.service)
+    with runtime.sessions() as session:
+        assert not session.scalars(select(HandoffSessionModel)).all()
+        attempt = session.scalars(select(OutboundMessageAttemptModel)).one()
+        text = cipher().decrypt(attempt.message_ciphertext)
+    assert text == f"{HANDOFF_UNAVAILABLE}\n\n¿Qué edad tiene?"
+    assert "canal de atención habitual" not in text

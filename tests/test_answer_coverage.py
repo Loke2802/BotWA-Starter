@@ -55,6 +55,51 @@ EXPLORE = "¿Cuál de estas opciones te gustaría explorar?"
 
 
 @pytest.mark.parametrize(
+    "utterance",
+    [
+        "Qué me aporta un kit educativo y qué me aporta un libro ilustrado",
+        "Como me ayudaria un kit educativo y como me ayudaria un libro ilustrado",
+        "Explícame el kit educativo y el libro ilustrado para mi caso",
+        "Quiero entender el kit educativo y el libro ilustrado",
+        "Explain kit educativo and libro ilustrado",
+    ],
+)
+def test_explicit_explanation_without_question_mark_covers_both_sources(
+    utterance: str,
+) -> None:
+    result, sources = evidence()
+    refs = requested_descriptions(utterance, sources)
+    assert refs == ["kit", "book"]
+    context = build_context(
+        "unpunctuated",
+        complete_descriptions(result, refs, sources),
+        AIConfig(),
+        {},
+        sources,
+        customer_turn=CustomerTurn(message_ref="inbound", text=utterance),
+    )
+    assert len(context.required_claim_refs) == 2
+    assert "explore_options" in context.allowed_next_steps
+    assert "clarify_request" not in context.allowed_next_steps
+    assert context.authorized_comparisons == []
+
+
+@pytest.mark.parametrize(
+    "utterance",
+    [
+        "No me expliques el kit educativo y el libro ilustrado",
+        "Ya conozco el kit educativo y el libro ilustrado",
+        "Don't explain kit educativo and libro ilustrado",
+    ],
+)
+def test_unpunctuated_negation_and_statements_do_not_expand_coverage(
+    utterance: str,
+) -> None:
+    _, sources = evidence()
+    assert requested_descriptions(utterance, sources) == []
+
+
+@pytest.mark.parametrize(
     "question",
     [
         "¿Qué me aporta un kit educativo?",

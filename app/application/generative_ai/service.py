@@ -9,11 +9,16 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ValidationError
-from sqlalchemy import func, or_, select, text
+from sqlalchemy import case, func, literal, or_, select, text
 from sqlalchemy.orm import Session
 
 from app.application.audit.writer import append_non_user_audit
 from app.application.generative_ai import response_pipeline
+from app.application.generative_ai.answer_coverage import (
+    complete_descriptions,
+    requested_descriptions,
+    retrieval_words,
+)
 from app.application.generative_ai.policy import (
     config_hash,
     configuration,
@@ -494,8 +499,23 @@ class AIService:
                         attempt.model = generation.usage.model[:100]
                     session.commit()
 
+    def record_diagnostics(
+        self, job_id: UUID, token: UUID, stage: str, key: str, values: dict[str, object]
+    ) -> None:
+        """Backend-constructed counts/source IDs/codes, never text or prompts."""
+        with self.sessions() as session:
+            self._owned(session, job_id, token)
+            row = session.scalars(
+                select(AIAttemptModel)
+                .where(AIAttemptModel.job_id == job_id, AIAttemptModel.stage == stage)
+                .order_by(AIAttemptModel.started_at.desc(), AIAttemptModel.id.desc())
+            ).first()
+            if row is not None:
+                row.parameters = {**row.parameters, key: values}
+                session.commit()
+
     def retrieve(
-        self, job_id: UUID, token: UUID, terms: list[str]
+        self, job_id: UUID, token: UUID, terms: list[str], customer_text: str = ""
     ) -> dict[str, dict[str, Any]]:
         checkpoint_data = response_pipeline.load(self, job_id, token)
         if checkpoint_data is not None and "sources" in checkpoint_data:
@@ -521,6 +541,8 @@ class AIService:
             words = [
                 w[:50] for term in terms for w in re.findall(r"\w+", term) if len(w) > 2
             ][:12]
+            if customer_text:
+                words = retrieval_words(terms, customer_text)
             if words:
                 query = query.where(
                     or_(
@@ -531,6 +553,18 @@ class AIService:
                         ]
                     )
                 )
+            if customer_text and words:
+                score = sum(
+                    (
+                        case((KnowledgeEntryModel.title.ilike(f"%{word}%"), 3), else_=0)
+                        + case(
+                            (KnowledgeEntryModel.content.ilike(f"%{word}%"), 1), else_=0
+                        )
+                        for word in words
+                    ),
+                    start=literal(0),
+                )
+                query = query.order_by(score.desc())
             rows = session.scalars(
                 query.order_by(KnowledgeEntryModel.id).limit(12)
             ).all()
@@ -568,7 +602,21 @@ class AIService:
                     if item["direction"] == "inbound"
                 },
             )
-            sources = self.retrieve(job_id, token, discovery.search_terms)
+            customer_text = (
+                next(
+                    (
+                        m["text"]
+                        for m in reversed(snapshot["history"])
+                        if m["direction"] == "inbound"
+                    ),
+                    "",
+                )
+                if config.conversational_response.enabled
+                else ""
+            )
+            sources = self.retrieve(
+                job_id, token, discovery.search_terms, customer_text
+            )
             if discovery.handoff_requested:
                 result = AdviserResult(
                     tone="unknown",
@@ -592,8 +640,33 @@ class AIService:
                         AdviserResult,
                     )
                 )
+            proposed_refs = sorted(
+                set(sources).intersection(
+                    [q.source_ref for q in result.knowledge]
+                    + [r.item_ref for r in result.recommendations]
+                )
+            )
+            requested_refs = requested_descriptions(customer_text, sources)
+            result = complete_descriptions(result, requested_refs, sources)
             result = salvage(result, config, memory, sources)
             reply, used = render(result, config, memory, sources)
+            if (
+                config.conversational_response.enabled
+                and not discovery.handoff_requested
+            ):
+                self.record_diagnostics(
+                    job_id,
+                    token,
+                    "adviser",
+                    "source_coverage",
+                    {
+                        "retrieved_count": len(sources),
+                        "retrieved_refs": sorted(sources),
+                        "proposed_refs": proposed_refs,
+                        "requested_refs": requested_refs,
+                        "validated_refs": sorted(used),
+                    },
+                )
             reply = await response_pipeline.compose(
                 self, job_id, token, result, config, memory, sources, reply, used
             )

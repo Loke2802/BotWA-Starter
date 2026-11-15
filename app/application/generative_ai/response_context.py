@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from app.application.generative_ai.answer_coverage import requested_descriptions
 from app.application.generative_ai.response_continuation import already_said
 from app.application.generative_ai.validation import render
 from app.domain.generative_ai.contracts import AdviserResult, AIConfig, CatalogItem
@@ -149,6 +150,15 @@ def build_context(
                 expression_policy="paraphrase" if paraphrase else "canonical_clause",
             )
         )
+    requested_refs = requested_descriptions(
+        customer_turn.text if customer_turn else "",
+        {q.source_ref: sources[q.source_ref] for q in result.knowledge},
+    )
+    required_claims = [
+        f"claim_knowledge_{i}"
+        for i, q in enumerate(result.knowledge)
+        if q.source_ref in requested_refs
+    ]
     next_steps = {
         "human_offer": "Preguntar si desea atención humana; no transferir.",
         "clarify_request": (
@@ -156,6 +166,12 @@ def build_context(
             "no volver a pedir necesidades ya respondidas ni prometer acciones."
         ),
     }
+    if required_claims:
+        next_steps.pop("clarify_request")
+        next_steps["explore_options"] = (
+            "Preguntar cuál de las opciones explicadas desea explorar; "
+            "no afirmar superioridad ni ejecutar acciones."
+        )
     if comparisons:
         next_steps["compare_options"] = (
             "Preguntar si desea comparar las opciones mediante los claims "
@@ -186,4 +202,5 @@ def build_context(
         canonical_clauses=clauses,
         customer_turn=customer_turn,
         recent_responses=recent,
+        required_claim_refs=required_claims,
     )

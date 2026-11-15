@@ -1,6 +1,7 @@
 """Optional durable response stages on the existing job and fenced lease."""
 
 import json
+from collections import Counter
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
@@ -175,7 +176,29 @@ async def compose(
                 SemanticReview,
             )
         )
-        validate_review(context, draft, text, review)
+        # Bounded enum codes survive terminal ciphertext cleanup; no rejected
+        # draft, customer text, evidence text or provider rationale is retained.
+        review_failure = None
+        try:
+            validate_review(context, draft, text, review)
+        except ProviderError as review_error:
+            if not review_error.code.startswith("REVIEW_"):
+                raise
+            review_failure = review_error
+        service.record_diagnostics(
+            job_id,
+            token,
+            "semantic_review",
+            "review_summary",
+            {
+                "approved": review.approved,
+                "rejected_codes": dict(
+                    Counter(s.reason_code for s in review.segments if not s.approved)
+                ),
+            },
+        )
+        if review_failure is not None:
+            raise review_failure
         outcome, reason = "approved", None
     except (ProviderError, ValidationError) as exc:
         if isinstance(exc, ProviderError) and exc.code in {

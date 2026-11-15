@@ -4,6 +4,10 @@ import re
 import unicodedata
 from typing import Any
 
+from app.application.generative_ai.answer_coverage import (
+    EXPLORE_OPTIONS,
+    requested_descriptions,
+)
 from app.application.generative_ai.validation import render
 from app.domain.generative_ai.contracts import AdviserResult, AIConfig, ProviderError
 from app.domain.generative_ai.knowledge_expression import allows_paraphrase
@@ -93,7 +97,16 @@ def safe_continuation(
         ),
         None,
     )
-    if pending:
+    selected = {q.source_ref: sources[q.source_ref] for q in result.knowledge}
+    explaining_options = bool(requested_descriptions(customer_text, selected))
+    if explaining_options and not already_said(EXPLORE_OPTIONS, recent):
+        next_step = EXPLORE_OPTIONS
+    elif explaining_options and not pending:
+        next_step = (
+            "Puedes indicarme cuál de estas opciones deseas explorar "
+            "cuando estés listo."
+        )
+    elif pending:
         next_step = pending
     elif not already_said(HUMAN_OFFER, recent):
         next_step = HUMAN_OFFER

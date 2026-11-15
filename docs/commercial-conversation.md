@@ -20,8 +20,8 @@ conversion, search ranking, exclusivity, ROI, availability or superiority.
 Comparative claims still require the existing typed comparative authority.
 Sensitive values and protected conditions keep their placeholder/clause rules.
 
-Instructions are versioned independently: adviser `luri-adviser-4`, renderer
-`luri-response-5`, reviewer `luri-review-3`. There are no new calls, repair loops,
+Instructions are versioned independently: adviser `luri-adviser-5`, renderer
+`luri-response-6`, reviewer `luri-review-4`. There are no new calls, repair loops,
 tools, provider/model changes, dependencies, environment variables or migrations.
 
 ## Scoped conversational continuity
@@ -37,6 +37,47 @@ Questions matching recent wording after case/punctuation normalization are also
 excluded. The independent reviewer checks semantic repetition using the recent
 responses. The deterministic check does not recognize every paraphrased question
 or every closing request; do not present it as complete intent understanding.
+
+## Covering two explicitly named descriptions
+
+With the conversational lane enabled, bounded current-turn search words precede
+discovery suggestions. Scoped published-source filtering still precedes the
+twelve-row limit; title/content lexical relevance now orders the candidates,
+with source ID breaking ties. This improves retrieval but is not semantic search
+or a guarantee of recall from a large catalog. The original lane keeps its prior
+retrieval behavior.
+
+A narrow backend guard recognizes a positive question containing exactly two
+unambiguous multiword source labels written as `Subject: description` in their
+published titles. Matching ignores accents/case, requires whole phrases and
+excludes overlapping labels, negations, statement-only turns, catalog items and
+sources lacking a valid descriptive-paraphrase opt-in. This is lexical coverage,
+not universal intent classification: aliases, pronouns, indirect questions and
+three-way comparisons remain outside this guard.
+
+Before ordinary `salvage`/`render` validation, the backend can complete those two
+description selections with their full original statements. It does not insert
+new retrieved sources during fallback, infer compatibility, select an unmentioned
+service or create a comparative claim. Requested handoffs remain unchanged.
+Both selected source versions participate in normal pre-send source fencing.
+
+The authorized response context carries `required_claim_refs` (default empty for
+older contexts). Each required description must be cited in an explanatory
+`recommendation` segment; otherwise `INCOMPLETE_EXPLANATION` rejects the draft
+without spending the reserved review call. References alone do not prove semantic
+coverage: the independent reviewer still rejects unsupported meaning. No new
+repair call is made. The two-description context permits `explore_options` and
+omits the generic `clarify_request` invitation. A rejected draft preserves only
+the selected revalidated facts and asks which option to explore, avoiding an
+identical recent invitation.
+
+Backend-built diagnostics in existing attempt `parameters` retain retrieved,
+proposed, requested and validated source IDs/counts. Structurally valid semantic
+reviews retain approval and bounded rejection-code counts. They do not retain
+search terms, titles, content, customer messages, rejected drafts or provider
+rationale. Terminal ciphertext cleanup remains unchanged. These diagnostics
+separate retrieval omission, adviser omission, validation loss and review rejection
+on a future authorized test; they cannot reconstruct a cleaned historical draft.
 
 ## Rejected generation: useful safe continuation
 
@@ -102,6 +143,11 @@ allowlist, quotas, flags and infrastructure. Do not edit real sources or expand
 traffic to enable it. Publication, merging and staging deployment require the
 owner's specific authorization; live evaluation needs a separately approved
 budget and test scope. No paid evaluation is part of the offline work.
+
+Before rolling back to a binary that does not recognize `required_claim_refs`,
+stop new AI admissions and drain or cancel active jobs through the canonical
+mechanisms. An older strict context reader must not consume newer checkpoint
+JSON, even though the database schema has not changed. Do not delete job data.
 
 Rollback uses the previous immutable image and build SHA, preserving data and
 infrastructure. The existing conversational-response flag can disable the new

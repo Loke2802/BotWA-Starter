@@ -123,6 +123,14 @@ def validate_draft(
 
         output.append(TOKEN.sub(replace, segment.text))
     required = {r for c in mentioned_claims for r in claims[c].required_clause_refs}
+    explained = {
+        ref
+        for s in draft.segments
+        if s.kind == "recommendation"
+        for ref in s.claim_refs
+    }
+    if not set(context.required_claim_refs).issubset(explained):
+        raise ProviderError("INCOMPLETE_EXPLANATION")
     if not required.issubset(inserted_clauses):
         raise ProviderError("MISSING_CANONICAL_CLAUSE")
     text = "\n\n".join(output)

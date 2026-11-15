@@ -21,8 +21,34 @@ Comparative claims still require the existing typed comparative authority.
 Sensitive values and protected conditions keep their placeholder/clause rules.
 
 Instructions are versioned independently: adviser `luri-adviser-5`, renderer
-`luri-response-6`, reviewer `luri-review-4`. There are no new calls, repair loops,
+`luri-response-7`, reviewer `luri-review-5`. There are no new calls, repair loops,
 tools, provider/model changes, dependencies, environment variables or migrations.
+
+## Applying a description to the customer's situation
+
+The renderer and independent reviewer explicitly distinguish **the customer's
+declared situation** from **confirmed provider capabilities**. For an opted-in
+descriptive statement, the renderer may apply the same supported operation to
+the customer's stated business or object. For example, a source authorizing a
+catalog that presents services in an organized way, together with the customer's
+statement that they run a workshop and want to show their services, supports
+explaining that it can present their workshop's services in an organized way.
+It does not establish bookings, payments, particular repair services, increased
+sales or superior fit. Softening an invented feature with “could” does not help.
+
+Use the existing evidence-backed needs and segment `need_refs` when available;
+otherwise frame current-turn details as what the customer says. Recent generated
+answers and assumed industry knowledge never provide missing facts. A requested
+feature is not an offered feature. With no relevant situation, a general grounded
+explanation remains valid; do not invent personalization or ask redundant needs.
+Protected clauses, comparisons, source versions and the original validators are
+unchanged. No context fields, new permission or model-created facts are added.
+
+This is a prompt-only increment. Authored draft/review fixtures exercise the
+existing references, rejection and delivery path; they cannot prove that Luna
+will personalize correctly or that its reviewer will detect every inference.
+A separately authorized live test must still inspect the actual delivered text.
+The earlier two-description trial validates coverage only, not this new guidance.
 
 ## Scoped conversational continuity
 
@@ -117,6 +143,9 @@ The following rubric is also required for a separately authorized live evaluatio
 | --- | --- | --- |
 | Customer asks what a service contributes | Explain the relevant authorized property in natural language | Generic agency introduction or an invented sales outcome |
 | Two options have descriptive sources | Explain each on its own evidence | Unsupported ranking, superiority or forced catalog match |
+| Customer declared a relevant business and goal | Apply each supported property to that stated situation | Repeat generic definitions or invent industry features/results |
+| Customer wants an unconfirmed feature | Delimit that feature while explaining supported uses | Treat a wish as an offered capability, even hypothetically |
+| No relevant customer situation is known | Explain the grounded facts generally | Invent a sector or restart discovery unnecessarily |
 | Some information is unavailable | Answer the supported part, delimit the gap and propose one useful step | Global refusal that discards available facts |
 | All configured needs are known | Continue resolving the request or offer an appropriate next step | Repeat discovery questions or end with no way forward |
 | A recent question was ignored | Avoid mechanically asking it again | Loop through the same wording |

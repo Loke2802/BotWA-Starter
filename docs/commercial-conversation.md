@@ -73,13 +73,18 @@ with source ID breaking ties. This improves retrieval but is not semantic search
 or a guarantee of recall from a large catalog. The original lane keeps its prior
 retrieval behavior.
 
-A narrow backend guard recognizes a positive question containing exactly two
+A narrow backend guard recognizes a positive question or explicit explanation
+request containing exactly two
 unambiguous multiword source labels written as `Subject: description` in their
 published titles. Matching ignores accents/case, requires whole phrases and
 excludes overlapping labels, negations, statement-only turns, catalog items and
 sources lacking a valid descriptive-paraphrase opt-in. This is lexical coverage,
 not universal intent classification: aliases, pronouns, indirect questions and
-three-way comparisons remain outside this guard.
+three-way comparisons remain outside this guard. Missing question punctuation
+does not disable a small set of explicit requests, such as “qué me aporta”,
+“cómo me ayudaría”, “explícame”, “quiero entender” and “explain”. Declarative turns
+without one of those signals remain excluded. This is not universal language
+understanding and does not remove the existing negation or ambiguity guards.
 
 Before ordinary `salvage`/`render` validation, the backend can complete those two
 description selections with their full original statements. It does not insert
@@ -99,7 +104,9 @@ identical recent invitation.
 
 Backend-built diagnostics in existing attempt `parameters` retain retrieved,
 proposed, requested and validated source IDs/counts. Structurally valid semantic
-reviews retain approval and bounded rejection-code counts. They do not retain
+reviews retain approval, bounded rejection-code counts and, for each rejected
+segment, its position, enum kind and enum reason code. No segment identifiers or
+text are stored in these diagnostics. They do not retain
 search terms, titles, content, customer messages, rejected drafts or provider
 rationale. Terminal ciphertext cleanup remains unchanged. These diagnostics
 separate retrieval omission, adviser omission, validation loss and review rejection

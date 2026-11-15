@@ -195,6 +195,16 @@ async def compose(
                 "rejected_codes": dict(
                     Counter(s.reason_code for s in review.segments if not s.approved)
                 ),
+                "rejected_segments": [
+                    {
+                        "position": index,
+                        "kind": segment.kind,
+                        "reason_code": verdict.reason_code,
+                    }
+                    for index, segment in enumerate(draft.segments)
+                    for verdict in review.segments
+                    if verdict.segment_id == segment.id and not verdict.approved
+                ],
             },
         )
         if review_failure is not None:

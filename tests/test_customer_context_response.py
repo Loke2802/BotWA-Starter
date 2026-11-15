@@ -81,6 +81,7 @@ def test_customer_situation_and_goal_do_not_create_provider_facts() -> None:
             "context_id": context.context_id,
             "segments": [
                 segment(
+                    id="private_draft_identifier",
                     kind="recommendation",
                     text="Para mostrar los servicios de tu taller, el catálogo "
                     "permite presentarlos de forma ordenada.",
@@ -127,6 +128,7 @@ class CustomerContextProvider(ParaphraseProvider):
             "context_id": data["context_id"],
             "segments": [
                 segment(
+                    id="private_draft_identifier",
                     kind="recommendation",
                     text=text,
                     claim_refs=[data["authorized_claims"][0]["id"]],
@@ -168,6 +170,23 @@ async def test_contextualized_draft_still_requires_review_and_delivers_once(
         assert {a.prompt_version for a in attempts if a.stage == "semantic_review"} == {
             "luri-review-5"
         }
+        summary = next(a for a in attempts if a.stage == "semantic_review").parameters[
+            "review_summary"
+        ]
+        assert isinstance(summary, dict)
+        assert summary["rejected_segments"] == (
+            [
+                {
+                    "position": 0,
+                    "kind": "recommendation",
+                    "reason_code": "UNSUPPORTED_CLAIM",
+                }
+            ]
+            if reject
+            else []
+        )
+        assert "private_draft_identifier" not in json.dumps(summary)
+        assert "sobrino" not in json.dumps(summary)
     render = next(c for c in provider.calls if "authorized_claims" in c)
     review = next(c for c in provider.calls if "expanded_text" in c)
     assert render == review["context"]

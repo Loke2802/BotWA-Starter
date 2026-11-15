@@ -13,6 +13,13 @@ from app.domain.generative_ai.contracts import AdviserResult, KnowledgeQuote
 from app.domain.generative_ai.knowledge_expression import allows_paraphrase
 
 EXPLORE_OPTIONS = "¿Cuál de estas opciones te gustaría explorar?"
+# Explicit explanation requests need not use punctuation in messaging. This is
+# a bounded lexical signal, not an inferred recommendation or general intent model.
+EXPLANATION_REQUEST = re.compile(
+    r"\b(?:explicame|explicanos|explain|quiero (?:entender|saber)|"
+    r"(?:que|como) (?:(?:me|nos) )?"
+    r"(?:aporta|aportan|ayuda|ayudan|ayudaria|ayudarian|sirve|sirven))\b"
+)
 STOP_WORDS = {
     "que",
     "qué",
@@ -79,12 +86,16 @@ def retrieval_words(terms: list[str], customer_text: str) -> list[str]:
 
 
 def requested_descriptions(text: str, sources: dict[str, dict[str, Any]]) -> list[str]:
-    # Only a positive question naming exactly two unambiguous multiword labels
+    # Only a positive request naming exactly two unambiguous multiword labels
     # of the form "Subject: ...". Negation/overlap/ambiguity fail closed. Generic
     # questions, aliases, implicit subjects and recommendations stay with Luna.
     turn = normalized(text)
-    if "?" not in text or set(turn.split()).intersection(
-        {"no", "sin", "not", "without", "nunca"}
+    if (
+        ("?" not in text and EXPLANATION_REQUEST.search(turn) is None)
+        or set(turn.split()).intersection(
+            {"no", "sin", "not", "without", "nunca", "never"}
+        )
+        or re.search(r"\b(?:don t|dont)\b", turn)
     ):
         return []
     matches: list[tuple[int, int, str]] = []

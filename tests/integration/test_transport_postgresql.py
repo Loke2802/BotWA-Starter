@@ -1,6 +1,7 @@
 """Real PostgreSQL receipt locks and outbox claims, with fake delivery only."""
 
 import asyncio
+import hashlib
 import os
 import runpy
 import time
@@ -78,7 +79,7 @@ def test_two_processes_claim_one_delivery() -> None:
             organization_id=cfg.organization_id,
             bot_id=cfg.bot_id,
             channel_configuration_id=cfg.id,
-            external_recipient_hash="test",
+            external_recipient_hash=hashlib.sha256(b"12025550148").hexdigest(),
             external_recipient_ciphertext=cipher().encrypt("12025550148"),
             message_ciphertext=cipher().encrypt("Test only"),
             status="pending",

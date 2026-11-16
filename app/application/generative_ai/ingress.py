@@ -5,9 +5,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.application.generative_ai.policy import (
-    config_hash,
     configuration,
+    conversation_allowed,
+    job_policy_hash,
     recipient_allowed,
+    record_ad_origin,
 )
 from app.domain.channel.contracts import InboundChannelMessage
 from app.infrastructure.models.ai_generation import AIJobModel
@@ -26,9 +28,6 @@ class AIIngress:
         )
         if config is None:
             return False
-        if not recipient_allowed(config, message.external_sender_id):
-            # History/receipt still commit, but neither AI nor legacy replies run.
-            return True
         conversation = self.session.scalars(
             select(ConversationModel)
             .where(
@@ -38,6 +37,23 @@ class AIIngress:
             )
             .with_for_update()
         ).one()
+        if (
+            conversation.external_customer_id != message.external_sender_id
+            or conversation.channel_configuration_id != context.channel_configuration_id
+        ):
+            raise ValueError("AI ingress route mismatch")
+        record_ad_origin(
+            conversation,
+            message.metadata.get("whatsapp_ad_source_id"),
+            context.channel_configuration_id,
+        )
+        if not recipient_allowed(
+            config, message.external_sender_id
+        ) or not conversation_allowed(
+            config, conversation, context.channel_configuration_id
+        ):
+            # History/receipt still commit, but neither AI nor legacy replies run.
+            return True
         receipt_id = UUID(str(message.metadata["receipt_id"]))
         exists = self.session.scalar(
             select(AIJobModel.id).where(AIJobModel.receipt_id == receipt_id)
@@ -55,7 +71,14 @@ class AIIngress:
                     sequence=conversation.inbound_message_count,
                     created_at=now,
                     available_at=now,
-                    config_hash=config_hash(config),
+                    config_hash=job_policy_hash(
+                        config,
+                        conversation,
+                        context.channel_configuration_id,
+                        receipt_id,
+                        conversation.inbound_message_count,
+                        context.external_channel_id,
+                    ),
                 )
             )
             self.session.flush()

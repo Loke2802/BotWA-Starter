@@ -30,6 +30,7 @@ class AIConfig(StrictModel):
     daily_jobs: int = Field(default=50, ge=1, le=500)
     conversational_response: ResponseConfig = Field(default_factory=ResponseConfig)
     pilot_recipients: list[PilotRecipient] | None = Field(default=None, max_length=20)
+    whatsapp_ads_only: bool = False
 
     @model_validator(mode="after")
     def unique_keys(self) -> "AIConfig":

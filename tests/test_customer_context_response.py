@@ -166,9 +166,9 @@ async def test_contextualized_draft_still_requires_review_and_delivers_once(
         assert len(attempts) == 4
         assert {
             a.prompt_version for a in attempts if a.stage == "conversational_render"
-        } == {"luri-response-7"}
+        } == {"luri-response-9"}
         assert {a.prompt_version for a in attempts if a.stage == "semantic_review"} == {
-            "luri-review-5"
+            "luri-review-9"
         }
         summary = next(a for a in attempts if a.stage == "semantic_review").parameters[
             "review_summary"

@@ -160,7 +160,11 @@ def build_context(
         if q.source_ref in requested_refs
     ]
     next_steps = {
-        "human_offer": "Preguntar si desea atención humana; no transferir.",
+        "human_offer": (
+            "Consultar si desea que un asesor revise su duda o siguiente paso. "
+            "Solo ofrecer ayuda humana: no transferir, contactar ni garantizar "
+            "que una funcion exista, una respuesta, un plazo o un resultado."
+        ),
         "clarify_request": (
             "Pedir el detalle que necesita aclarar para continuar con su consulta; "
             "no volver a pedir necesidades ya respondidas ni prometer acciones."

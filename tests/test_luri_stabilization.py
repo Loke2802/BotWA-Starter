@@ -1,5 +1,6 @@
 """Regressions through the actual product composition, without external providers."""
 
+import hashlib
 from collections.abc import Generator
 from datetime import UTC, datetime
 from uuid import uuid4
@@ -253,7 +254,7 @@ async def test_meta_allowlist_blocks_every_delivery_path(
                 organization_id=model.organization_id,
                 bot_id=model.bot_id,
                 channel_configuration_id=model.id,
-                external_recipient_hash="synthetic",
+                external_recipient_hash=hashlib.sha256(b"51999999999").hexdigest(),
                 external_recipient_ciphertext=cipher().encrypt("51999999999"),
                 message_ciphertext=cipher().encrypt("Audit pending reply"),
                 status="pending",

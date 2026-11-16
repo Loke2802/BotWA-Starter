@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import UTC, datetime
 from typing import cast
 
@@ -191,6 +192,7 @@ class WhatsAppWebhookParser:
                         timestamp=_timestamp(raw_message.get("timestamp")),
                         message_type=message_type,
                         text=text,
+                        ad_source_id=_ad_source_id(raw_message.get("referral")),
                     )
                 )
             except (KeyError, ValueError):
@@ -252,5 +254,24 @@ class WhatsAppInboundMessageMapper:
             text=candidate.text,
             timestamp=candidate.timestamp,
             resolved_context=context,
-            metadata={"message_type": candidate.message_type},
+            metadata={
+                "message_type": candidate.message_type,
+                **(
+                    {"whatsapp_ad_source_id": candidate.ad_source_id}
+                    if candidate.ad_source_id is not None
+                    else {}
+                ),
+            },
         )
+
+
+def _ad_source_id(referral: object) -> str | None:
+    """Accept only structured ad attribution, never customer-authored text."""
+    if not isinstance(referral, dict) or referral.get("source_type") != "ad":
+        return None
+    source_id = referral.get("source_id")
+    return (
+        source_id
+        if isinstance(source_id, str) and re.fullmatch(r"[0-9]{1,64}", source_id)
+        else None
+    )

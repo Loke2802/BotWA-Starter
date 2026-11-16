@@ -15,6 +15,9 @@ from app.application.generative_ai.response_continuation import (
 )
 from app.application.generative_ai.response_validation import (
     digest,
+    normalize_conversation_references,
+    review_evidence,
+    review_permissions,
     validate_draft,
     validate_review,
 )
@@ -159,6 +162,7 @@ async def compose(
                 ConversationalDraft,
             )
         )
+        draft = normalize_conversation_references(context, draft)
         text = validate_draft(
             context, draft, service.settings.whatsapp_outbound_max_text_chars
         )
@@ -172,6 +176,8 @@ async def compose(
                     "draft": draft.model_dump(),
                     "expanded_text": text,
                     "draft_digest": digest(text),
+                    "conversation_permissions": review_permissions(context, draft),
+                    "segment_evidence": review_evidence(context, draft),
                 },
                 SemanticReview,
             )

@@ -1,3 +1,4 @@
+from functools import partial
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -34,6 +35,7 @@ from app.application.whatsapp_configuration.resolver import (
 )
 from app.application.whatsapp_live.client import WhatsAppCloudApiClient
 from app.application.whatsapp_live.processor import WhatsAppLiveMessageProcessor
+from app.application.whatsapp_live.recipient_policy import ad_recipient_allowed
 from app.application.whatsapp_live.sender import WhatsAppChannelMessageSender
 from app.channels.whatsapp.live_mapper import WhatsAppInboundMessageMapper
 from app.core.conversation.service import ConversationService
@@ -177,12 +179,14 @@ def get_whatsapp_live_message_processor(
         lead_notification_recipients=notification_recipients,
         ai_ingress=AIIngress(session, settings),
     )
+    scoped_recipient_allowed = partial(ad_recipient_allowed, session, settings)
     sender = WhatsAppChannelMessageSender(
         configuration_repository,
         secret_cipher,
         client,
         max_text_chars=settings.whatsapp_outbound_max_text_chars,
         allowed_recipients=_outbound_recipient_allowlist(settings),
+        scoped_recipient_allowed=scoped_recipient_allowed,
     )
     return WhatsAppLiveMessageProcessor(
         configuration_repository=configuration_repository,
@@ -202,4 +206,5 @@ def get_whatsapp_live_message_processor(
         outbound_enabled=settings.whatsapp_live_client_mode != "disabled",
         notification_recipients_for=notification_recipients,
         outbound_recipient_allowlist=_outbound_recipient_allowlist(settings),
+        scoped_recipient_allowed=scoped_recipient_allowed,
     )

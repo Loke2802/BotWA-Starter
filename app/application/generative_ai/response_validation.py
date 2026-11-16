@@ -22,6 +22,34 @@ def digest(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+def normalize_conversation_references(
+    context: ValidatedResponseContext, draft: ConversationalDraft
+) -> ConversationalDraft:
+    """Correct one unambiguous reference slot, never prose or authority."""
+    if draft.context_id != context.context_id:
+        return draft
+    questions = {q.id for q in context.allowed_questions}
+    segments = []
+    changed = False
+    for segment in draft.segments:
+        ref = segment.question_ref
+        if (
+            segment.kind == "question"
+            and ref is not None
+            and ref in context.allowed_next_steps
+            and ref not in questions
+            and segment.next_step_ref is None
+            and segment.uncertainty_ref is None
+            and not segment.claim_refs
+        ):
+            segment = segment.model_copy(
+                update={"kind": "next_step", "question_ref": None, "next_step_ref": ref}
+            )
+            changed = True
+        segments.append(segment)
+    return draft.model_copy(update={"segments": segments}) if changed else draft
+
+
 def validate_draft(
     context: ValidatedResponseContext, draft: ConversationalDraft, limit: int
 ) -> str:
@@ -36,6 +64,7 @@ def validate_draft(
     output = []
     mentioned_claims: set[str] = set()
     inserted_clauses: set[str] = set()
+    question_seen = False
     for segment in draft.segments:
         if segment.id in ids:
             raise ProviderError("DUPLICATE_SEGMENT")
@@ -64,6 +93,13 @@ def validate_draft(
         if segment.kind == "recommendation" and not segment.claim_refs:
             raise ProviderError("UNSUPPORTED_CLAIM")
         interrogative = bool(segment.question_ref or segment.next_step_ref)
+        if question_seen and segment.kind in {
+            "recommendation",
+            "comparison",
+            "uncertainty",
+        }:
+            raise ProviderError("PREMATURE_NEXT_STEP")
+        question_seen = question_seen or interrogative
         if segment.kind in {"question", "next_step"} and not interrogative:
             raise ProviderError("UNAUTHORIZED_QUESTION")
         if ("?" in segment.text or "¿" in segment.text) and not interrogative:
@@ -137,6 +173,67 @@ def validate_draft(
     if not text.strip() or len(text) > min(3500, limit):
         raise ProviderError("RESPONSE_LENGTH")
     return text
+
+
+def review_permissions(
+    context: ValidatedResponseContext, draft: ConversationalDraft
+) -> list[dict[str, str]]:
+    """Server-resolved conversational authority, never a semantic approval."""
+    permissions: list[dict[str, str]] = []
+    questions = {q.id: q.purpose for q in context.allowed_questions}
+    for segment in draft.segments:
+        for kind, ref, allowed in (
+            ("next_step", segment.next_step_ref, context.allowed_next_steps),
+            ("question", segment.question_ref, questions),
+            ("uncertainty", segment.uncertainty_ref, context.uncertainties),
+        ):
+            if ref is None:
+                continue
+            if ref not in allowed:
+                raise ProviderError("INVALID_REFERENCE")
+            permissions.append(
+                {
+                    "segment_id": segment.id,
+                    "kind": kind,
+                    "ref": ref,
+                    "scope": allowed[ref],
+                }
+            )
+    return permissions
+
+
+def review_evidence(
+    context: ValidatedResponseContext, draft: ConversationalDraft
+) -> list[dict[str, object]]:
+    """Project selected evidence, without deciding whether prose is faithful."""
+    claims = {c.id: c for c in context.authorized_claims}
+    facts = {f.id: f for f in context.business_facts}
+    needs = {n.id: n for n in context.customer_needs}
+    result: list[dict[str, object]] = []
+    for segment in draft.segments:
+        selected: list[dict[str, object]] = []
+        for ref in segment.claim_refs:
+            if ref not in claims:
+                raise ProviderError("INVALID_REFERENCE")
+            claim = claims[ref]
+            if any(f not in facts for f in claim.fact_refs):
+                raise ProviderError("INVALID_REFERENCE")
+            selected.append(
+                {
+                    "claim": claim.model_dump(),
+                    "facts": [facts[f].model_dump() for f in claim.fact_refs],
+                }
+            )
+        if any(n not in needs for n in segment.need_refs):
+            raise ProviderError("INVALID_REFERENCE")
+        result.append(
+            {
+                "segment_id": segment.id,
+                "commercial_evidence": selected,
+                "customer_context": [needs[n].model_dump() for n in segment.need_refs],
+            }
+        )
+    return result
 
 
 def validate_review(

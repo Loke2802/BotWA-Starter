@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import structlog
+from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -40,13 +41,16 @@ from app.domain.whatsapp_live.contracts import (
     WhatsAppStatusEvent,
 )
 from app.infrastructure.models.message import MessageModel
+from app.infrastructure.models.whatsapp_channel_configuration import (
+    WhatsAppChannelConfigurationModel,
+)
 from app.infrastructure.models.whatsapp_message_transport import (
     InboundMessageReceiptModel,
     OutboundMessageAttemptModel,
 )
 from app.infrastructure.unit_of_work import atomic_transport
 from app.observability.metrics import safe_metric
-from app.security.secret_cipher import SecretCipher
+from app.security.secret_cipher import SecretCipher, SecretCipherError
 
 logger = structlog.get_logger(__name__)
 
@@ -75,6 +79,9 @@ class WhatsAppLiveMessageProcessor:
         conversation_management: ConversationManagementService | None = None,
         outbound_enabled: bool = True,
         outbound_recipient_allowlist: frozenset[str] | None = None,
+        scoped_recipient_allowed: (
+            Callable[[str, ResolvedChannelContext], bool] | None
+        ) = None,
         now: Callable[[], datetime] | None = None,
         notification_recipients_for: (
             Callable[[ResolvedChannelContext], tuple[str, ...]] | None
@@ -96,6 +103,7 @@ class WhatsAppLiveMessageProcessor:
         self._conversation_management = conversation_management
         self._outbound_enabled = outbound_enabled
         self._outbound_recipient_allowlist = outbound_recipient_allowlist
+        self._scoped_recipient_allowed = scoped_recipient_allowed
         self._notification_recipients_for = notification_recipients_for
         self._now = now or (lambda: datetime.now(UTC))
 
@@ -171,7 +179,7 @@ class WhatsAppLiveMessageProcessor:
                 bot_id=context.bot_id,
                 channel_configuration_id=context.channel_configuration_id,
                 payload_ciphertext=self._secret_cipher.encrypt(
-                    candidate.model_dump_json()
+                    candidate.model_dump_json(exclude_none=True)
                 ),
                 status="received",
                 attempt_count=0,
@@ -255,7 +263,7 @@ class WhatsAppLiveMessageProcessor:
                     attempt_ids: tuple[UUID, ...] = ()
                     for recipient in _notification_recipients(outbound):
                         if self._outbound_enabled and self._recipient_is_allowed(
-                            recipient
+                            recipient, context
                         ):
                             notification = OutboundChannelMessage(
                                 channel_type=outbound.channel_type,
@@ -273,7 +281,9 @@ class WhatsAppLiveMessageProcessor:
                             )
                     if (
                         self._outbound_enabled
-                        and self._recipient_is_allowed(outbound.external_recipient_id)
+                        and self._recipient_is_allowed(
+                            outbound.external_recipient_id, context
+                        )
                         and not outbound.metadata.get("handoff_blocked")
                         and not outbound.metadata.get("ai_queued")
                     ):
@@ -352,10 +362,17 @@ class WhatsAppLiveMessageProcessor:
             )
         return tuple(results)
 
-    def _recipient_is_allowed(self, recipient_id: str) -> bool:
+    def _recipient_is_allowed(
+        self, recipient_id: str, context: ResolvedChannelContext
+    ) -> bool:
         if self._outbound_recipient_allowlist is None:
             return True
         if recipient_id in self._outbound_recipient_allowlist:
+            return True
+        if (
+            self._scoped_recipient_allowed is not None
+            and self._scoped_recipient_allowed(recipient_id, context)
+        ):
             return True
         logger.info(
             "whatsapp.outbound.suppressed",
@@ -384,29 +401,41 @@ class WhatsAppLiveMessageProcessor:
         ):
             self._session.rollback()
             return False
-        if attempt.idempotency_key and attempt.idempotency_key.startswith("ai:"):
-            from app.application.generative_ai.policy import (
-                config_hash,
-                recipient_allowed,
-            )
+        from app.infrastructure.models.ai_generation import AIJobModel
+
+        job = self._session.scalar(
+            select(AIJobModel).where(AIJobModel.outbound_id == attempt.id)
+        )
+        if job is not None or (
+            attempt.idempotency_key and attempt.idempotency_key.startswith("ai:")
+        ):
             from app.application.generative_ai.policy import (
                 configuration as ai_configuration,
             )
+            from app.application.generative_ai.policy import (
+                conversation_allowed,
+                job_policy_hash,
+                job_route_matches,
+                recipient_allowed,
+            )
             from app.application.generative_ai.service import AIService, blocked
             from app.domain.generative_ai.contracts import ProviderError
-            from app.infrastructure.models.ai_generation import AIJobModel
             from app.infrastructure.models.conversation import ConversationModel
             from app.infrastructure.settings import get_settings
 
-            job = self._session.scalar(
-                select(AIJobModel).where(AIJobModel.outbound_id == attempt.id)
-            )
             config = ai_configuration(
                 self._session, get_settings(), attempt.organization_id, attempt.bot_id
             )
             conversation = (
                 self._session.get(
                     ConversationModel, job.conversation_id, with_for_update=True
+                )
+                if job is not None
+                else None
+            )
+            job_channel = (
+                self._session.get(
+                    WhatsAppChannelConfigurationModel, job.configuration_id
                 )
                 if job is not None
                 else None
@@ -418,17 +447,54 @@ class WhatsAppLiveMessageProcessor:
                     or job.organization_id != attempt.organization_id
                     or job.bot_id != attempt.bot_id
                     or conversation is None
+                    or job_channel is None
+                    or job_channel.status != "active"
+                    or not job_channel.webhook_enabled
                     or conversation.organization_id != job.organization_id
                     or conversation.bot_id != job.bot_id
+                    or not job_route_matches(self._session, job, conversation)
+                    or attempt.channel_configuration_id != job.configuration_id
+                    or attempt.inbound_receipt_id != job.receipt_id
+                    or attempt.idempotency_key != f"ai:{job.id}"
+                    or attempt.notification
                     or conversation.inbound_message_count != job.sequence
                     or config is None
                     or not recipient_allowed(
                         config, conversation.external_customer_id or ""
                     )
-                    or config_hash(config) != job.config_hash
+                    or job_policy_hash(
+                        config,
+                        conversation,
+                        job.configuration_id,
+                        job.receipt_id,
+                        job.sequence,
+                        job_channel.phone_number_id,
+                    )
+                    != job.config_hash
+                    or not conversation_allowed(
+                        config, conversation, job.configuration_id
+                    )
                     or blocked(self._session, job)
                 ):
                     raise ProviderError("AI_POLICY_CHANGED")
+                recipient = self._secret_cipher.decrypt(
+                    attempt.external_recipient_ciphertext
+                )
+                if (
+                    recipient != conversation.external_customer_id
+                    or _identifier_hash(recipient) != attempt.external_recipient_hash
+                ):
+                    raise ProviderError("AI_RECIPIENT_MISMATCH")
+                if attempt.reply_to_external_message_id is not None:
+                    source_receipt = self._session.get(
+                        InboundMessageReceiptModel, job.receipt_id
+                    )
+                    if (
+                        source_receipt is None
+                        or attempt.reply_to_external_message_id
+                        != source_receipt.external_message_id
+                    ):
+                        raise ProviderError("AI_REPLY_CONTEXT_MISMATCH")
                 AIService.check_sources(self._session, job, job.sources)
                 from app.application.generative_ai.response_pipeline import check_memory
                 from app.application.generative_ai.response_validation import digest
@@ -449,8 +515,13 @@ class WhatsAppLiveMessageProcessor:
                         != checkpoint.reply_digest
                     ):
                         raise ProviderError("RESPONSE_CHANGED")
-            except ProviderError as exc:
-                self._outbound_repository.mark_failed(attempt.id, exc.code)
+            except (ProviderError, SecretCipherError) as exc:
+                code = (
+                    exc.code
+                    if isinstance(exc, ProviderError)
+                    else "PAYLOAD_UNAVAILABLE"
+                )
+                self._outbound_repository.mark_failed(attempt.id, code)
                 self._session.commit()
                 return False
         configuration = self._configuration_repository.get_scoped(
@@ -472,15 +543,21 @@ class WhatsAppLiveMessageProcessor:
             channel_configuration_id=attempt.channel_configuration_id,
             external_channel_id=configuration.phone_number_id,
         )
-        message = OutboundChannelMessage(
-            channel_type="whatsapp",
-            external_recipient_id=self._secret_cipher.decrypt(
-                attempt.external_recipient_ciphertext,
-            ),
-            text=self._secret_cipher.decrypt(attempt.message_ciphertext),
-            reply_to_external_message_id=attempt.reply_to_external_message_id,
-            metadata={"lead_notification": bool(attempt.notification)},
-        )
+        try:
+            message = OutboundChannelMessage(
+                channel_type="whatsapp",
+                external_recipient_id=self._secret_cipher.decrypt(
+                    attempt.external_recipient_ciphertext,
+                ),
+                text=self._secret_cipher.decrypt(attempt.message_ciphertext),
+                reply_to_external_message_id=attempt.reply_to_external_message_id,
+                metadata={"lead_notification": bool(attempt.notification)},
+            )
+        except (SecretCipherError, ValidationError):
+            self._outbound_repository.mark_failed(attempt.id, "PAYLOAD_UNAVAILABLE")
+            self._session.commit()
+            self._sync_outbound_attempt(attempt.id)
+            return False
         delivered = await self._deliver(
             attempt.id,
             context,
@@ -678,9 +755,25 @@ class WhatsAppLiveMessageProcessor:
             status="pending",
         )
         try:
+            if (
+                attempt.organization_id != context.organization_id
+                or attempt.bot_id != context.bot_id
+                or attempt.channel_configuration_id != context.channel_configuration_id
+                or _identifier_hash(message.external_recipient_id)
+                != attempt.external_recipient_hash
+                or message.external_recipient_id
+                != self._secret_cipher.decrypt(attempt.external_recipient_ciphertext)
+                or message.text
+                != self._secret_cipher.decrypt(attempt.message_ciphertext)
+                or message.reply_to_external_message_id
+                != attempt.reply_to_external_message_id
+                or bool(message.metadata.get("lead_notification"))
+                != bool(attempt.notification)
+            ):
+                raise WhatsAppChannelDeliveryError("DELIVERY_CONTEXT_MISMATCH")
             if not self._outbound_enabled:
                 raise WhatsAppChannelDeliveryError("OUTBOUND_DISABLED")
-            if not self._recipient_is_allowed(message.external_recipient_id):
+            if not self._recipient_is_allowed(message.external_recipient_id, context):
                 raise WhatsAppChannelDeliveryError("RECIPIENT_NOT_ALLOWED")
             if message.metadata.get("lead_notification") and (
                 self._notification_recipients_for is None

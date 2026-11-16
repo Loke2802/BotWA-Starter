@@ -6,7 +6,7 @@ configuration, or establish live model acceptance or WhatsApp delivery.
 
 ## Content review
 
-Reviewer `luri-review-8` receives `segment_evidence`, resolved on the server from
+Reviewer `luri-review-9` receives `segment_evidence`, resolved on the server from
 the selected claim, its exact source facts and selected customer needs. This is
 evidence, never approval. Unknown references fail before the call. The reviewer
 still sees the full context, permissions, draft and cross-segment constraints.
@@ -17,11 +17,20 @@ grammatical paraphrases from invented capabilities or outcomes. Describing a
 customer's stated goal does not turn that goal into a provider promise. Prices,
 protected clauses and unsupported bookings/payments remain constrained.
 
-The previous real evaluation rejected a corporate-web paragraph as
-`ALTERED_MEANING`; its precise reasoning is unavailable. More explicit evidence
-and entailment instructions address that suspected ambiguity, but have not yet
-been evaluated with the real model. Local authored/fake outputs cannot prove
-natural conversational quality. No extra model stage or automatic retry is added.
+Real evaluation of reviewer 8 accepted five of six fictional full pipelines,
+including the two-option tourism and architecture explanations, follow-up,
+unconfirmed capabilities and a stop request. Two positive paragraph-only reviews
+accepted the formerly rejected corporate-web paraphrase and an equivalent variant;
+the neutral human-help offer passed and three unsupported action/capability
+promises were rejected. These component checks do not replace full conversations.
+
+The exact-price pipeline still failed with `STYLE_MISMATCH` on an honest price
+uncertainty, while its scope question passed. The fallback then repeated an
+unrequested service definition. The enum does not reveal the reviewer's precise
+reasoning. Reviewer 9 aligns relevance with the current turn and the fallback
+now handles a bounded price-only request without that definition. Deterministic
+regression tests cover this correction; reviewer 9 has not yet had real-model
+acceptance. No extra model stage or automatic retry is added.
 
 ## Recipient and line integrity
 

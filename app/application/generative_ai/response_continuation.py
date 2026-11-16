@@ -15,6 +15,18 @@ from app.domain.generative_ai.knowledge_expression import allows_paraphrase
 HUMAN_OFFER = "¿Quieres que un asesor te ayude a definir el siguiente paso?"
 CLARIFY_REQUEST = "¿Qué detalle necesitas aclarar para continuar con tu proyecto?"
 UNCONFIRMED = "No puedo confirmar ese detalle con la información disponible."
+PRICE_UNCONFIRMED = "No tengo confirmado el precio exacto de tu proyecto."
+PRICE_REQUEST = re.compile(
+    r"\b(?:cu[aá]nto\s+(?:cuesta|costar[ií]a|vale|saldr[ií]a)|"
+    r"(?:cu[aá]l|qu[eé])\s+(?:(?:es|ser[ií]a)\s+)?(?:el\s+)?(?:precio|costo|coste)|"
+    r"(?:dime|ind[ií]came)\s+(?:el\s+)?(?:precio|costo|coste))\b",
+    re.I,
+)
+DESCRIPTION_REQUEST = re.compile(
+    r"\b(?:incluye|incluyen|ofrece|ofrecen|aporta|aportan|sirve|sirven|funciona|"
+    r"funcionan|diferencias?|ventajas?|beneficios?|caracter[ií]sticas?)\b",
+    re.I,
+)
 STOP_REQUESTS = {
     "no me interesa",
     "no quiero continuar",
@@ -64,7 +76,24 @@ def safe_continuation(
         if len(acknowledgement) > limit:
             raise ProviderError("RESPONSE_LENGTH")
         return acknowledgement
-    facts: list[str] = []
+    selected = {q.source_ref: sources[q.source_ref] for q in result.knowledge}
+    explaining_options = bool(requested_descriptions(customer_text, selected))
+    # Descriptive permission excludes monetary facts. Repeating a definition
+    # cannot answer a price-only question. Catalog amounts keep their own path.
+    price_only = (
+        bool(PRICE_REQUEST.search(customer_text))
+        and not explaining_options
+        and not DESCRIPTION_REQUEST.search(customer_text)
+        and not result.recommendations
+        and all(
+            allows_paraphrase(
+                sources[q.source_ref]["content"],
+                sources[q.source_ref].get("response_expression"),
+            )
+            for q in result.knowledge
+        )
+    )
+    facts: list[str] = [PRICE_UNCONFIRMED] if price_only else []
     if result.recommendations:
         catalog_text, _ = render(
             result.model_copy(update={"question_key": None, "knowledge": []}),
@@ -76,7 +105,8 @@ def safe_continuation(
     for quote in result.knowledge:
         source = sources[quote.source_ref]
         if (
-            not source.get("catalog")
+            not price_only
+            and not source.get("catalog")
             and allows_paraphrase(source["content"], source.get("response_expression"))
             and not any(mark in quote.quote for mark in ("?", "¿"))
         ):
@@ -97,8 +127,6 @@ def safe_continuation(
         ),
         None,
     )
-    selected = {q.source_ref: sources[q.source_ref] for q in result.knowledge}
-    explaining_options = bool(requested_descriptions(customer_text, selected))
     if explaining_options and not already_said(EXPLORE_OPTIONS, recent):
         next_step = EXPLORE_OPTIONS
     elif explaining_options and not pending:

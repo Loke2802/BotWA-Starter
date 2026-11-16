@@ -21,7 +21,7 @@ Comparative claims still require the existing typed comparative authority.
 Sensitive values and protected conditions keep their placeholder/clause rules.
 
 Instructions are versioned independently: adviser `luri-adviser-6`, renderer
-`luri-response-9`, reviewer `luri-review-8`. There are no new calls, repair loops,
+`luri-response-9`, reviewer `luri-review-9`. There are no new calls, repair loops,
 tools, provider/model changes, dependencies, environment variables or migrations.
 
 ## Dialogue guidance after live synthetic evaluation
@@ -246,6 +246,21 @@ fencing and idempotency remain required. The integrated recipient-binding
 increment has separate [queue upgrade requirements](response-delivery-rollout.md).
 
 ## Acceptance scenarios
+
+The exceptional fallback distinguishes a narrowly recognized price-only request
+from an explanation request. When selected knowledge consists only of approved
+non-monetary descriptions and there is no catalog recommendation, it states that
+the project's exact price is unconfirmed and keeps one permitted next step.
+It does not repeat definitions unrelated to that price question. Catalog
+recommendations remain on their validated path; mixed price/explanation requests
+retain descriptive facts. This is backend-authored continuity, not reuse or
+approval of rejected model prose. It is a bounded intent guard, not a universal
+price-intent classifier.
+
+Reviewer 9 likewise judges relevance to the current turn: unused optional
+descriptions do not make an honest price uncertainty a style error. Confirmed
+amounts and conditions still cannot be omitted or contradicted. This instruction
+change needs real-model acceptance separately from deterministic fallback tests.
 
 Offline tests validate contracts and durable plumbing with authored fake outputs;
 they do not measure live Luna instruction following or prove benefit entailment.

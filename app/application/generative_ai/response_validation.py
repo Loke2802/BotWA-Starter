@@ -36,6 +36,7 @@ def validate_draft(
     output = []
     mentioned_claims: set[str] = set()
     inserted_clauses: set[str] = set()
+    question_seen = False
     for segment in draft.segments:
         if segment.id in ids:
             raise ProviderError("DUPLICATE_SEGMENT")
@@ -64,6 +65,13 @@ def validate_draft(
         if segment.kind == "recommendation" and not segment.claim_refs:
             raise ProviderError("UNSUPPORTED_CLAIM")
         interrogative = bool(segment.question_ref or segment.next_step_ref)
+        if question_seen and segment.kind in {
+            "recommendation",
+            "comparison",
+            "uncertainty",
+        }:
+            raise ProviderError("PREMATURE_NEXT_STEP")
+        question_seen = question_seen or interrogative
         if segment.kind in {"question", "next_step"} and not interrogative:
             raise ProviderError("UNAUTHORIZED_QUESTION")
         if ("?" in segment.text or "¿" in segment.text) and not interrogative:
@@ -137,6 +145,33 @@ def validate_draft(
     if not text.strip() or len(text) > min(3500, limit):
         raise ProviderError("RESPONSE_LENGTH")
     return text
+
+
+def review_permissions(
+    context: ValidatedResponseContext, draft: ConversationalDraft
+) -> list[dict[str, str]]:
+    """Server-resolved conversational authority, never a semantic approval."""
+    permissions: list[dict[str, str]] = []
+    questions = {q.id: q.purpose for q in context.allowed_questions}
+    for segment in draft.segments:
+        for kind, ref, allowed in (
+            ("next_step", segment.next_step_ref, context.allowed_next_steps),
+            ("question", segment.question_ref, questions),
+            ("uncertainty", segment.uncertainty_ref, context.uncertainties),
+        ):
+            if ref is None:
+                continue
+            if ref not in allowed:
+                raise ProviderError("INVALID_REFERENCE")
+            permissions.append(
+                {
+                    "segment_id": segment.id,
+                    "kind": kind,
+                    "ref": ref,
+                    "scope": allowed[ref],
+                }
+            )
+    return permissions
 
 
 def validate_review(

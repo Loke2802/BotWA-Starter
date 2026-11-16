@@ -21,7 +21,7 @@ Comparative claims still require the existing typed comparative authority.
 Sensitive values and protected conditions keep their placeholder/clause rules.
 
 Instructions are versioned independently: adviser `luri-adviser-6`, renderer
-`luri-response-8`, reviewer `luri-review-6`. There are no new calls, repair loops,
+`luri-response-9`, reviewer `luri-review-7`. There are no new calls, repair loops,
 tools, provider/model changes, dependencies, environment variables or migrations.
 
 ## Dialogue guidance after live synthetic evaluation
@@ -64,6 +64,30 @@ acceptance. Finite examples do not establish universal conversational quality;
 post-deployment end-to-end verification and operational readiness remain separate.
 
 ### Evaluation status: not accepted for general traffic
+
+The subsequent local correction resolves conversational permission references
+server-side into `conversation_permissions` in the semantic-review request.
+Each entry contains only the segment ID, permission kind, existing reference and
+scope from the validated context. It is distinct from commercial claim authority
+and is not a semantic approval. Human assistance authorizes asking whether the
+customer wants an adviser to review a doubt, not contacting anyone, promising a
+resolution, confirming a feature, or adding a price or deadline. The reviewer
+still evaluates every segment and a rejection still selects the safe fallback.
+No rejected segment is rescued or automatically accepted.
+
+The renderer is instructed to answer the supported parts first, delimit unknowns
+and only then offer a relevant next step. Structural validation rejects a draft
+with an explanation, comparison or uncertainty after a question/next-step
+reference (`PREMATURE_NEXT_STEP`). This preserves a useful answer before the
+commercial follow-up; it does not force a question on a closing turn or a
+commercial explanation when only human attention was requested. Plain
+unknown-price answers remain valid without generic service filler.
+
+Authored tests verify permission resolution, ordering and preservation of a
+negative review verdict; they do not prove that Luna accepts valid offers or
+rejects unsupported promises in live use. Render9/review7 have not yet received a
+paid model evaluation. The following results describe the earlier evaluation,
+not a successful retest of this local correction.
 
 The isolated comparison exhausted its authorized 80-call limit. Baseline and
 initial candidate runs each covered eight fictional cases; later targeted repairs

@@ -15,6 +15,7 @@ from app.application.generative_ai.response_continuation import (
 )
 from app.application.generative_ai.response_validation import (
     digest,
+    review_permissions,
     validate_draft,
     validate_review,
 )
@@ -172,6 +173,7 @@ async def compose(
                     "draft": draft.model_dump(),
                     "expanded_text": text,
                     "draft_digest": digest(text),
+                    "conversation_permissions": review_permissions(context, draft),
                 },
                 SemanticReview,
             )

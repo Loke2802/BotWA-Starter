@@ -171,7 +171,7 @@ class WhatsAppLiveMessageProcessor:
                 bot_id=context.bot_id,
                 channel_configuration_id=context.channel_configuration_id,
                 payload_ciphertext=self._secret_cipher.encrypt(
-                    candidate.model_dump_json()
+                    candidate.model_dump_json(exclude_none=True)
                 ),
                 status="received",
                 attempt_count=0,
@@ -387,6 +387,7 @@ class WhatsAppLiveMessageProcessor:
         if attempt.idempotency_key and attempt.idempotency_key.startswith("ai:"):
             from app.application.generative_ai.policy import (
                 config_hash,
+                conversation_allowed,
                 recipient_allowed,
             )
             from app.application.generative_ai.policy import (
@@ -426,6 +427,9 @@ class WhatsAppLiveMessageProcessor:
                         config, conversation.external_customer_id or ""
                     )
                     or config_hash(config) != job.config_hash
+                    or not conversation_allowed(
+                        config, conversation, job.configuration_id
+                    )
                     or blocked(self._session, job)
                 ):
                     raise ProviderError("AI_POLICY_CHANGED")

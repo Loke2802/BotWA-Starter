@@ -39,8 +39,13 @@ bypasses them or resumes a human-controlled conversation.
   not a substitute. Confirm the actual campaign journey with a real webhook.
 - No campaign-specific allowlist, public signup, advertising spend, automatic
   outbound campaign, prompt knowledge or ad-content ingestion is introduced.
-- Do not remove the global outbound restriction for other bots just to admit
-  these leads. Prepare a tenant-scoped transport policy before any wider rollout.
+- Keep the global outbound restriction. The optional server-side transport
+  policy admits an additional recipient only for an active, webhook-enabled
+  line in the same tenant/bot, with scoped AI enabled, Ads-only enabled, a valid
+  origin in that conversation and the existing pilot-recipient policy allowing
+  that recipient. It is rechecked by both the processor and sender. Disabling
+  scoped AI also closes this transport exception, including operator replies;
+  the mobile app remains available. No runtime setting is changed by installation.
 - Before activation: resolve the separate quality rejection, evaluate final
   conversations, agree the operating budget, verify real signed ad ingress,
   follow-up, organic suppression, operator takeover and recovery.
@@ -53,3 +58,6 @@ bypasses them or resumes a human-controlled conversation.
 Local synthetic tests exercise admission, continuity, isolation and policy
 revocation without external model calls. They do not establish real ad delivery,
 conversational quality, load capacity or readiness to open customers.
+
+See [response and delivery rollout](response-delivery-rollout.md) for the bound
+job snapshot, queue compatibility and end-to-end acceptance requirements.

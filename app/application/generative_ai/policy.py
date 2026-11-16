@@ -1,4 +1,5 @@
 import hashlib
+import json
 import re
 from uuid import UUID
 
@@ -6,9 +7,13 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.domain.generative_ai.contracts import AIConfig
+from app.infrastructure.models.ai_generation import AIJobModel
 from app.infrastructure.models.bot import BotModel
 from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.organization import OrganizationModel
+from app.infrastructure.models.whatsapp_message_transport import (
+    InboundMessageReceiptModel,
+)
 from app.infrastructure.settings import Settings
 
 
@@ -37,7 +42,7 @@ def configuration(
 
 
 def config_hash(config: AIConfig) -> str:
-    # Preserve PR44 hashes for queued jobs and configuration without the new flag.
+    # Preserve the legacy configuration digest; new jobs add a routing snapshot.
     excluded = {"conversational_response"}
     if config.pilot_recipients is None:
         excluded.add("pilot_recipients")
@@ -49,6 +54,48 @@ def config_hash(config: AIConfig) -> str:
 def recipient_allowed(config: AIConfig, recipient: str) -> bool:
     """None preserves existing bots; an explicit empty pilot list denies all."""
     return config.pilot_recipients is None or recipient in config.pilot_recipients
+
+
+def job_route_matches(
+    session: Session, job: AIJobModel, conversation: ConversationModel
+) -> bool:
+    receipt = session.get(InboundMessageReceiptModel, job.receipt_id)
+    return (
+        conversation.organization_id == job.organization_id
+        and conversation.bot_id == job.bot_id
+        and conversation.channel == "whatsapp"
+        and conversation.channel_configuration_id == job.configuration_id
+        and bool(conversation.external_customer_id)
+        and receipt is not None
+        and receipt.organization_id == job.organization_id
+        and receipt.bot_id == job.bot_id
+        and receipt.channel_type == "whatsapp"
+        and receipt.channel_configuration_id == job.configuration_id
+    )
+
+
+def job_policy_hash(
+    config: AIConfig,
+    conversation: ConversationModel,
+    configuration_id: UUID,
+    receipt_id: UUID,
+    sequence: int,
+    external_channel_id: str,
+) -> str:
+    """Bind new jobs to their immutable routing snapshot as well as config."""
+    data = {
+        "version": "routing-v1",
+        "config_hash": config_hash(config),
+        "organization_id": str(conversation.organization_id),
+        "bot_id": str(conversation.bot_id),
+        "conversation_id": str(conversation.id),
+        "configuration_id": str(configuration_id),
+        "external_channel_id": external_channel_id,
+        "receipt_id": str(receipt_id),
+        "recipient": conversation.external_customer_id,
+        "sequence": sequence,
+    }
+    return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
 
 
 def record_ad_origin(

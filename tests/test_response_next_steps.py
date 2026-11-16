@@ -105,6 +105,7 @@ class NextStepProvider(CustomerContextProvider):
         self.reject_offer = reject_offer
         self.misplaced_offer = misplaced_offer
         self.permissions_seen = False
+        self.evidence_seen = False
 
     async def generate(
         self, *, stage: str, context: str, schema: type[BaseModel]
@@ -145,6 +146,16 @@ class NextStepProvider(CustomerContextProvider):
                 == data["context"]["allowed_next_steps"]["human_offer"]
             )
             self.permissions_seen = True
+            evidence = data["segment_evidence"]
+            assert [e["segment_id"] for e in evidence] == [
+                s["id"] for s in data["draft"]["segments"]
+            ]
+            assert (
+                evidence[0]["commercial_evidence"][0]["claim"]["id"]
+                == data["draft"]["segments"][0]["claim_refs"][0]
+            )
+            assert evidence[-1]["commercial_evidence"] == []
+            self.evidence_seen = True
             if self.misplaced_offer:
                 target = data["draft"]["segments"][-1]
                 assert target["kind"] == "next_step"
@@ -186,6 +197,7 @@ async def test_permissions_reach_review_without_overriding_rejection(
     await runtime.inbound()
     assert await runtime.service.run_once()
     assert provider.permissions_seen
+    assert provider.evidence_seen
     with runtime.sessions() as session:
         cp = session.scalars(select(AIResponseCheckpointModel)).one()
         assert cp.outcome == ("fallback" if reject_offer else "approved")

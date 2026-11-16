@@ -202,6 +202,40 @@ def review_permissions(
     return permissions
 
 
+def review_evidence(
+    context: ValidatedResponseContext, draft: ConversationalDraft
+) -> list[dict[str, object]]:
+    """Project selected evidence, without deciding whether prose is faithful."""
+    claims = {c.id: c for c in context.authorized_claims}
+    facts = {f.id: f for f in context.business_facts}
+    needs = {n.id: n for n in context.customer_needs}
+    result: list[dict[str, object]] = []
+    for segment in draft.segments:
+        selected: list[dict[str, object]] = []
+        for ref in segment.claim_refs:
+            if ref not in claims:
+                raise ProviderError("INVALID_REFERENCE")
+            claim = claims[ref]
+            if any(f not in facts for f in claim.fact_refs):
+                raise ProviderError("INVALID_REFERENCE")
+            selected.append(
+                {
+                    "claim": claim.model_dump(),
+                    "facts": [facts[f].model_dump() for f in claim.fact_refs],
+                }
+            )
+        if any(n not in needs for n in segment.need_refs):
+            raise ProviderError("INVALID_REFERENCE")
+        result.append(
+            {
+                "segment_id": segment.id,
+                "commercial_evidence": selected,
+                "customer_context": [needs[n].model_dump() for n in segment.need_refs],
+            }
+        )
+    return result
+
+
 def validate_review(
     context: ValidatedResponseContext,
     draft: ConversationalDraft,

@@ -5,9 +5,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.application.generative_ai.policy import (
-    config_hash,
     configuration,
     conversation_allowed,
+    job_policy_hash,
     recipient_allowed,
     record_ad_origin,
 )
@@ -37,6 +37,11 @@ class AIIngress:
             )
             .with_for_update()
         ).one()
+        if (
+            conversation.external_customer_id != message.external_sender_id
+            or conversation.channel_configuration_id != context.channel_configuration_id
+        ):
+            raise ValueError("AI ingress route mismatch")
         record_ad_origin(
             conversation,
             message.metadata.get("whatsapp_ad_source_id"),
@@ -66,7 +71,14 @@ class AIIngress:
                     sequence=conversation.inbound_message_count,
                     created_at=now,
                     available_at=now,
-                    config_hash=config_hash(config),
+                    config_hash=job_policy_hash(
+                        config,
+                        conversation,
+                        context.channel_configuration_id,
+                        receipt_id,
+                        conversation.inbound_message_count,
+                        context.external_channel_id,
+                    ),
                 )
             )
             self.session.flush()

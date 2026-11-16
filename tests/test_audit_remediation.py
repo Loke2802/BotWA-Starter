@@ -1,6 +1,7 @@
 """Regression scenarios from the September audit, using synthetic data only."""
 
 import asyncio
+import hashlib
 from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock
@@ -337,7 +338,7 @@ async def test_notification_retry_checks_tenant_and_current_policy(db: Session) 
             organization_id=channel.organization_id,
             bot_id=channel.bot_id,
             channel_configuration_id=channel.id,
-            external_recipient_hash="synthetic",
+            external_recipient_hash=hashlib.sha256(recipient.encode()).hexdigest(),
             external_recipient_ciphertext=cipher().encrypt(recipient),
             message_ciphertext=cipher().encrypt("Synthetic notification"),
             notification=True,

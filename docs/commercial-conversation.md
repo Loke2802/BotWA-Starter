@@ -21,7 +21,7 @@ Comparative claims still require the existing typed comparative authority.
 Sensitive values and protected conditions keep their placeholder/clause rules.
 
 Instructions are versioned independently: adviser `luri-adviser-6`, renderer
-`luri-response-9`, reviewer `luri-review-7`. There are no new calls, repair loops,
+`luri-response-9`, reviewer `luri-review-8`. There are no new calls, repair loops,
 tools, provider/model changes, dependencies, environment variables or migrations.
 
 ## Dialogue guidance after live synthetic evaluation
@@ -241,8 +241,9 @@ For ordinary drafting/review errors, the exceptional fallback:
 
 This is an exceptional backend-authored safety path. Ordinary approved replies
 remain naturally generated and independently reviewed. Conversational response
-disabled preserves the earlier reply path. Existing jobs, fencing, source
-rechecks, quotas, idempotency and outbound controls are unchanged.
+disabled preserves the earlier reply path. Source rechecks, quotas, memory
+fencing and idempotency remain required. The integrated recipient-binding
+increment has separate [queue upgrade requirements](response-delivery-rollout.md).
 
 ## Acceptance scenarios
 

@@ -20,9 +20,10 @@ from app.application.generative_ai.answer_coverage import (
     retrieval_words,
 )
 from app.application.generative_ai.policy import (
-    config_hash,
     configuration,
     conversation_allowed,
+    job_policy_hash,
+    job_route_matches,
     recipient_allowed,
 )
 from app.application.generative_ai.response_validation import digest
@@ -115,7 +116,6 @@ class AIService:
         conversation = session.get(ConversationModel, job.conversation_id)
         if (
             config is None
-            or config_hash(config) != job.config_hash
             or blocked(session, job)
             or channel is None
             or channel.status != "active"
@@ -125,6 +125,16 @@ class AIService:
             or conversation is None
             or conversation.organization_id != job.organization_id
             or conversation.bot_id != job.bot_id
+            or not job_route_matches(session, job, conversation)
+            or job_policy_hash(
+                config,
+                conversation,
+                job.configuration_id,
+                job.receipt_id,
+                job.sequence,
+                channel.phone_number_id,
+            )
+            != job.config_hash
             or not recipient_allowed(config, conversation.external_customer_id or "")
             or not conversation_allowed(config, conversation, job.configuration_id)
             or conversation.inbound_message_count != job.sequence

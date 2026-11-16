@@ -1,4 +1,5 @@
 import re
+from collections.abc import Callable
 
 from app.application.channel.messaging import ChannelMessageSender
 from app.application.whatsapp_configuration.repository import (
@@ -31,12 +32,16 @@ class WhatsAppChannelMessageSender(ChannelMessageSender):
         *,
         max_text_chars: int,
         allowed_recipients: frozenset[str] | None = None,
+        scoped_recipient_allowed: (
+            Callable[[str, ResolvedChannelContext], bool] | None
+        ) = None,
     ) -> None:
         self._configuration_repository = configuration_repository
         self._secret_cipher = secret_cipher
         self._client = client
         self._max_text_chars = max_text_chars
         self._allowed_recipients = allowed_recipients
+        self._scoped_recipient_allowed = scoped_recipient_allowed
 
     async def send(
         self,
@@ -52,6 +57,12 @@ class WhatsAppChannelMessageSender(ChannelMessageSender):
         if (
             self._allowed_recipients is not None
             and message.external_recipient_id not in self._allowed_recipients
+            and not (
+                self._scoped_recipient_allowed is not None
+                and self._scoped_recipient_allowed(
+                    message.external_recipient_id, context
+                )
+            )
         ):
             raise WhatsAppChannelDeliveryError("RECIPIENT_NOT_ALLOWED")
 

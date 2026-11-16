@@ -100,9 +100,10 @@ def test_supported_explanation_precedes_the_offer() -> None:
 class NextStepProvider(CustomerContextProvider):
     """Authored reviewer verdicts verify plumbing, never semantic correctness."""
 
-    def __init__(self, reject_offer: bool) -> None:
+    def __init__(self, reject_offer: bool, misplaced_offer: bool = False) -> None:
         super().__init__()
         self.reject_offer = reject_offer
+        self.misplaced_offer = misplaced_offer
         self.permissions_seen = False
 
     async def generate(
@@ -132,6 +133,10 @@ class NextStepProvider(CustomerContextProvider):
                 response["segments"][-1][
                     "text"
                 ] = "El asesor activara las reservas de tu proyecto."
+            if self.misplaced_offer:
+                response["segments"][-1].update(
+                    kind="question", question_ref="human_offer", next_step_ref=None
+                )
         else:
             permissions = data["conversation_permissions"]
             assert permissions[-1]["segment_id"] == "offer"
@@ -140,6 +145,11 @@ class NextStepProvider(CustomerContextProvider):
                 == data["context"]["allowed_next_steps"]["human_offer"]
             )
             self.permissions_seen = True
+            if self.misplaced_offer:
+                target = data["draft"]["segments"][-1]
+                assert target["kind"] == "next_step"
+                assert target["question_ref"] is None
+                assert target["next_step_ref"] == "human_offer"
             response = {
                 "schema_version": "1",
                 "context_id": data["context"]["context_id"],
@@ -166,11 +176,12 @@ class NextStepProvider(CustomerContextProvider):
 
 
 @pytest.mark.parametrize("reject_offer", [False, True])
+@pytest.mark.parametrize("misplaced_offer", [False, True])
 async def test_permissions_reach_review_without_overriding_rejection(
-    runtime: Runtime, reject_offer: bool
+    runtime: Runtime, reject_offer: bool, misplaced_offer: bool
 ) -> None:
     prepare(runtime)
-    provider = NextStepProvider(reject_offer)
+    provider = NextStepProvider(reject_offer, misplaced_offer)
     runtime.service.provider = provider
     await runtime.inbound()
     assert await runtime.service.run_once()

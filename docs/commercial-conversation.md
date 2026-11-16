@@ -65,6 +65,24 @@ post-deployment end-to-end verification and operational readiness remain separat
 
 ### Evaluation status: not accepted for general traffic
 
+After the isolated 16-call evaluation of commit `5ad9744`, the response boundary
+also corrects one representation error before validation and semantic review:
+a `question` segment with a reference that exists exclusively in
+`allowed_next_steps` can move that same key from `question_ref` to
+`next_step_ref`, becoming a `next_step` segment. Its text, needs, ID and context
+do not change. This applies only with no existing next step, uncertainty or
+commercial claim references. Unknown keys, ambiguous permissions, conflicting
+references and mismatched contexts are left untouched and remain subject to
+the existing validators. Normalization does not resolve a repeated discovery
+question, reorder prose, supply evidence or approve any wording.
+
+The normalized draft, unchanged expanded text and server-resolved permissions
+go through the same independent reviewer. A negative semantic verdict still
+selects fallback. Authored integration tests cover this boundary for accepted
+and rejected reviews. An offline replay of a real fictional draft can establish
+that the reference error is removed; it cannot establish semantic approval or
+a successful new end-to-end model run.
+
 The subsequent local correction resolves conversational permission references
 server-side into `conversation_permissions` in the semantic-review request.
 Each entry contains only the segment ID, permission kind, existing reference and

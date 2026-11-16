@@ -22,6 +22,34 @@ def digest(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+def normalize_conversation_references(
+    context: ValidatedResponseContext, draft: ConversationalDraft
+) -> ConversationalDraft:
+    """Correct one unambiguous reference slot, never prose or authority."""
+    if draft.context_id != context.context_id:
+        return draft
+    questions = {q.id for q in context.allowed_questions}
+    segments = []
+    changed = False
+    for segment in draft.segments:
+        ref = segment.question_ref
+        if (
+            segment.kind == "question"
+            and ref is not None
+            and ref in context.allowed_next_steps
+            and ref not in questions
+            and segment.next_step_ref is None
+            and segment.uncertainty_ref is None
+            and not segment.claim_refs
+        ):
+            segment = segment.model_copy(
+                update={"kind": "next_step", "question_ref": None, "next_step_ref": ref}
+            )
+            changed = True
+        segments.append(segment)
+    return draft.model_copy(update={"segments": segments}) if changed else draft
+
+
 def validate_draft(
     context: ValidatedResponseContext, draft: ConversationalDraft, limit: int
 ) -> str:

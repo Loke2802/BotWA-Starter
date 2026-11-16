@@ -302,7 +302,7 @@ def test_pilot_contract_and_legacy_hash() -> None:
     from app.application.generative_ai.policy import config_hash, recipient_allowed
 
     legacy = CONFIG.model_dump_json(
-        exclude={"conversational_response", "pilot_recipients"}
+        exclude={"conversational_response", "pilot_recipients", "whatsapp_ads_only"}
     )
     assert config_hash(CONFIG) == hashlib.sha256(legacy.encode()).hexdigest()
     assert recipient_allowed(CONFIG, "51999999999")

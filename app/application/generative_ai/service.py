@@ -22,6 +22,7 @@ from app.application.generative_ai.answer_coverage import (
 from app.application.generative_ai.policy import (
     config_hash,
     configuration,
+    conversation_allowed,
     recipient_allowed,
 )
 from app.application.generative_ai.response_validation import digest
@@ -125,6 +126,7 @@ class AIService:
             or conversation.organization_id != job.organization_id
             or conversation.bot_id != job.bot_id
             or not recipient_allowed(config, conversation.external_customer_id or "")
+            or not conversation_allowed(config, conversation, job.configuration_id)
             or conversation.inbound_message_count != job.sequence
         ):
             return None
@@ -423,7 +425,12 @@ class AIService:
             context["config"] = {
                 k: v
                 for k, v in context["config"].items()
-                if k not in {"conversational_response", "pilot_recipients"}
+                if k
+                not in {
+                    "conversational_response",
+                    "pilot_recipients",
+                    "whatsapp_ads_only",
+                }
             }
         now, attempt_id = datetime.now(UTC), uuid4()
         with self.sessions() as session:

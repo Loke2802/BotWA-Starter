@@ -36,6 +36,7 @@ class WhatsAppInboundCandidate(BaseModel):
     timestamp: datetime
     message_type: WhatsAppMessageType
     text: str | None = Field(default=None, max_length=65_536)
+    ad_source_id: str | None = Field(default=None, pattern=r"^[0-9]{1,64}$")
 
 
 class WhatsAppStatusEvent(BaseModel):

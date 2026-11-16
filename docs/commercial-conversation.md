@@ -20,9 +20,71 @@ conversion, search ranking, exclusivity, ROI, availability or superiority.
 Comparative claims still require the existing typed comparative authority.
 Sensitive values and protected conditions keep their placeholder/clause rules.
 
-Instructions are versioned independently: adviser `luri-adviser-5`, renderer
-`luri-response-7`, reviewer `luri-review-5`. There are no new calls, repair loops,
+Instructions are versioned independently: adviser `luri-adviser-6`, renderer
+`luri-response-8`, reviewer `luri-review-6`. There are no new calls, repair loops,
 tools, provider/model changes, dependencies, environment variables or migrations.
+
+## Dialogue guidance after live synthetic evaluation
+
+The adviser must copy evidence values literally, including the original verb
+form; normalizing a customer's words into a different infinitive is not evidence
+extraction. Catalog entries cannot enter the knowledge-quote path to bypass
+compatibility. Irrelevant FAQ calls to action are omitted as whole clauses when
+they repeat a need the customer already supplied; protected clauses are never
+split or rewritten to remove a condition.
+
+The renderer distinguishes canonical claims from paraphrasable descriptions
+before drafting and uses only existing authorized placeholder IDs. It speaks
+about the customer's project rather than internal evidence or validation. A
+missing exact price needs a useful next step, while a completed explanation or
+a customer's request to pause does not require another question. Recognizing
+that the customer uses another channel does not establish integration,
+complementarity or comparative superiority.
+
+The reviewer distinguishes an unanswered need from a relevant clarifying
+question. Asking about the project's initial state can help scope a quotation;
+that question does not itself confirm an offered feature or determine a price.
+Human assistance may be appropriate for a provider confirmation unavailable to
+the customer. Factual review, protected values, canonical clauses, references
+and all structural validators remain unchanged. Style is not an instruction to
+invent more impressive benefits from a source that supports only a simple use.
+
+An isolated evaluation uses fictional histories and the scoped published business
+knowledge through read-only transactions. Its separately authorized ledger counts
+every attempted call before sending it, including unknown outcomes, across all
+comparison phases. No pilot limits or settings are changed, and no WhatsApp is
+sent. Fictional drafts/reviews are retained privately for diagnosis; this does not
+change retention of actual customer conversations. Replaying rendering/review
+from a previously validated context is a component evaluation, not a new full
+four-stage run. Detecting a human request does not test actual handoff delivery.
+
+Model approval is only one signal. Inspect the actual expanded text for helpful
+answers, context use, unsupported claims, repeated questions and pressure before
+acceptance. Finite examples do not establish universal conversational quality;
+post-deployment end-to-end verification and operational readiness remain separate.
+
+### Evaluation status: not accepted for general traffic
+
+The isolated comparison exhausted its authorized 80-call limit. Baseline and
+initial candidate runs each covered eight fictional cases; later targeted repairs
+and component replays do not constitute a full rerun of the final prompt set.
+The final reviewer-only checks accepted the dental-clinic explanation but still
+rejected the human-assistance offer in the unconfirmed bookings/payments case
+with `UNSUPPORTED_CLAIM`. That rejection remains unresolved; it must not be
+reported as a successful answer or bypassed by disabling factual review.
+
+A final rendering/review replay with nine fictional history turns was accepted
+and avoided another repeated question. Manual inspection still finds a brief,
+basic explanation; this does not establish the desired depth of sales assistance.
+Earlier targeted checks accepted an honest unknown-price answer with a relevant
+scope question and an Instagram acknowledgement without an integration claim.
+Those checks used intermediate prompt versions. None of this verifies WhatsApp
+delivery, actual human handoff, or readiness to open customer traffic.
+
+Keep the candidate separate from the deployed version until the unresolved case,
+independent unseen scenarios and final full-pipeline behavior have been evaluated
+under owner-authorized scope. Publishing a reviewable change is distinct from
+accepting it for deployment.
 
 ## Applying a description to the customer's situation
 

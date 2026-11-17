@@ -176,6 +176,8 @@ def build_context(
             "Preguntar cuál de las opciones explicadas desea explorar; "
             "no afirmar superioridad ni ejecutar acciones."
         )
+    if config.qualify_for_proposal:
+        next_steps.pop("human_offer", None)
     if comparisons:
         next_steps["compare_options"] = (
             "Preguntar si desea comparar las opciones mediante los claims "
@@ -205,6 +207,7 @@ def build_context(
         canonical_values=values,
         canonical_clauses=clauses,
         customer_turn=customer_turn,
+        qualify_for_proposal=config.qualify_for_proposal,
         recent_responses=recent,
         required_claim_refs=required_claims,
     )

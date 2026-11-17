@@ -663,6 +663,11 @@ class AIService:
                     + [r.item_ref for r in result.recommendations]
                 )
             )
+            if config.qualify_for_proposal and not discovery.handoff_requested:
+                # Discovery owns customer intent. The fact-selection stage must
+                # not turn missing commercial details into a transfer merely
+                # because it cannot select a final price or recommendation.
+                result = result.model_copy(update={"handoff_requested": False})
             requested_refs = requested_descriptions(customer_text, sources)
             result = complete_descriptions(result, requested_refs, sources)
             result = salvage(result, config, memory, sources)

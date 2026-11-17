@@ -136,7 +136,7 @@ def safe_continuation(
         )
     elif pending:
         next_step = pending
-    elif not already_said(HUMAN_OFFER, recent):
+    elif not config.qualify_for_proposal and not already_said(HUMAN_OFFER, recent):
         next_step = HUMAN_OFFER
     elif not already_said(CLARIFY_REQUEST, recent):
         next_step = CLARIFY_REQUEST

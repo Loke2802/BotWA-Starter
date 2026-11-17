@@ -27,6 +27,7 @@ DESCRIPTION_REQUEST = re.compile(
     r"funcionan|diferencias?|ventajas?|beneficios?|caracter[ií]sticas?)\b",
     re.I,
 )
+MONETARY_REFERENCE = re.compile(r"(?:S/|\$|PEN\b|USD\b|EUR\b)\s*\d", re.I)
 STOP_REQUESTS = {
     "no me interesa",
     "no quiero continuar",
@@ -35,6 +36,17 @@ STOP_REQUESTS = {
     "no insistas",
     "deja de escribir",
 }
+QUESTION_REFUSAL = re.compile(
+    r"\b(?:no\s+(?:(?:me\s+)?(?:hagas|hag[aá]is)\s+)?m[aá]s\s+preguntas|"
+    r"no\s+(?:quiero|deseo)\s+(?:m[aá]s\s+preguntas|responder)|"
+    r"no\s+(?:me\s+)?preguntes|sin\s+(?:m[aá]s\s+)?preguntas|"
+    r"no\s+more\s+questions|don.t\s+ask)\b",
+    re.I,
+)
+
+
+def declines_questions(text: str) -> bool:
+    return bool(QUESTION_REFUSAL.search(text))
 
 
 def normalized(text: str) -> str:
@@ -104,18 +116,36 @@ def safe_continuation(
         facts.append(catalog_text)
     for quote in result.knowledge:
         source = sources[quote.source_ref]
+        literal_price = (
+            config.qualify_for_proposal
+            and bool(PRICE_REQUEST.search(customer_text))
+            and bool(MONETARY_REFERENCE.search(quote.quote))
+        )
         if (
             not price_only
             and not source.get("catalog")
-            and allows_paraphrase(source["content"], source.get("response_expression"))
+            and (
+                literal_price
+                or allows_paraphrase(
+                    source["content"], source.get("response_expression")
+                )
+            )
             and not any(mark in quote.quote for mark in ("?", "¿"))
         ):
-            # The exceptional path uses the original short descriptive fact.
-            # No paraphrase, inferred benefit, price or new promise is inserted.
+            # render() above already checked the complete literal source quote.
+            # Qualification can retain that entire selected price clause with
+            # all conditions; it never rescues rejected generated price prose.
             facts.append(quote.quote)
     # Selected, revalidated facts still answer this turn even if stated before.
     # History may suppress a repeated question/offer, never veto business evidence
     # and turn a known fact into a claim that no information is available.
+    if config.qualify_for_proposal and declines_questions(customer_text):
+        answer = "\n\n".join(facts) or UNCONFIRMED
+        if len(answer) <= limit:
+            return answer
+        if len(UNCONFIRMED) <= limit:
+            return UNCONFIRMED
+        raise ProviderError("RESPONSE_LENGTH")
     pending = next(
         (
             n.question

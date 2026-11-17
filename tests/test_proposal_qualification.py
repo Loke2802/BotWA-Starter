@@ -5,12 +5,21 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from app.application.generative_ai.response_context import build_context
-from app.application.generative_ai.response_continuation import safe_continuation
+from app.application.generative_ai.response_continuation import (
+    declines_questions,
+    safe_continuation,
+)
+from app.application.generative_ai.response_validation import validate_draft
 from app.domain.generative_ai.contracts import (
     AdviserResult,
     AIConfig,
     Generation,
     NeedDefinition,
+    ProviderError,
+)
+from app.domain.generative_ai.response_contracts import (
+    ConversationalDraft,
+    CustomerTurn,
 )
 from app.infrastructure.models.ai_generation import (
     AIJobModel,
@@ -26,6 +35,7 @@ from app.operations.ai_consumer import dispatch_one
 from pydantic import BaseModel
 from sqlalchemy import select
 
+from tests.test_conversational_response import segment
 from tests.test_generative_ai import FakeProvider, Runtime, runtime
 
 __all__ = ["runtime"]
@@ -210,3 +220,108 @@ async def test_selector_transfer_still_runs_render_and_review(runtime: Runtime) 
         out = session.scalars(select(OutboundMessageAttemptModel)).one()
         assert out.status == "sent" and out.attempt_count == 1
         assert not session.scalars(select(HandoffSessionModel)).all()
+
+
+@pytest.mark.parametrize(
+    ("enabled", "message", "requires_question"),
+    [
+        (True, "¿Cuánto cuesta una landing básica?", True),
+        (True, "¿Qué precio de referencia tiene esa opción?", True),
+        (True, "¿Cuál sería el precio exacto de mi proyecto?", True),
+        (False, "¿Cuánto cuesta una landing básica?", False),
+        (True, "No quiero más preguntas, solo dime cuánto cuesta.", False),
+        (True, "Dime el precio, sin más preguntas.", False),
+        (True, "No me hagas más preguntas: ¿cuánto cuesta?", False),
+        (True, "Gracias, lo voy a pensar.", False),
+    ],
+)
+def test_reference_price_does_not_end_willing_qualification(
+    enabled: bool, message: str, requires_question: bool
+) -> None:
+    clause = "Landing básica: S/250. Precio final según alcance en la propuesta PDF."
+    sources = {"price": {"version": "v1", "content": clause}}
+    config = AIConfig(
+        qualify_for_proposal=enabled,
+        needs=[
+            NeedDefinition(
+                key="funciones",
+                attribute="funciones",
+                question="¿Qué funciones necesitas?",
+            )
+        ],
+    )
+    result = AdviserResult(
+        tone="unknown",
+        question_key=None,
+        handoff_requested=False,
+        recommendations=[],
+        knowledge=[{"source_ref": "price", "quote": clause}],
+    )
+    context = build_context(
+        "reference",
+        result,
+        config,
+        {},
+        sources,
+        customer_turn=CustomerTurn(message_ref="m1", text=message),
+    )
+    draft = ConversationalDraft.model_validate(
+        {
+            "schema_version": "1",
+            "context_id": "reference",
+            "segments": [
+                segment(
+                    kind="recommendation",
+                    text="{{clause:knowledge_0}}",
+                    claim_refs=["claim_knowledge_0"],
+                )
+            ],
+        }
+    )
+    if requires_question:
+        with pytest.raises(ProviderError, match="QUALIFICATION_QUESTION_MISSING"):
+            validate_draft(context, draft, 3500)
+        # The canonical fallback retains the full price condition and one need.
+        fallback = safe_continuation(result, config, {}, sources, [], message)
+        assert clause in fallback and fallback.endswith("¿Qué funciones necesitas?")
+        with_question = draft.model_copy(
+            update={
+                "segments": [
+                    *draft.segments,
+                    type(draft.segments[0]).model_validate(
+                        segment(
+                            id="followup",
+                            kind="question",
+                            text="¿Qué funciones necesitas?",
+                            question_ref="question_funciones",
+                        )
+                    ),
+                ]
+            }
+        )
+        assert validate_draft(context, with_question, 3500).endswith(
+            "¿Qué funciones necesitas?"
+        )
+    else:
+        assert validate_draft(context, draft, 3500) == clause
+        if enabled and declines_questions(message):
+            assert safe_continuation(result, config, {}, sources, [], message) == clause
+
+
+def test_qualification_cannot_retain_a_changed_literal_price_source() -> None:
+    result = AdviserResult(
+        tone="unknown",
+        question_key=None,
+        handoff_requested=False,
+        recommendations=[],
+        knowledge=[{"source_ref": "price", "quote": "Referencia: S/250."}],
+    )
+    with pytest.raises(ProviderError, match="UNSUPPORTED_KNOWLEDGE"):
+        safe_continuation(
+            result,
+            AIConfig(qualify_for_proposal=True),
+            {},
+            {"price": {"version": "v2", "content": "Referencia: S/450."}},
+            [],
+            "¿Cuánto cuesta?",
+        )

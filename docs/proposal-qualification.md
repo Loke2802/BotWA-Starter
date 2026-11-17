@@ -19,6 +19,13 @@ recently asked questions. The existing explicit-request and human-takeover flows
 remain in place. A legitimate transfer still uses the existing handoff flow;
 this change does **not** add a customer-facing handoff notification.
 
+If the customer asks about price and configured questions remain unanswered, a
+draft must ask one of those questions. A clear refusal of further questions is
+excluded. A stalled draft falls back to the complete, revalidated literal price
+clause (including its conditions) and one remaining configured question. Rejected
+generated price prose is never reused, and a stale or changed source still fails
+validation. Refusing further questions also suppresses fallback questions.
+
 Reference prices, proposal format and package scope belong in the tenant's
 published knowledge, not in provider instructions or application constants.
 Monetary clauses retain their full canonical wording and conditions. A reference

@@ -995,3 +995,62 @@ async def test_assistant_requests_real_handoff_without_impersonation(
             assert "Te dejo con Alex" in reply
         else:
             assert not attempts
+
+
+async def test_daily_limit_hands_off_instead_of_generic_fallback(
+    runtime: Runtime, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.infrastructure.models.business_configuration import (
+        BusinessConfigurationModel,
+    )
+    from app.infrastructure.models.human_handoff import HandoffSessionModel
+
+    from tests.plan_support import allow_all_plan_enforcement
+
+    monkeypatch.setattr(
+        "app.operations.ai_consumer.PlanEnforcementService",
+        lambda repository: allow_all_plan_enforcement(),
+    )
+    with runtime.sessions() as session:
+        bot = session.get(BotModel, runtime.channel.bot_id)
+        assert bot is not None
+        bot.settings = {
+            "generative_ai": CONFIG.model_copy(
+                update={"handoff_adviser_name": "Alex"}
+            ).model_dump()
+        }
+        session.add(
+            BusinessConfigurationModel(
+                bot_id=bot.id,
+                business_name="Test",
+                description="Test",
+                service_instructions="Use published knowledge",
+                handoff_enabled=True,
+            )
+        )
+        session.commit()
+    runtime.settings.ai_daily_call_limit = 1
+    await runtime.inbound()
+    await runtime.service.run_once()
+    assert len(runtime.provider.calls) == 1
+    with runtime.sessions() as session:
+        job = session.scalars(select(AIJobModel)).one()
+        assert job.status == "ready" and job.error_code == "DAILY_LIMIT"
+        result = json.loads(cipher().decrypt(job.result_ciphertext or ""))
+        assert result == {"reply": "", "handoff": True}
+    await dispatch_one(runtime.service)
+    with runtime.sessions() as session:
+        job = session.scalars(select(AIJobModel)).one()
+        job.available_at = datetime.now(UTC) - timedelta(seconds=1)
+        session.commit()
+    await dispatch_one(runtime.service)
+    with runtime.sessions() as session:
+        assert session.scalars(select(AIJobModel)).one().status == "handoff"
+        assert (
+            session.scalars(select(HandoffSessionModel)).one().status == "waiting_human"
+        )
+        attempt = session.scalars(select(OutboundMessageAttemptModel)).one()
+        assert attempt.status == "sent"
+        reply = cipher().decrypt(attempt.message_ciphertext)
+    assert "Te dejo con Alex" in reply
+    assert FALLBACK not in reply

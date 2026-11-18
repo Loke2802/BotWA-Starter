@@ -813,6 +813,13 @@ class AIService:
         )
         job.completed_at, job.token, job.lease_until = datetime.now(UTC), None, None
 
+    def _handoff(self, job: AIJobModel, code: str) -> None:
+        job.status, job.error_code = "ready", code
+        job.result_ciphertext = self.cipher.encrypt(
+            json.dumps({"reply": "", "handoff": True})
+        )
+        job.completed_at, job.token, job.lease_until = datetime.now(UTC), None, None
+
     def fail(self, job_id: UUID, token: UUID, error: ProviderError) -> None:
         with self.sessions() as session:
             job = session.scalar(
@@ -839,7 +846,13 @@ class AIService:
                     seconds=5 * job.attempts
                 )
             else:
-                self._fallback(job, error.code)
+                if error.code == "DAILY_LIMIT":
+                    # Out of AI budget: hand the customer to a human (the
+                    # dispatcher confirms the handoff to them) instead of the
+                    # generic FALLBACK, which drops requests such as "asesor".
+                    self._handoff(job, error.code)
+                else:
+                    self._fallback(job, error.code)
                 append_non_user_audit(
                     SqlAlchemyAuditRepository(session),
                     organization_id=job.organization_id,

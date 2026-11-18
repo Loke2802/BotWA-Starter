@@ -14,6 +14,7 @@ from app.api.whatsapp_live_dependencies import (
     get_whatsapp_cloud_api_client,
     get_whatsapp_live_message_processor,
 )
+from app.application.generative_ai.policy import handoff_notice_key
 from app.application.generative_ai.response_pipeline import check_memory
 from app.application.generative_ai.response_validation import digest
 from app.application.generative_ai.service import AIService, utc
@@ -27,6 +28,7 @@ from app.infrastructure.models.ai_generation import (
     AIJobModel,
     AIResponseCheckpointModel,
 )
+from app.infrastructure.models.bot import BotModel
 from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.whatsapp_channel_configuration import (
     WhatsAppChannelConfigurationModel,
@@ -81,7 +83,14 @@ async def dispatch_one(service: AIService) -> bool:
         )
         if attempt is not None:
             if attempt.status in {"sent", "delivered", "read"}:
-                job.status, job.sent_at = "sent", attempt.sent_at or now
+                status = (
+                    "handoff"
+                    if (attempt.idempotency_key or "").startswith(
+                        f"ai:{job.id}:handoff:"
+                    )
+                    else "sent"
+                )
+                job.status, job.sent_at = status, attempt.sent_at or now
                 session.commit()
                 return True
             if attempt.delivery_token is not None:
@@ -100,6 +109,15 @@ async def dispatch_one(service: AIService) -> bool:
                 job.status, job.error_code = "failed", attempt.last_error_code
                 session.commit()
                 return True
+            if (attempt.idempotency_key or "").startswith(f"ai:{job.id}:handoff:"):
+                # The transport revalidates the exact handoff version as well as
+                # the regular AI route, scope and recipient before delivery.
+                if attempt.next_attempt_at and utc(attempt.next_attempt_at) > now:
+                    job.available_at = attempt.next_attempt_at
+                    session.commit()
+                    return False
+                session.commit()
+                return await processor.retry_attempt(attempt.id)
         try:
             config = service._eligible(session, job)
             if config is None:
@@ -134,6 +152,15 @@ async def dispatch_one(service: AIService) -> bool:
         if attempt is None:
             assert job.result_ciphertext is not None
             result = json.loads(service.cipher.decrypt(job.result_ciphertext))
+            if (
+                checkpoint is not None
+                and checkpoint.committed_revision is not None
+                and checkpoint.reply_digest != digest(result["reply"])
+            ):
+                job.status, job.error_code = "cancelled", "RESPONSE_CHANGED"
+                session.commit()
+                return True
+            notice_key = None
             if result["handoff"]:
                 handoff = HumanHandoffService(
                     HumanHandoffRepository(session),
@@ -143,7 +170,7 @@ async def dispatch_one(service: AIService) -> bool:
                 )
                 try:
                     with session.begin_nested(), atomic_transport(session):
-                        handoff.request_assistant(
+                        handoff_state = handoff.request_assistant(
                             job.organization_id, job.bot_id, job.conversation_id
                         )
                 except ValueError:
@@ -152,15 +179,36 @@ async def dispatch_one(service: AIService) -> bool:
                         "Puedes contactar al negocio por su canal de atención habitual."
                     )
                 else:
-                    job.status = "handoff"
-                    job.result_ciphertext = None
-                    session.commit()
-                    return True
+                    if config.handoff_adviser_name is None:
+                        job.status = "handoff"
+                        job.result_ciphertext = None
+                        session.commit()
+                        return True
+                    notice_key = handoff_notice_key(
+                        job, handoff_state.id, handoff_state.version
+                    )
+                    result["reply"] = (
+                        f"Te dejo con {config.handoff_adviser_name}, quien puede "
+                        "continuar contigo por aquí y revisar lo que ya nos contaste."
+                    )
             channel = session.get(
                 WhatsAppChannelConfigurationModel, job.configuration_id
             )
             conversation = session.get(ConversationModel, job.conversation_id)
             assert channel is not None and conversation is not None
+            limit = service.settings.whatsapp_outbound_max_text_chars
+            reply = result["reply"][:limit]
+            if config.handoff_adviser_name and conversation.outbound_message_count == 0:
+                bot = session.get(BotModel, job.bot_id)
+                intro = (bot.welcome_message or "").strip() if bot else ""
+                if intro and len(intro) + 2 + len(reply) <= limit:
+                    reply = f"{intro}\n\n{reply}"
+            if (
+                checkpoint is not None
+                and checkpoint.committed_revision is not None
+                and (notice_key is not None or len(reply) > len(result["reply"]))
+            ):
+                checkpoint.reply_digest = digest(reply)
             context = ResolvedChannelContext(
                 channel_type="whatsapp",
                 organization_id=job.organization_id,
@@ -171,16 +219,20 @@ async def dispatch_one(service: AIService) -> bool:
             message = OutboundChannelMessage(
                 channel_type="whatsapp",
                 external_recipient_id=conversation.external_customer_id or "",
-                text=result["reply"][
-                    : service.settings.whatsapp_outbound_max_text_chars
-                ],
+                text=reply,
                 metadata={
                     "conversation_id": str(job.conversation_id),
                     "ai_job_id": str(job.id),
                 },
             )
             with atomic_transport(session):
-                ids = processor.enqueue_ai_reply(job.receipt_id, context, message)
+                ids = (
+                    processor.enqueue_ai_reply(job.receipt_id, context, message)
+                    if notice_key is None
+                    else processor.enqueue_ai_reply(
+                        job.receipt_id, context, message, handoff_key=notice_key
+                    )
+                )
                 job.outbound_id = ids[0]
                 job.result_ciphertext = None
             attempt_id = job.outbound_id

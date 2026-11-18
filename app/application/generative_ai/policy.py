@@ -4,12 +4,14 @@ import re
 from uuid import UUID
 
 from pydantic import ValidationError
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domain.generative_ai.contracts import AIConfig
 from app.infrastructure.models.ai_generation import AIJobModel
 from app.infrastructure.models.bot import BotModel
 from app.infrastructure.models.conversation import ConversationModel
+from app.infrastructure.models.human_handoff import HandoffSessionModel
 from app.infrastructure.models.organization import OrganizationModel
 from app.infrastructure.models.whatsapp_message_transport import (
     InboundMessageReceiptModel,
@@ -48,12 +50,35 @@ def config_hash(config: AIConfig) -> str:
         excluded.add("pilot_recipients")
     if not config.whatsapp_ads_only:
         excluded.add("whatsapp_ads_only")
+    if config.handoff_adviser_name is None:
+        excluded.add("handoff_adviser_name")
     return hashlib.sha256(config.model_dump_json(exclude=excluded).encode()).hexdigest()
 
 
 def recipient_allowed(config: AIConfig, recipient: str) -> bool:
     """None preserves existing bots; an explicit empty pilot list denies all."""
     return config.pilot_recipients is None or recipient in config.pilot_recipients
+
+
+def handoff_notice_key(job: AIJobModel, handoff_id: UUID, version: int) -> str:
+    return f"ai:{job.id}:handoff:{handoff_id}:{version}"
+
+
+def pending_handoff_notice(session: Session, job: AIJobModel, key: str) -> bool:
+    handoff = session.scalar(
+        select(HandoffSessionModel)
+        .where(
+            HandoffSessionModel.conversation_id == job.conversation_id,
+            HandoffSessionModel.organization_id == job.organization_id,
+            HandoffSessionModel.bot_id == job.bot_id,
+            HandoffSessionModel.status == "waiting_human",
+            HandoffSessionModel.reason_code == "assistant_requested",
+        )
+        .with_for_update()
+    )
+    return handoff is not None and key == handoff_notice_key(
+        job, handoff.id, handoff.version
+    )
 
 
 def job_route_matches(

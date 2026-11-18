@@ -416,6 +416,7 @@ class WhatsAppLiveMessageProcessor:
                 conversation_allowed,
                 job_policy_hash,
                 job_route_matches,
+                pending_handoff_notice,
                 recipient_allowed,
             )
             from app.application.generative_ai.service import AIService, blocked
@@ -441,6 +442,14 @@ class WhatsAppLiveMessageProcessor:
                 else None
             )
             try:
+                key = attempt.idempotency_key or ""
+                is_handoff_notice = (
+                    job is not None
+                    and config is not None
+                    and config.handoff_adviser_name is not None
+                    and key.startswith(f"ai:{job.id}:handoff:")
+                    and pending_handoff_notice(self._session, job, key)
+                )
                 if (
                     job is None
                     or job.status != "ready"
@@ -455,7 +464,7 @@ class WhatsAppLiveMessageProcessor:
                     or not job_route_matches(self._session, job, conversation)
                     or attempt.channel_configuration_id != job.configuration_id
                     or attempt.inbound_receipt_id != job.receipt_id
-                    or attempt.idempotency_key != f"ai:{job.id}"
+                    or (key != f"ai:{job.id}" and not is_handoff_notice)
                     or attempt.notification
                     or conversation.inbound_message_count != job.sequence
                     or config is None
@@ -474,7 +483,7 @@ class WhatsAppLiveMessageProcessor:
                     or not conversation_allowed(
                         config, conversation, job.configuration_id
                     )
-                    or blocked(self._session, job)
+                    or (blocked(self._session, job) and not is_handoff_notice)
                 ):
                     raise ProviderError("AI_POLICY_CHANGED")
                 recipient = self._secret_cipher.decrypt(
@@ -649,14 +658,20 @@ class WhatsAppLiveMessageProcessor:
         receipt_id: UUID,
         context: ResolvedChannelContext,
         outbound: OutboundChannelMessage,
+        *,
+        handoff_key: str | None = None,
     ) -> tuple[UUID, ...]:
-        return self._enqueue_outbound(receipt_id, context, outbound)
+        return self._enqueue_outbound(
+            receipt_id, context, outbound, handoff_key=handoff_key
+        )
 
     def _enqueue_outbound(
         self,
         receipt_id: UUID,
         context: ResolvedChannelContext,
         outbound: OutboundChannelMessage,
+        *,
+        handoff_key: str | None = None,
     ) -> tuple[UUID, ...]:
         chunks = split_outbound_message(
             outbound,
@@ -667,9 +682,12 @@ class WhatsAppLiveMessageProcessor:
             attempt = OutboundMessageAttemptModel(
                 id=uuid4(),
                 idempotency_key=(
-                    f"ai:{outbound.metadata['ai_job_id']}"
-                    if outbound.metadata.get("ai_job_id")
-                    else None
+                    handoff_key
+                    or (
+                        f"ai:{outbound.metadata['ai_job_id']}"
+                        if outbound.metadata.get("ai_job_id")
+                        else None
+                    )
                 ),
                 inbound_receipt_id=receipt_id,
                 notification=bool(outbound.metadata.get("lead_notification")),

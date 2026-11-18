@@ -245,7 +245,12 @@ def test_origin_is_line_scoped_and_default_hash_compatible() -> None:
 
     config = AIConfig()
     old_json = config.model_dump_json(
-        exclude={"conversational_response", "pilot_recipients", "whatsapp_ads_only"}
+        exclude={
+            "conversational_response",
+            "pilot_recipients",
+            "whatsapp_ads_only",
+            "handoff_adviser_name",
+        }
     )
     assert config_hash(config) == hashlib.sha256(old_json.encode()).hexdigest()
     assert config_hash(config) != config_hash(AIConfig(whatsapp_ads_only=True))

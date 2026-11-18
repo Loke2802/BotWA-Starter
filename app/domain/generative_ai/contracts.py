@@ -31,6 +31,7 @@ class AIConfig(StrictModel):
     conversational_response: ResponseConfig = Field(default_factory=ResponseConfig)
     pilot_recipients: list[PilotRecipient] | None = Field(default=None, max_length=20)
     whatsapp_ads_only: bool = False
+    qualify_for_proposal: bool = False
 
     @model_validator(mode="after")
     def unique_keys(self) -> "AIConfig":

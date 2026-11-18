@@ -4,6 +4,10 @@ import hashlib
 import re
 import unicodedata
 
+from app.application.generative_ai.response_continuation import (
+    PRICE_REQUEST,
+    declines_questions,
+)
 from app.domain.generative_ai.contracts import ProviderError
 from app.domain.generative_ai.response_contracts import (
     ConversationalDraft,
@@ -169,6 +173,18 @@ def validate_draft(
         raise ProviderError("INCOMPLETE_EXPLANATION")
     if not required.issubset(inserted_clauses):
         raise ProviderError("MISSING_CANONICAL_CLAUSE")
+    if (
+        context.qualify_for_proposal
+        and context.allowed_questions
+        and context.customer_turn
+        and PRICE_REQUEST.search(context.customer_turn.text)
+        and not declines_questions(context.customer_turn.text)
+        and not any(s.kind == "question" and s.question_ref for s in draft.segments)
+    ):
+        # A reference price is not the end of proposal qualification. Reject a
+        # stalled draft and let the existing canonical continuation ask one
+        # unanswered configured question. Never force it after a clear refusal.
+        raise ProviderError("QUALIFICATION_QUESTION_MISSING")
     text = "\n\n".join(output)
     if not text.strip() or len(text) > min(3500, limit):
         raise ProviderError("RESPONSE_LENGTH")

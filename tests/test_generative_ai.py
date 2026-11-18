@@ -302,7 +302,12 @@ def test_pilot_contract_and_legacy_hash() -> None:
     from app.application.generative_ai.policy import config_hash, recipient_allowed
 
     legacy = CONFIG.model_dump_json(
-        exclude={"conversational_response", "pilot_recipients", "whatsapp_ads_only"}
+        exclude={
+            "conversational_response",
+            "pilot_recipients",
+            "whatsapp_ads_only",
+            "handoff_adviser_name",
+        }
     )
     assert config_hash(CONFIG) == hashlib.sha256(legacy.encode()).hexdigest()
     assert recipient_allowed(CONFIG, "51999999999")
@@ -899,9 +904,17 @@ async def test_new_input_between_enqueue_and_send_is_suppressed(
         assert attempt.last_error_code == "AI_POLICY_CHANGED"
 
 
+@pytest.mark.parametrize(
+    ("adviser_name", "takeover_before_retry"),
+    [(None, False), ("Alex", False), ("Alex", True)],
+)
 async def test_assistant_requests_real_handoff_without_impersonation(
-    runtime: Runtime, monkeypatch: pytest.MonkeyPatch
+    runtime: Runtime,
+    monkeypatch: pytest.MonkeyPatch,
+    adviser_name: str | None,
+    takeover_before_retry: bool,
 ) -> None:
+    from app.application.whatsapp_live.processor import WhatsAppLiveMessageProcessor
     from app.infrastructure.models.business_configuration import (
         BusinessConfigurationModel,
     )
@@ -913,6 +926,16 @@ async def test_assistant_requests_real_handoff_without_impersonation(
         "app.operations.ai_consumer.PlanEnforcementService",
         lambda repository: allow_all_plan_enforcement(),
     )
+    with runtime.sessions() as session:
+        bot = session.get(BotModel, runtime.channel.bot_id)
+        assert bot is not None
+        bot.settings = {
+            "generative_ai": CONFIG.model_copy(
+                update={"handoff_adviser_name": adviser_name}
+            ).model_dump()
+        }
+        bot.welcome_message = "Hola, soy Luri, tu asistente virtual."
+        session.commit()
     await runtime.inbound()
     await runtime.service.run_once()
     with runtime.sessions() as session:
@@ -930,10 +953,45 @@ async def test_assistant_requests_real_handoff_without_impersonation(
             )
         )
         session.commit()
-    await dispatch_one(runtime.service)
+    if takeover_before_retry:
+
+        async def defer_delivery(*args: Any, **kwargs: Any) -> bool:
+            return False
+
+        with monkeypatch.context() as patch:
+            patch.setattr(WhatsAppLiveMessageProcessor, "retry_attempt", defer_delivery)
+            await dispatch_one(runtime.service)
+        with runtime.sessions() as session:
+            handoff = session.scalars(select(HandoffSessionModel)).one()
+            handoff.status = "human_active"
+            handoff.version += 1
+            session.commit()
+    else:
+        await dispatch_one(runtime.service)
+    if adviser_name:
+        with runtime.sessions() as session:
+            job = session.scalars(select(AIJobModel)).one()
+            job.available_at = datetime.now(UTC) - timedelta(seconds=1)
+            session.commit()
+        await dispatch_one(runtime.service)
+    if takeover_before_retry:
+        with runtime.sessions() as session:
+            attempt = session.scalars(select(OutboundMessageAttemptModel)).one()
+            assert attempt.status == "failed" and attempt.attempt_count == 0
+        return
+    assert not await dispatch_one(runtime.service)
     with runtime.sessions() as session:
         assert session.scalars(select(AIJobModel)).one().status == "handoff"
         assert (
             session.scalars(select(HandoffSessionModel)).one().status == "waiting_human"
         )
-        assert not session.scalars(select(OutboundMessageAttemptModel)).all()
+        attempts = session.scalars(select(OutboundMessageAttemptModel)).all()
+        if adviser_name:
+            assert len(attempts) == 1
+            attempt = attempts[0]
+            assert attempt.status == "sent" and attempt.attempt_count == 1
+            reply = cipher().decrypt(attempt.message_ciphertext)
+            assert reply.startswith("Hola, soy Luri, tu asistente virtual.\n\n")
+            assert "Te dejo con Alex" in reply
+        else:
+            assert not attempts

@@ -205,6 +205,8 @@ def get_whatsapp_live_message_processor(
         conversation_management=management,
         outbound_enabled=settings.whatsapp_live_client_mode != "disabled",
         notification_recipients_for=notification_recipients,
+        adviser_alert_scopes=settings.handoff_alert_scopes,
+        template_sender=sender.send_template,
         outbound_recipient_allowlist=_outbound_recipient_allowlist(settings),
         scoped_recipient_allowed=scoped_recipient_allowed,
     )

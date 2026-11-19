@@ -1,6 +1,9 @@
 from abc import ABC, abstractmethod
 
-from app.domain.whatsapp_live.contracts import WhatsAppSendResponse
+from app.domain.whatsapp_live.contracts import (
+    WhatsAppSendResponse,
+    WhatsAppTemplateMessage,
+)
 
 
 class WhatsAppCloudApiError(RuntimeError):
@@ -17,6 +20,16 @@ class WhatsAppCloudApiError(RuntimeError):
 
 
 class WhatsAppCloudApiClient(ABC):
+    async def send_template_message(
+        self,
+        *,
+        phone_number_id: str,
+        access_token: str,
+        recipient_id: str,
+        template: WhatsAppTemplateMessage,
+    ) -> WhatsAppSendResponse:
+        raise WhatsAppCloudApiError("TEMPLATE_TRANSPORT_UNAVAILABLE", retryable=False)
+
     @abstractmethod
     async def send_text_message(
         self,

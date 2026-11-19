@@ -5,11 +5,18 @@ from app.application.channel.messaging import ChannelMessageSender
 from app.application.whatsapp_configuration.repository import (
     WhatsAppConfigurationRepository,
 )
-from app.application.whatsapp_live.client import WhatsAppCloudApiClient
+from app.application.whatsapp_live.client import (
+    WhatsAppCloudApiClient,
+    WhatsAppCloudApiError,
+)
 from app.domain.channel.contracts import (
     ChannelDeliveryResult,
     OutboundChannelMessage,
     ResolvedChannelContext,
+)
+from app.domain.whatsapp_live.contracts import (
+    WhatsAppTemplateMessage,
+    is_business_scoped_user_id,
 )
 from app.security.secret_cipher import SecretCipher, SecretCipherError
 
@@ -48,11 +55,29 @@ class WhatsAppChannelMessageSender(ChannelMessageSender):
         message: OutboundChannelMessage,
         context: ResolvedChannelContext,
     ) -> ChannelDeliveryResult:
+        return await self._send(message, context)
+
+    async def send_template(
+        self,
+        message: OutboundChannelMessage,
+        context: ResolvedChannelContext,
+        template: WhatsAppTemplateMessage,
+    ) -> ChannelDeliveryResult:
+        return await self._send(message, context, template)
+
+    async def _send(
+        self,
+        message: OutboundChannelMessage,
+        context: ResolvedChannelContext,
+        template: WhatsAppTemplateMessage | None = None,
+    ) -> ChannelDeliveryResult:
         if message.channel_type != "whatsapp" or context.channel_type != "whatsapp":
             raise WhatsAppChannelDeliveryError("CHANNEL_MISMATCH")
-        if len(message.text) > self._max_text_chars:
+        if template is None and len(message.text) > self._max_text_chars:
             raise WhatsAppChannelDeliveryError("MESSAGE_TOO_LONG")
-        if _RECIPIENT.fullmatch(message.external_recipient_id) is None:
+        if _RECIPIENT.fullmatch(
+            message.external_recipient_id
+        ) is None and not is_business_scoped_user_id(message.external_recipient_id):
             raise WhatsAppChannelDeliveryError("INVALID_RECIPIENT")
         if (
             self._allowed_recipients is not None
@@ -88,22 +113,25 @@ class WhatsAppChannelMessageSender(ChannelMessageSender):
             raise WhatsAppChannelDeliveryError("ACCESS_TOKEN_UNAVAILABLE") from exc
 
         try:
-            result = await self._client.send_text_message(
-                phone_number_id=configuration.phone_number_id,
-                access_token=access_token,
-                recipient_id=message.external_recipient_id,
-                text=message.text,
-                reply_to_message_id=message.reply_to_external_message_id,
-            )
-        except Exception as exc:
-            from app.application.whatsapp_live.client import WhatsAppCloudApiError
-
-            if isinstance(exc, WhatsAppCloudApiError):
-                raise WhatsAppChannelDeliveryError(
-                    exc.code,
-                    retryable=exc.retryable,
-                ) from exc
-            raise
+            if template is None:
+                result = await self._client.send_text_message(
+                    phone_number_id=configuration.phone_number_id,
+                    access_token=access_token,
+                    recipient_id=message.external_recipient_id,
+                    text=message.text,
+                    reply_to_message_id=message.reply_to_external_message_id,
+                )
+            else:
+                result = await self._client.send_template_message(
+                    phone_number_id=configuration.phone_number_id,
+                    access_token=access_token,
+                    recipient_id=message.external_recipient_id,
+                    template=template,
+                )
+        except WhatsAppCloudApiError as exc:
+            raise WhatsAppChannelDeliveryError(
+                exc.code, retryable=exc.retryable
+            ) from exc
         return ChannelDeliveryResult(
             provider_message_id=result.provider_message_id,
         )

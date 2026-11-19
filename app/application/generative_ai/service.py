@@ -26,12 +26,21 @@ from app.application.generative_ai.policy import (
     job_route_matches,
     recipient_allowed,
 )
+from app.application.generative_ai.response_continuation import (
+    STOP_REQUESTS,
+    declines_questions,
+    normalized,
+)
 from app.application.generative_ai.response_validation import digest
 from app.application.generative_ai.validation import (
     FALLBACK,
     apply_discovery,
     render,
     salvage,
+)
+from app.application.generative_ai.website_intake import (
+    omit_unrequested_prices,
+    website_intake_reply,
 )
 from app.domain.generative_ai.contracts import (
     AdviserResult,
@@ -605,10 +614,38 @@ class AIService:
         job_id, token = claim
         try:
             snapshot = self.snapshot(job_id, token)
-            discovery = Discovery.model_validate_json(
-                await self._generate(job_id, token, "discovery", snapshot, Discovery)
-            )
             config = AIConfig.model_validate(snapshot["config"])
+            customer_text = next(
+                (
+                    m["text"]
+                    for m in reversed(snapshot["history"])
+                    if m["direction"] == "inbound"
+                ),
+                "",
+            )
+            first_reply = not any(
+                m["direction"] == "outbound" for m in snapshot["history"]
+            )
+            intake_reply = (
+                website_intake_reply(
+                    customer_text,
+                    first_reply=first_reply,
+                    business_known="negocio" in snapshot["memory"],
+                )
+                if config.website_sales_intake and len(snapshot["history"]) == 1
+                else None
+            )
+            discovery = (
+                Discovery(
+                    new_topic=False, needs=[], search_terms=[], handoff_requested=False
+                )
+                if intake_reply
+                else Discovery.model_validate_json(
+                    await self._generate(
+                        job_id, token, "discovery", snapshot, Discovery
+                    )
+                )
+            )
             memory = apply_discovery(
                 discovery,
                 config,
@@ -619,26 +656,37 @@ class AIService:
                     if item["direction"] == "inbound"
                 },
             )
-            customer_text = (
-                next(
-                    (
-                        m["text"]
-                        for m in reversed(snapshot["history"])
-                        if m["direction"] == "inbound"
-                    ),
-                    "",
+            business_question_pending = (
+                config.website_sales_intake
+                and intake_reply is None
+                and first_reply
+                and "negocio" not in memory
+                and any(need.key == "negocio" for need in config.needs)
+                and not declines_questions(customer_text)
+                and normalized(customer_text).removesuffix(" gracias")
+                not in STOP_REQUESTS
+            )
+            if business_question_pending:
+                config = config.model_copy(
+                    update={
+                        "needs": sorted(
+                            config.needs, key=lambda need: need.key != "negocio"
+                        )
+                    }
                 )
-                if config.conversational_response.enabled
-                else ""
+            coverage_text = (
+                customer_text if config.conversational_response.enabled else ""
             )
-            sources = self.retrieve(
-                job_id, token, discovery.search_terms, customer_text
+            sources = (
+                {}
+                if intake_reply
+                else self.retrieve(job_id, token, discovery.search_terms, coverage_text)
             )
-            if discovery.handoff_requested:
+            if intake_reply or discovery.handoff_requested:
                 result = AdviserResult(
                     tone="unknown",
                     question_key=None,
-                    handoff_requested=True,
+                    handoff_requested=discovery.handoff_requested,
                     recommendations=[],
                     knowledge=[],
                 )
@@ -649,7 +697,7 @@ class AIService:
                         token,
                         "adviser",
                         {
-                            "config": snapshot["config"],
+                            "config": config.model_dump(),
                             "history": snapshot["history"],
                             "memory": memory,
                             "sources": sources,
@@ -668,13 +716,24 @@ class AIService:
                 # not turn missing commercial details into a transfer merely
                 # because it cannot select a final price or recommendation.
                 result = result.model_copy(update={"handoff_requested": False})
-            requested_refs = requested_descriptions(customer_text, sources)
+            requested_refs = requested_descriptions(coverage_text, sources)
             result = complete_descriptions(result, requested_refs, sources)
+            if config.website_sales_intake and not result.handoff_requested:
+                result = omit_unrequested_prices(result, customer_text, sources)
+            if business_question_pending and not result.handoff_requested:
+                result = result.model_copy(
+                    update={"question_key": "negocio", "tone": "unknown"}
+                )
             result = salvage(result, config, memory, sources)
-            reply, used = render(result, config, memory, sources)
+            reply, used = (
+                (intake_reply, {})
+                if intake_reply
+                else render(result, config, memory, sources)
+            )
             if (
                 config.conversational_response.enabled
                 and not discovery.handoff_requested
+                and not intake_reply
             ):
                 self.record_diagnostics(
                     job_id,
@@ -689,9 +748,10 @@ class AIService:
                         "validated_refs": sorted(used),
                     },
                 )
-            reply = await response_pipeline.compose(
-                self, job_id, token, result, config, memory, sources, reply, used
-            )
+            if not intake_reply:
+                reply = await response_pipeline.compose(
+                    self, job_id, token, result, config, memory, sources, reply, used
+                )
             with self.sessions() as session:
                 job = self._owned(session, job_id, token)
                 session.scalar(

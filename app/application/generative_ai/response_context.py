@@ -208,6 +208,13 @@ def build_context(
         canonical_clauses=clauses,
         customer_turn=customer_turn,
         qualify_for_proposal=config.qualify_for_proposal,
+        required_question_ref=(
+            "question_negocio"
+            if config.website_sales_intake
+            and not recent
+            and result.question_key == "negocio"
+            else None
+        ),
         recent_responses=recent,
         required_claim_refs=required_claims,
     )

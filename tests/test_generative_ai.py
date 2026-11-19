@@ -23,6 +23,7 @@ from app.domain.generative_ai.contracts import (
     NeedDefinition,
     NeedPatch,
     ProviderError,
+    ResponseConfig,
     Usage,
 )
 from app.infrastructure.database import Base
@@ -177,16 +178,20 @@ class Runtime:
         )
         self.service = AIService(sessions, self.settings, cipher(), self.provider)
 
-    async def inbound(self, message_id: str = "test-ai-1") -> None:
+    async def inbound(
+        self,
+        message_id: str = "test-ai-1",
+        *,
+        text: str = "Mi sobrino tiene 5 años y quiere un dinosaurio",
+        ad_source_id: str | None = None,
+    ) -> None:
         with self.sessions() as session:
             payload = parsed(self.channel.phone_number_id, message_id)
             payload = payload.model_copy(
                 update={
                     "messages": (
                         payload.messages[0].model_copy(
-                            update={
-                                "text": "Mi sobrino tiene 5 años y quiere un dinosaurio"
-                            }
+                            update={"text": text, "ad_source_id": ad_source_id}
                         ),
                     )
                 }
@@ -207,6 +212,54 @@ def runtime(tmp_path: Any, monkeypatch: pytest.MonkeyPatch) -> Generator[Runtime
     Base.metadata.create_all(engine)
     yield Runtime(sessionmaker(bind=engine, autoflush=False), monkeypatch)
     engine.dispose()
+
+
+@pytest.mark.parametrize(
+    ("content", "expected"),
+    [
+        (
+            "Hola, me interesa la web con branding desde S/250. Mi negocio es…",
+            "Con gusto te ayudo con el diseño de tu web. ¿A qué se dedica tu negocio?",
+        ),
+        (
+            "Hola, quiero cotizar el diseño de una página web para mi negocio.",
+            "Con gusto te ayudo con el diseño de tu web. ¿A qué se dedica tu negocio?",
+        ),
+        (
+            "Buenas tardes, quisiera un préstamo para mi negocio",
+            "Aquí atendemos consultas sobre diseño web para negocios.",
+        ),
+    ],
+)
+async def test_website_sales_intake_from_ads_uses_scoped_short_reply(
+    runtime: Runtime, content: str, expected: str
+) -> None:
+    with runtime.sessions() as session:
+        bot = session.get(BotModel, runtime.channel.bot_id)
+        assert bot is not None
+        bot.settings = {
+            "generative_ai": AIConfig(
+                enabled=True,
+                qualify_for_proposal=True,
+                website_sales_intake=True,
+                whatsapp_ads_only=True,
+                handoff_adviser_name="Alex",
+                conversational_response=ResponseConfig(enabled=True),
+            ).model_dump()
+        }
+        bot.welcome_message = "Hola, soy Luri."
+        session.commit()
+    await runtime.inbound(text=content, ad_source_id="1500")
+    assert await runtime.service.run_once()
+    assert not runtime.provider.calls
+    assert await dispatch_one(runtime.service)
+    with runtime.sessions() as session:
+        attempt = session.scalars(select(OutboundMessageAttemptModel)).one()
+        assert attempt.status == "sent"
+        assert (
+            cipher().decrypt(attempt.message_ciphertext)
+            == f"Hola, soy Luri.\n\n{expected}"
+        )
 
 
 async def test_durable_webhook_generation_outbox_idempotency(runtime: Runtime) -> None:
@@ -307,6 +360,7 @@ def test_pilot_contract_and_legacy_hash() -> None:
             "pilot_recipients",
             "whatsapp_ads_only",
             "handoff_adviser_name",
+            "website_sales_intake",
         }
     )
     assert config_hash(CONFIG) == hashlib.sha256(legacy.encode()).hexdigest()

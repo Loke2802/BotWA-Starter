@@ -192,7 +192,7 @@ window.LuriConversations = (() => {
       showError(c, confirmed ? "La respuesta fue enviada al proveedor, pero no se pudo actualizar el historial. Pulsa Actualizar; no es necesario reenviarla." : submitted ? "No se pudo confirmar el resultado. Revisa el historial antes de volver a enviar. Si reintentas el mismo texto se reutilizará su identificador para evitar duplicados." : errorText(error));
     } finally { c.busy = false; if (live(c)) form.querySelectorAll("button, textarea").forEach(e => e.disabled = false); }
   }
-  function mount(root) {
+  function mount(root, initialConversation = null) {
     const c = context; if (!c) return;
     c.root = root;
     root._conversationEvents?.abort();
@@ -205,6 +205,7 @@ window.LuriConversations = (() => {
       if (event.target.id === "conversation-reply") send(c, event);
       if (event.target.id === "conversation-filters") applyFilters(c, event);
     }, {signal:events.signal});
+    if (initialConversation) action(c, null, initialConversation);
   }
   return {render, mount, reset};
 })();

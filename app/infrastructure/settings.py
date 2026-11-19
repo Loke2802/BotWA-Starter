@@ -5,6 +5,8 @@ from typing import Annotated, Literal
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
+from app.domain.whatsapp_live.contracts import AdviserAlertConfig
+
 
 class Environment(StrEnum):
     DEVELOPMENT = "development"
@@ -62,6 +64,22 @@ class Settings(BaseSettings):
     whatsapp_outbound_restrict_recipients: bool = True
     lead_notification_recipients: Annotated[tuple[str, ...], NoDecode] = ()
     lead_notification_scopes: dict[str, tuple[str, ...]] = Field(default_factory=dict)
+    handoff_alert_scopes: dict[str, AdviserAlertConfig] = Field(default_factory=dict)
+
+    @field_validator("handoff_alert_scopes")
+    @classmethod
+    def validate_handoff_alert_scopes(
+        cls, scopes: dict[str, AdviserAlertConfig]
+    ) -> dict[str, AdviserAlertConfig]:
+        from uuid import UUID
+
+        for scope in scopes:
+            parts = scope.split(":")
+            if len(parts) != 3 or any(str(UUID(part)) != part for part in parts):
+                raise ValueError(
+                    "handoff scope must be organization UUID:bot UUID:channel UUID"
+                )
+        return scopes
 
     @field_validator("lead_notification_scopes")
     @classmethod

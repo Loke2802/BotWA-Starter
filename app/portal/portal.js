@@ -127,14 +127,23 @@ async function startWorkspace() {
     throw new Error("No tienes una empresa asignada todavía.");
   }
   const saved = sessionStorage.getItem(organizationKey);
-  state.activeOrganization = state.organizations.some((item) => item.id === saved)
-    ? saved
-    : state.organizations[0].id;
+  const query = new URLSearchParams(window.location.search);
+  const linkedOrganization = query.get("org");
+  const linkedConversation = query.get("conversation");
+  const canOpenLink = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(linkedConversation || "")
+    && state.organizations.some((item) => item.id === linkedOrganization);
+  const preferred = canOpenLink ? linkedOrganization : saved;
+  state.activeOrganization = state.organizations.some((item) => item.id === preferred)
+    ? preferred : state.organizations[0].id;
+  if (canOpenLink) {
+    state.view = "conversations";
+    document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === state.view));
+  }
   renderOrganizationPicker();
   createOrganizationButton.hidden = state.user?.role !== "platform_admin";
   loginScreen.hidden = true;
   appShell.hidden = false;
-  await renderView();
+  await renderView(canOpenLink ? linkedConversation : null);
 }
 
 function openOrganizationModal() {
@@ -264,7 +273,7 @@ async function renderConfiguration() {
 }
 
 let renderGeneration = 0;
-async function renderView() {
+async function renderView(initialConversation = null) {
   const ticket = ++renderGeneration;
   window.LuriCRM.close();
   window.LuriConversations.reset();
@@ -284,7 +293,7 @@ async function renderView() {
     if (ticket !== renderGeneration || !state.token || state.activeOrganization !== organizationId) return;
     content.innerHTML = markup;
     if (state.view === "contacts") window.LuriCRM.mount(content);
-    if (state.view === "conversations") window.LuriConversations.mount(content);
+    if (state.view === "conversations") window.LuriConversations.mount(content, initialConversation);
   } catch (error) {
     if (ticket !== renderGeneration || !state.token) return;
     content.innerHTML = '<p class="empty">No se pudo cargar esta vista. Vuelve a seleccionar la sección para reintentar.</p>';

@@ -52,6 +52,8 @@ def config_hash(config: AIConfig) -> str:
         excluded.add("whatsapp_ads_only")
     if config.handoff_adviser_name is None:
         excluded.add("handoff_adviser_name")
+    if not config.website_sales_intake:
+        excluded.add("website_sales_intake")
     return hashlib.sha256(config.model_dump_json(exclude=excluded).encode()).hexdigest()
 
 

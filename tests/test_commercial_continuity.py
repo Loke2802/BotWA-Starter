@@ -13,6 +13,10 @@ from app.application.generative_ai.response_continuation import (
     recent_responses,
     safe_continuation,
 )
+from app.application.generative_ai.website_intake import (
+    omit_unrequested_prices,
+    website_intake_reply,
+)
 from app.domain.generative_ai.contracts import (
     AdviserResult,
     AIConfig,
@@ -79,6 +83,51 @@ def test_rejected_prose_can_keep_selected_facts_and_one_useful_question() -> Non
     text = safe_continuation(result, CONFIG, {}, sources, [])
     assert text == "\n\n".join([CORPORATE, CATALOG, CONFIG.needs[0].question])
     assert text.count("?") == 1 and UNCONFIRMED not in text
+
+
+def test_website_intake_keeps_prospect_details_and_separates_price_intent() -> None:
+    assert (
+        website_intake_reply(
+            "Hola, me interesa la web con branding desde S/250. "
+            "Mi negocio es una cafetería.",
+            first_reply=True,
+            business_known=False,
+        )
+        is None
+    )
+    assert (
+        website_intake_reply(
+            "Tengo una financiera que ofrece préstamos y quiero una página web.",
+            first_reply=True,
+            business_known=False,
+        )
+        is None
+    )
+    assert (
+        website_intake_reply(
+            "Préstamos personales",
+            first_reply=False,
+            business_known=False,
+        )
+        is None
+    )
+    result, sources = evidence()
+    price = "Landing desde S/250 sin IGV como referencia."
+    sources["price"] = {"content": price, "version": "v1"}
+    result = AdviserResult.model_validate(
+        {
+            **result.model_dump(),
+            "knowledge": [
+                {"source_ref": "corporate", "quote": CORPORATE},
+                {"source_ref": "price", "quote": price},
+            ],
+        }
+    )
+    filtered = omit_unrequested_prices(result, "Vengo por la promo de S/250.", sources)
+    assert [quote.source_ref for quote in filtered.knowledge] == ["corporate"]
+    assert (
+        omit_unrequested_prices(result, "¿Cuánto cuesta la landing?", sources) == result
+    )
 
 
 def test_no_sources_and_completed_needs_offers_next_step_instead_of_dead_end() -> None:

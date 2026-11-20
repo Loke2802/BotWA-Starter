@@ -78,6 +78,7 @@ class ValidatedResponseContext(ResponseModel):
     canonical_clauses: dict[str, str]
     customer_turn: CustomerTurn | None = None
     qualify_for_proposal: bool = False
+    required_question_ref: Ref | None = None
     required_claim_refs: list[Ref] = Field(default_factory=list, max_length=2)
     recent_responses: list[Annotated[str, Field(min_length=1, max_length=1200)]] = (
         Field(default_factory=list, max_length=3)

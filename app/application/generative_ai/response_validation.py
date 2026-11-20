@@ -173,6 +173,12 @@ def validate_draft(
         raise ProviderError("INCOMPLETE_EXPLANATION")
     if not required.issubset(inserted_clauses):
         raise ProviderError("MISSING_CANONICAL_CLAUSE")
+    if context.required_question_ref and not any(
+        segment.kind == "question"
+        and segment.question_ref == context.required_question_ref
+        for segment in draft.segments
+    ):
+        raise ProviderError("QUALIFICATION_QUESTION_MISSING")
     if (
         context.qualify_for_proposal
         and context.allowed_questions

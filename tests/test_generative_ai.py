@@ -235,6 +235,7 @@ KMP_INTRO = "¡Hola! Soy Luri, asistente de Kalivur Marketing Pro. 👋"
             APPROVED_WEBSITE_GREETING,
         ),
         ("¿Cuánto cuesta una página web?", APPROVED_WEBSITE_GREETING),
+        ("¿Cuánto cuesta una landing?", APPROVED_WEBSITE_GREETING),
         (
             "Buenas tardes, quisiera un préstamo para mi negocio",
             "Aquí atendemos consultas sobre diseño web para negocios.",

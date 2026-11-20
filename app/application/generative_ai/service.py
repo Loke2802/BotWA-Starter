@@ -656,21 +656,22 @@ class AIService:
                     if item["direction"] == "inbound"
                 },
             )
-            business_question_pending = (
+            opening_question = "objetivo" if "negocio" in memory else "negocio"
+            opening_question_pending = (
                 config.website_sales_intake
                 and intake_reply is None
                 and first_reply
-                and "negocio" not in memory
-                and any(need.key == "negocio" for need in config.needs)
+                and opening_question not in memory
+                and any(need.key == opening_question for need in config.needs)
                 and not declines_questions(customer_text)
                 and normalized(customer_text).removesuffix(" gracias")
                 not in STOP_REQUESTS
             )
-            if business_question_pending:
+            if opening_question_pending:
                 config = config.model_copy(
                     update={
                         "needs": sorted(
-                            config.needs, key=lambda need: need.key != "negocio"
+                            config.needs, key=lambda need: need.key != opening_question
                         )
                     }
                 )
@@ -720,9 +721,9 @@ class AIService:
             result = complete_descriptions(result, requested_refs, sources)
             if config.website_sales_intake and not result.handoff_requested:
                 result = omit_unrequested_prices(result, customer_text, sources)
-            if business_question_pending and not result.handoff_requested:
+            if opening_question_pending and not result.handoff_requested:
                 result = result.model_copy(
-                    update={"question_key": "negocio", "tone": "unknown"}
+                    update={"question_key": opening_question, "tone": "unknown"}
                 )
             result = salvage(result, config, memory, sources)
             reply, used = (

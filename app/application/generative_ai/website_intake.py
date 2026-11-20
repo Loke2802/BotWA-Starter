@@ -23,6 +23,11 @@ _PROMO_OPENING = re.compile(
     _GREETING + r"me interesa (?:la|una) (?:p[aá]gina )?web con branding(?: b[aá]sico)?"
     r"(?: desde s \d{1,7}(?: sin igv)?)?(?: mi negocio es)?"
 )
+_PRICE_OPENING = re.compile(
+    _GREETING + r"cu[aá]nto (?:cuesta|costar[ií]a|vale|sale) "
+    r"(?:(?:un|una|el|la) )?(?:p[aá]gina web|sitio web|web)"
+    r"(?: para (?:mi|un) negocio)?(?: por favor)?"
+)
 _LOAN_REQUEST = re.compile(
     _GREETING + r"(?:(?:(?:yo )?(?:quiero|quisiera|necesito|busco|solicito|deseo) "
     r"(?:(?:solicitar|pedir|tramitar) )?(?:un )?|"
@@ -38,8 +43,12 @@ _PRICE_WORD = re.compile(
     r"\b(?:precios?|costos?|costes?|inversi[oó]n|tarifas?|importes?)\b", re.I
 )
 _MONEY_SUFFIX = re.compile(r"\b\d[\d.,]*\s+(?:soles|d[oó]lares|euros)\b", re.I)
-_BUSINESS_QUESTION = "¿A qué se dedica tu negocio?"
-_OPENING_REPLY = f"Con gusto te ayudo con el diseño de tu web. {_BUSINESS_QUESTION}"
+_OPENING_REPLY = (
+    "Para ayudarte a elegir una web que le sirva a tu negocio, cuéntame un poco. "
+    "¿A qué se dedica tu empresa y qué te gustaría lograr con tu página? "
+    "Por ejemplo, mostrar tus servicios, recibir consultas por WhatsApp o vender "
+    "en línea."
+)
 _LOAN_REPLY = "Aquí atendemos consultas sobre diseño web para negocios."
 
 
@@ -55,7 +64,10 @@ def website_intake_reply(
     if (
         first_reply
         and not business_known
-        and (_OPENING.fullmatch(text) or _PROMO_OPENING.fullmatch(text))
+        and any(
+            opening.fullmatch(text)
+            for opening in (_OPENING, _PROMO_OPENING, _PRICE_OPENING)
+        )
     ):
         return _OPENING_REPLY
     return None

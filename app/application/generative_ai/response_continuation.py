@@ -160,7 +160,7 @@ def safe_continuation(
     if (
         config.website_sales_intake
         and not recent
-        and result.question_key == "negocio"
+        and result.question_key in ("negocio", "objetivo")
         and pending
     ):
         next_step = pending

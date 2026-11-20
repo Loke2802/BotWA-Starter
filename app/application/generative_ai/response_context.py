@@ -209,10 +209,10 @@ def build_context(
         customer_turn=customer_turn,
         qualify_for_proposal=config.qualify_for_proposal,
         required_question_ref=(
-            "question_negocio"
+            f"question_{result.question_key}"
             if config.website_sales_intake
             and not recent
-            and result.question_key == "negocio"
+            and result.question_key in ("negocio", "objetivo")
             else None
         ),
         recent_responses=recent,

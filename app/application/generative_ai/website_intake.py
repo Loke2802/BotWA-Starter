@@ -25,7 +25,7 @@ _PROMO_OPENING = re.compile(
 )
 _PRICE_OPENING = re.compile(
     _GREETING + r"cu[aá]nto (?:cuesta|costar[ií]a|vale|sale) "
-    r"(?:(?:un|una|el|la) )?(?:p[aá]gina web|sitio web|web)"
+    r"(?:(?:un|una|el|la) )?(?:p[aá]gina web|sitio web|web|landing(?: page)?)"
     r"(?: para (?:mi|un) negocio)?(?: por favor)?"
 )
 _LOAN_REQUEST = re.compile(

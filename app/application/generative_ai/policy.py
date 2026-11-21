@@ -54,6 +54,8 @@ def config_hash(config: AIConfig) -> str:
         excluded.add("handoff_adviser_name")
     if not config.website_sales_intake:
         excluded.add("website_sales_intake")
+    if not config.website_sales_follow_up:
+        excluded.add("website_sales_follow_up")
     return hashlib.sha256(config.model_dump_json(exclude=excluded).encode()).hexdigest()
 
 

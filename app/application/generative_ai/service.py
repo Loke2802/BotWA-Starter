@@ -39,6 +39,7 @@ from app.application.generative_ai.validation import (
     salvage,
 )
 from app.application.generative_ai.website_intake import (
+    WEBSITE_GREETING,
     omit_unrequested_prices,
     website_intake_reply,
 )
@@ -818,9 +819,10 @@ class AIService:
                         )
                     )
                 self.release_reservations(session, job_id)
-                job.result_ciphertext = self.cipher.encrypt(
-                    json.dumps({"reply": reply, "handoff": result.handoff_requested})
-                )
+                delivery = {"reply": reply, "handoff": result.handoff_requested}
+                if config.website_sales_follow_up and intake_reply == WEBSITE_GREETING:
+                    delivery["website_follow_up"] = True
+                job.result_ciphertext = self.cipher.encrypt(json.dumps(delivery))
                 append_non_user_audit(
                     SqlAlchemyAuditRepository(session),
                     organization_id=job.organization_id,

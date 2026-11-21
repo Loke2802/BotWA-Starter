@@ -251,6 +251,7 @@ def test_origin_is_line_scoped_and_default_hash_compatible() -> None:
             "whatsapp_ads_only",
             "handoff_adviser_name",
             "website_sales_intake",
+            "website_sales_follow_up",
         }
     )
     assert config_hash(config) == hashlib.sha256(old_json.encode()).hexdigest()

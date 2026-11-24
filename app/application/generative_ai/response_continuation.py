@@ -157,7 +157,14 @@ def safe_continuation(
         ),
         None,
     )
-    if explaining_options and not already_said(EXPLORE_OPTIONS, recent):
+    if (
+        config.website_sales_intake
+        and not recent
+        and result.question_key in ("negocio", "objetivo")
+        and pending
+    ):
+        next_step = pending
+    elif explaining_options and not already_said(EXPLORE_OPTIONS, recent):
         next_step = EXPLORE_OPTIONS
     elif explaining_options and not pending:
         next_step = (

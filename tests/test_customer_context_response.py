@@ -11,6 +11,7 @@ from app.domain.generative_ai.contracts import (
     AdviserResult,
     AIConfig,
     Generation,
+    NeedDefinition,
     ProviderError,
     Usage,
 )
@@ -37,6 +38,54 @@ from tests.test_whatsapp_live_processor_repository import cipher
 __all__ = ["runtime"]
 
 SOURCE = "El catálogo presenta servicios de forma ordenada."
+
+
+def test_first_website_reply_requires_business_question() -> None:
+    config = AIConfig(
+        website_sales_intake=True,
+        needs=[
+            NeedDefinition(
+                key="negocio", question="¿A qué se dedica tu negocio?", attribute="giro"
+            )
+        ],
+    )
+    result = AdviserResult(
+        tone="unknown",
+        question_key="negocio",
+        handoff_requested=False,
+        recommendations=[],
+        knowledge=[],
+    )
+    context = build_context("web-first", result, config, {}, {})
+    draft = ConversationalDraft.model_validate(
+        {
+            "schema_version": "1",
+            "context_id": context.context_id,
+            "segments": [
+                segment(
+                    kind="next_step",
+                    next_step_ref="clarify_request",
+                    text="¿Qué quieres aclarar?",
+                )
+            ],
+        }
+    )
+    with pytest.raises(ProviderError, match="QUALIFICATION_QUESTION_MISSING"):
+        validate_draft(context, draft, limit=500)
+    draft = ConversationalDraft.model_validate(
+        {
+            "schema_version": "1",
+            "context_id": context.context_id,
+            "segments": [
+                segment(
+                    kind="question",
+                    question_ref="question_negocio",
+                    text="¿A qué se dedica tu negocio?",
+                )
+            ],
+        }
+    )
+    assert validate_draft(context, draft, limit=500) == "¿A qué se dedica tu negocio?"
 
 
 def test_customer_situation_and_goal_do_not_create_provider_facts() -> None:
@@ -166,7 +215,7 @@ async def test_contextualized_draft_still_requires_review_and_delivers_once(
         assert len(attempts) == 4
         assert {
             a.prompt_version for a in attempts if a.stage == "conversational_render"
-        } == {"luri-response-11"}
+        } == {"luri-response-12"}
         assert {a.prompt_version for a in attempts if a.stage == "semantic_review"} == {
             "luri-review-9"
         }

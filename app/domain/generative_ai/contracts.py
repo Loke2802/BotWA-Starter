@@ -32,12 +32,18 @@ class AIConfig(StrictModel):
     pilot_recipients: list[PilotRecipient] | None = Field(default=None, max_length=20)
     whatsapp_ads_only: bool = False
     qualify_for_proposal: bool = False
+    website_sales_intake: bool = False
+    website_sales_follow_up: bool = False
     handoff_adviser_name: str | None = Field(
         default=None, min_length=1, max_length=60, pattern=r"^[^\s\d\W][^\r\n]*$"
     )
 
     @model_validator(mode="after")
     def unique_keys(self) -> "AIConfig":
+        if self.website_sales_follow_up and not (
+            self.website_sales_intake and self.whatsapp_ads_only
+        ):
+            raise ValueError("website follow-up requires website intake and Ads only")
         if len({item.key for item in self.needs}) != len(self.needs):
             raise ValueError("duplicate need key")
         if self.pilot_recipients is not None and len(set(self.pilot_recipients)) != len(

@@ -43,7 +43,7 @@ _PRICE_WORD = re.compile(
     r"\b(?:precios?|costos?|costes?|inversi[oó]n|tarifas?|importes?)\b", re.I
 )
 _MONEY_SUFFIX = re.compile(r"\b\d[\d.,]*\s+(?:soles|d[oó]lares|euros)\b", re.I)
-_OPENING_REPLY = (
+WEBSITE_GREETING = (
     "Para ayudarte a elegir una web que le sirva a tu negocio, cuéntame un poco. "
     "¿A qué se dedica tu empresa y qué te gustaría lograr con tu página? "
     "Por ejemplo, mostrar tus servicios, recibir consultas por WhatsApp o vender "
@@ -69,7 +69,7 @@ def website_intake_reply(
             for opening in (_OPENING, _PROMO_OPENING, _PRICE_OPENING)
         )
     ):
-        return _OPENING_REPLY
+        return WEBSITE_GREETING
     return None
 
 

@@ -29,12 +29,23 @@ from app.application.whatsapp_live.repository import (
     OutboundMessageAttemptRepository,
 )
 from app.application.whatsapp_live.sender import WhatsAppChannelDeliveryError
+from app.application.whatsapp_live.website_reminders import (
+    DELIVERY_LEASE,
+    FIRST_DELAY,
+    LAST_DELAY,
+    REMINDER_PREFIX,
+    REMINDER_STEPS,
+    REMINDER_TEXT,
+    prepare_reminder,
+    reminder_key,
+)
 from app.channels.whatsapp.live_mapper import WhatsAppInboundMessageMapper
 from app.domain.channel.contracts import (
     MessageProcessingResult,
     OutboundChannelMessage,
     ResolvedChannelContext,
 )
+from app.domain.generative_ai.contracts import ProviderError
 from app.domain.whatsapp_live.contracts import (
     WhatsAppInboundCandidate,
     WhatsAppParsedWebhook,
@@ -389,6 +400,21 @@ class WhatsAppLiveMessageProcessor:
         correlation_id: UUID | None = None,
     ) -> bool:
         attempt = self._outbound_repository.get(attempt_id, for_update=True)
+        is_reminder = attempt is not None and (
+            attempt.idempotency_key or ""
+        ).startswith(REMINDER_PREFIX)
+        if (
+            attempt is not None
+            and is_reminder
+            and attempt.status == "pending"
+            and attempt.delivery_token is not None
+            and attempt.delivery_started_at is not None
+            and _utc(attempt.delivery_started_at) < self._now() - DELIVERY_LEASE
+        ):
+            self._outbound_repository.mark_failed(attempt.id, "DELIVERY_UNKNOWN")
+            self._session.commit()
+            self._sync_outbound_attempt(attempt.id)
+            return False
         if (
             attempt is None
             or attempt.delivery_token is not None
@@ -402,12 +428,28 @@ class WhatsAppLiveMessageProcessor:
             self._session.rollback()
             return False
         from app.infrastructure.models.ai_generation import AIJobModel
+        from app.infrastructure.settings import get_settings
 
+        reminder = None
+        if is_reminder:
+            try:
+                reminder = prepare_reminder(
+                    self._session, get_settings(), attempt, self._now()
+                )
+            except ProviderError as exc:
+                self._outbound_repository.mark_failed(attempt.id, exc.code)
+                self._session.commit()
+                self._sync_outbound_attempt(attempt.id)
+                return False
+            if reminder is None:
+                self._session.commit()
+                return False
         job = self._session.scalar(
             select(AIJobModel).where(AIJobModel.outbound_id == attempt.id)
         )
-        if job is not None or (
-            attempt.idempotency_key and attempt.idempotency_key.startswith("ai:")
+        if not is_reminder and (
+            job is not None
+            or (attempt.idempotency_key and attempt.idempotency_key.startswith("ai:"))
         ):
             from app.application.generative_ai.policy import (
                 configuration as ai_configuration,
@@ -420,9 +462,7 @@ class WhatsAppLiveMessageProcessor:
                 recipient_allowed,
             )
             from app.application.generative_ai.service import AIService, blocked
-            from app.domain.generative_ai.contracts import ProviderError
             from app.infrastructure.models.conversation import ConversationModel
-            from app.infrastructure.settings import get_settings
 
             config = ai_configuration(
                 self._session, get_settings(), attempt.organization_id, attempt.bot_id
@@ -567,6 +607,21 @@ class WhatsAppLiveMessageProcessor:
             self._session.commit()
             self._sync_outbound_attempt(attempt.id)
             return False
+        if reminder is not None:
+            if (
+                message.external_recipient_id != reminder.recipient
+                or message.text != reminder.text
+                or message.reply_to_external_message_id is not None
+            ):
+                self._outbound_repository.mark_failed(
+                    attempt.id, "REMINDER_PAYLOAD_CHANGED"
+                )
+                self._session.commit()
+                self._sync_outbound_attempt(attempt.id)
+                return False
+            message.metadata["conversation_id"] = str(reminder.conversation_id)
+            with atomic_transport(self._session):
+                self._record_outbound(message, attempt, context)
         delivered = await self._deliver(
             attempt.id,
             context,
@@ -662,8 +717,31 @@ class WhatsAppLiveMessageProcessor:
         handoff_key: str | None = None,
     ) -> tuple[UUID, ...]:
         return self._enqueue_outbound(
-            receipt_id, context, outbound, handoff_key=handoff_key
+            receipt_id, context, outbound, idempotency_key=handoff_key
         )
+
+    def enqueue_website_reminders(
+        self,
+        receipt_id: UUID,
+        context: ResolvedChannelContext,
+        recipient: str,
+        job_id: UUID,
+    ) -> None:
+        if any(len(text) > self._max_text_chars for text in REMINDER_TEXT.values()):
+            return
+        now = self._now()
+        for step, delay in zip(REMINDER_STEPS, (FIRST_DELAY, LAST_DELAY), strict=True):
+            self._enqueue_outbound(
+                receipt_id,
+                context,
+                OutboundChannelMessage(
+                    channel_type="whatsapp",
+                    external_recipient_id=recipient,
+                    text=REMINDER_TEXT[step],
+                ),
+                idempotency_key=reminder_key(job_id, step),
+                deliver_after=now + delay,
+            )
 
     def _enqueue_outbound(
         self,
@@ -671,7 +749,8 @@ class WhatsAppLiveMessageProcessor:
         context: ResolvedChannelContext,
         outbound: OutboundChannelMessage,
         *,
-        handoff_key: str | None = None,
+        idempotency_key: str | None = None,
+        deliver_after: datetime | None = None,
     ) -> tuple[UUID, ...]:
         chunks = split_outbound_message(
             outbound,
@@ -682,7 +761,7 @@ class WhatsAppLiveMessageProcessor:
             attempt = OutboundMessageAttemptModel(
                 id=uuid4(),
                 idempotency_key=(
-                    handoff_key
+                    idempotency_key
                     or (
                         f"ai:{outbound.metadata['ai_job_id']}"
                         if outbound.metadata.get("ai_job_id")
@@ -704,6 +783,7 @@ class WhatsAppLiveMessageProcessor:
                 reply_to_external_message_id=chunk.reply_to_external_message_id,
                 status="pending",
                 attempt_count=0,
+                next_attempt_at=deliver_after,
                 created_at=self._now(),
                 updated_at=self._now(),
             )

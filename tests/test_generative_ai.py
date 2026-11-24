@@ -14,6 +14,7 @@ from app.application.generative_ai.validation import (
     render,
     salvage,
 )
+from app.application.whatsapp_live.website_reminders import REMINDER_TEXT, reminder_key
 from app.domain.bot.contracts import BotUpdate
 from app.domain.generative_ai.contracts import (
     AdviserResult,
@@ -30,13 +31,17 @@ from app.infrastructure.database import Base
 from app.infrastructure.generative_ai.openai_provider import OpenAIProvider
 from app.infrastructure.models.ai_generation import AIJobModel, AIMemoryModel
 from app.infrastructure.models.bot import BotModel
+from app.infrastructure.models.conversation import ConversationModel
+from app.infrastructure.models.human_handoff import HandoffSessionModel
 from app.infrastructure.models.knowledge_entry import KnowledgeEntryModel
 from app.infrastructure.models.whatsapp_message_transport import (
+    InboundMessageReceiptModel,
     OutboundMessageAttemptModel,
 )
 from app.infrastructure.settings import Settings
 from app.infrastructure.whatsapp.fake_client import FakeWhatsAppCloudApiClient
-from app.operations.ai_consumer import dispatch_one
+from app.operations import ai_consumer
+from app.operations.ai_consumer import dispatch_one, dispatch_website_reminder
 from pydantic import BaseModel, SecretStr, ValidationError
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
@@ -351,6 +356,146 @@ async def test_website_first_reply_uses_business_already_shared(
         )
 
 
+@pytest.mark.parametrize("stop", ["none", "reply", "human", "expired"])
+async def test_website_reminder_delivery_rules(
+    runtime: Runtime, monkeypatch: pytest.MonkeyPatch, stop: str
+) -> None:
+    # 21:01 Lima. The nominal first reminder lands outside the allowed hours
+    # and the second falls too close to the reprogrammed first reminder.
+    greeting = datetime(2040, 5, 1, 2, 1, tzinfo=UTC)
+    clock = greeting
+    factory = get_whatsapp_live_message_processor
+
+    class FixedClock(datetime):
+        @classmethod
+        def now(cls, tz: Any = None) -> "FixedClock":
+            return cls.fromtimestamp(clock.timestamp(), tz)
+
+    def processor_at_clock(*args: Any, **kwargs: Any) -> Any:
+        processor = factory(*args, **kwargs)
+        processor._now = lambda: clock
+        return processor
+
+    monkeypatch.setattr(ai_consumer, "datetime", FixedClock)
+    monkeypatch.setattr(
+        ai_consumer, "get_whatsapp_live_message_processor", processor_at_clock
+    )
+    with runtime.sessions() as session:
+        bot = session.get(BotModel, runtime.channel.bot_id)
+        assert bot is not None
+        bot.timezone = "America/Lima"
+        bot.welcome_message = KMP_INTRO
+        bot.settings = {
+            "generative_ai": AIConfig(
+                enabled=True,
+                website_sales_intake=True,
+                website_sales_follow_up=True,
+                whatsapp_ads_only=True,
+                handoff_adviser_name="Alex",
+            ).model_dump()
+        }
+        session.commit()
+    await runtime.inbound(text="¿Cuánto cuesta una landing?", ad_source_id="1500")
+    assert await runtime.service.run_once()
+    with runtime.sessions() as session:
+        job = session.scalars(select(AIJobModel)).one()
+        job_id = job.id
+        conversation = session.get(ConversationModel, job.conversation_id)
+        receipt = session.get(InboundMessageReceiptModel, job.receipt_id)
+        assert conversation is not None and receipt is not None
+        last_inbound = greeting - timedelta(hours=14) if stop == "expired" else greeting
+        conversation.last_inbound_at = last_inbound
+        receipt.received_at = last_inbound
+        session.commit()
+    assert await dispatch_one(runtime.service)
+    assert not runtime.provider.calls
+    assert not await dispatch_website_reminder(runtime.service)
+    clock += timedelta(seconds=2)
+    assert await dispatch_one(runtime.service)
+    with runtime.sessions() as session:
+        current_job = session.get(AIJobModel, job_id)
+        assert current_job is not None
+        conversation = session.get(ConversationModel, current_job.conversation_id)
+        assert conversation is not None and conversation.outbound_message_count == 1
+        if stop == "human":
+            session.add(
+                HandoffSessionModel(
+                    conversation_id=current_job.conversation_id,
+                    organization_id=current_job.organization_id,
+                    bot_id=current_job.bot_id,
+                    status="human_active",
+                )
+            )
+            session.commit()
+    if stop == "reply":
+        await runtime.inbound(
+            message_id="test-ai-response", text="Mi negocio es una panadería"
+        )
+
+    clock = greeting + timedelta(hours=4)
+    assert await dispatch_website_reminder(runtime.service)
+    with runtime.sessions() as session:
+        first = session.scalar(
+            select(OutboundMessageAttemptModel).where(
+                OutboundMessageAttemptModel.idempotency_key == reminder_key(job_id, 1)
+            )
+        )
+        assert first is not None
+        first_id = first.id
+        if stop != "none":
+            error = {
+                "reply": "REMINDER_NO_LONGER_ELIGIBLE",
+                "human": "REMINDER_HUMAN_INTERVENED",
+                "expired": "REMINDER_WINDOW_CLOSED",
+            }[stop]
+            assert first.status == "failed"
+            assert first.last_error_code == error
+        else:
+            assert first.status == "pending"
+            assert first.next_attempt_at == datetime(2040, 5, 1, 13, 0)
+
+    if stop != "none":
+        clock = greeting + timedelta(hours=12)
+        assert await dispatch_website_reminder(runtime.service)
+        with runtime.sessions() as session:
+            sent = session.scalars(
+                select(OutboundMessageAttemptModel).where(
+                    OutboundMessageAttemptModel.status == "sent"
+                )
+            ).all()
+            assert len(sent) == 1
+        assert not runtime.provider.calls
+        if stop == "reply":
+            assert await runtime.service.run_once()
+            assert runtime.provider.calls
+        return
+
+    # A worker delay makes the first send actually occur at 08:20, so the
+    # second can only go at 12:20 or later.
+    clock = datetime(2040, 5, 1, 13, 20, tzinfo=UTC)
+    assert await dispatch_website_reminder(runtime.service)
+    clock = greeting + timedelta(hours=12)
+    assert await dispatch_website_reminder(runtime.service)
+    assert not await dispatch_website_reminder(runtime.service)
+    clock = datetime(2040, 5, 1, 17, 20, tzinfo=UTC)
+    assert await dispatch_website_reminder(runtime.service)
+    assert not await dispatch_website_reminder(runtime.service)
+    assert not runtime.provider.calls
+    with runtime.sessions() as session:
+        first = session.get(OutboundMessageAttemptModel, first_id)
+        last = session.scalar(
+            select(OutboundMessageAttemptModel).where(
+                OutboundMessageAttemptModel.idempotency_key == reminder_key(job_id, 2)
+            )
+        )
+        assert first is not None and last is not None
+        assert first.status == last.status == "sent"
+        assert first.sent_at is not None and last.sent_at is not None
+        assert last.sent_at - first.sent_at == timedelta(hours=4)
+        assert cipher().decrypt(first.message_ciphertext) == REMINDER_TEXT[1]
+        assert cipher().decrypt(last.message_ciphertext) == REMINDER_TEXT[2]
+
+
 async def test_durable_webhook_generation_outbox_idempotency(runtime: Runtime) -> None:
     await runtime.inbound()
     await runtime.inbound()
@@ -450,6 +595,7 @@ def test_pilot_contract_and_legacy_hash() -> None:
             "whatsapp_ads_only",
             "handoff_adviser_name",
             "website_sales_intake",
+            "website_sales_follow_up",
         }
     )
     assert config_hash(CONFIG) == hashlib.sha256(legacy.encode()).hexdigest()

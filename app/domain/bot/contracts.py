@@ -6,6 +6,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.domain.generative_ai.contracts import AIModel
+
 BotStatus = Literal["active", "inactive"]
 
 _SLUG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -80,6 +82,13 @@ class Bot(BaseModel):
     @classmethod
     def validate_bot_timezone(cls, value: str) -> str:
         return validate_timezone(value)
+
+
+class BotAIModelUpdate(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    model: AIModel | None
+    expected_model: AIModel | None
 
 
 class AISettingsValidation(BaseModel):

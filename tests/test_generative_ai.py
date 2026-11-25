@@ -19,6 +19,7 @@ from app.domain.bot.contracts import BotUpdate
 from app.domain.generative_ai.contracts import (
     AdviserResult,
     AIConfig,
+    AIModel,
     Discovery,
     Generation,
     NeedDefinition,
@@ -697,6 +698,26 @@ async def test_website_reminder_delivery_rules(
         assert cipher().decrypt(last.message_ciphertext) == REMINDER_TEXT[2]
 
 
+@pytest.mark.parametrize("model", [None, "gpt-6.1-terra"])
+async def test_bot_model_override(runtime: Runtime, model: AIModel | None) -> None:
+    terra = FakeProvider()
+    runtime.service.alternate_providers = {"gpt-6.1-terra": terra}
+    if model is not None:
+        with runtime.sessions() as session:
+            bot = session.get(BotModel, runtime.channel.bot_id)
+            assert bot is not None
+            bot.settings = {
+                "generative_ai": CONFIG.model_copy(update={"model": model}).model_dump()
+            }
+            session.commit()
+
+    await runtime.inbound()
+    assert await runtime.service.run_once()
+    assert runtime.settings.ai_model == "gpt-6-luna"
+    assert bool(runtime.provider.calls) is (model is None)
+    assert bool(terra.calls) is (model is not None)
+
+
 async def test_durable_webhook_generation_outbox_idempotency(runtime: Runtime) -> None:
     await runtime.inbound()
     await runtime.inbound()
@@ -792,6 +813,7 @@ def test_pilot_contract_and_legacy_hash() -> None:
     legacy = CONFIG.model_dump_json(
         exclude={
             "conversational_response",
+            "model",
             "pilot_recipients",
             "whatsapp_ads_only",
             "handoff_adviser_name",
@@ -800,6 +822,9 @@ def test_pilot_contract_and_legacy_hash() -> None:
         }
     )
     assert config_hash(CONFIG) == hashlib.sha256(legacy.encode()).hexdigest()
+    assert config_hash(
+        CONFIG.model_copy(update={"model": "gpt-6.1-terra"})
+    ) == config_hash(CONFIG)
     assert recipient_allowed(CONFIG, "51999999999")
     assert not recipient_allowed(AIConfig(pilot_recipients=[]), "51999999999")
     for invalid in [["+51999999999"], ["51999999999"] * 2, ["bad"]]:

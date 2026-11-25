@@ -5,6 +5,7 @@ import json
 from datetime import UTC, datetime, timedelta
 from threading import Event
 from time import monotonic
+from typing import get_args
 
 import structlog
 from pydantic import SecretStr
@@ -29,7 +30,7 @@ from app.application.whatsapp_live.website_reminders import (
     REMINDER_PREFIX,
 )
 from app.domain.channel.contracts import OutboundChannelMessage, ResolvedChannelContext
-from app.domain.generative_ai.contracts import ProviderError
+from app.domain.generative_ai.contracts import AIModel, ProviderError
 from app.infrastructure.database import SessionLocal
 from app.infrastructure.generative_ai.openai_provider import OpenAIProvider
 from app.infrastructure.models.ai_generation import (
@@ -388,16 +389,21 @@ def run_ai_lane(stop_event: Event, *, once: bool = False) -> None:
         return
     if settings.ai_openai_api_key is None:
         logger.error("ai_configuration_error", error_code="MISSING_PROVIDER_KEY")
+    providers = {
+        model: OpenAIProvider(
+            settings.ai_openai_api_key or SecretStr(""),
+            settings.ai_timeout_seconds,
+            settings.ai_max_output_tokens,
+            model=model,
+        )
+        for model in get_args(AIModel)
+    }
     service = AIService(
         SessionLocal,
         settings,
         EnvironmentSecretCipher.from_settings(settings),
-        OpenAIProvider(
-            settings.ai_openai_api_key or SecretStr(""),
-            settings.ai_timeout_seconds,
-            settings.ai_max_output_tokens,
-            model=settings.ai_model,
-        ),
+        providers.pop(settings.ai_model),
+        alternate_providers=providers,
     )
 
     async def loop() -> None:

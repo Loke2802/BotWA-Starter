@@ -17,6 +17,7 @@ from app.application.whatsapp_live.processor import (
     WhatsAppRuntimeRoutingError,
 )
 from app.domain.human_handoff.contracts import (
+    HandoffDetailResponse,
     HandoffListResponse,
     HandoffMessageRequest,
     HandoffRequest,
@@ -194,14 +195,14 @@ async def send_handoff_message(
 
 
 @router.get(
-    "/conversations/{conversation_id}/handoff", response_model=HandoffSessionResponse
+    "/conversations/{conversation_id}/handoff", response_model=HandoffDetailResponse
 )
 def get_handoff(
     organization_id: UUID,
     conversation_id: UUID,
     service: Annotated[HumanHandoffService, _service()],
     actor: Annotated[User, Depends(require_permission("handoff.read"))],
-) -> HandoffSessionResponse:
+) -> HandoffDetailResponse:
     try:
         return service.get(organization_id, conversation_id, actor)
     except ValueError as exc:

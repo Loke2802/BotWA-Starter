@@ -2,7 +2,7 @@
 
 import json
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime, timedelta
 from time import perf_counter
 from typing import Any
@@ -46,6 +46,7 @@ from app.application.generative_ai.website_intake import (
 from app.domain.generative_ai.contracts import (
     AdviserResult,
     AIConfig,
+    AIModel,
     CatalogItem,
     Discovery,
     ProviderError,
@@ -116,9 +117,12 @@ class AIService:
         settings: Settings,
         cipher: SecretCipher,
         provider: AIProvider,
+        *,
+        alternate_providers: Mapping[AIModel, AIProvider] | None = None,
     ) -> None:
         self.sessions, self.settings = sessions, settings
         self.cipher, self.provider = cipher, provider
+        self.alternate_providers = alternate_providers or {}
 
     def _eligible(self, session: Session, job: AIJobModel) -> AIConfig | None:
         config = configuration(session, self.settings, job.organization_id, job.bot_id)
@@ -379,7 +383,7 @@ class AIService:
                     AIAttemptModel(
                         job_id=job_id,
                         stage=stage,
-                        model=self.settings.ai_model,
+                        model=config.model or self.settings.ai_model,
                         prompt_version=PROMPTS[stage][0],
                         started_at=datetime.now(UTC),
                         result="reserved",
@@ -458,6 +462,14 @@ class AIService:
             config = self._eligible(session, job)
             if config is None:
                 raise ProviderError("POLICY_CHANGED")
+            model = config.model or self.settings.ai_model
+            provider = (
+                self.provider
+                if model == self.settings.ai_model
+                else self.alternate_providers.get(model)
+            )
+            if provider is None:
+                raise ProviderError("MODEL_UNAVAILABLE")
             if stage in PROMPTS and not config.conversational_response.enabled:
                 raise ProviderError("RESPONSE_DISABLED")
             checkpoint = session.get(AIResponseCheckpointModel, job_id)
@@ -485,13 +497,15 @@ class AIService:
                     id=attempt_id,
                     job_id=job_id,
                     stage=stage,
-                    model=self.settings.ai_model,
+                    model=model,
                     prompt_version=PROMPT_VERSION,
                     started_at=now,
                 )
                 session.add(reserved)
-            else:
+            elif reserved.model == model:
                 attempt_id = reserved.id
+            else:
+                raise ProviderError("MODEL_CHANGED")
             reserved.started_at, reserved.result = now, "unknown"
             reserved.parameters = {
                 "schema_version": "1",
@@ -504,7 +518,7 @@ class AIService:
         error = "unknown"
         generation = None
         try:
-            generation = await self.provider.generate(
+            generation = await provider.generate(
                 stage=stage,
                 context=json.dumps(context, ensure_ascii=False),
                 schema=schema,

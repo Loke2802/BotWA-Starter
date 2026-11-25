@@ -247,6 +247,7 @@ def test_origin_is_line_scoped_and_default_hash_compatible() -> None:
     old_json = config.model_dump_json(
         exclude={
             "conversational_response",
+            "model",
             "pilot_recipients",
             "whatsapp_ads_only",
             "handoff_adviser_name",

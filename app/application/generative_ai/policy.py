@@ -45,7 +45,9 @@ def configuration(
 
 def config_hash(config: AIConfig) -> str:
     # Preserve the legacy configuration digest; new jobs add a routing snapshot.
-    excluded = {"conversational_response"}
+    # BotService invalidates active jobs after a model change. Fixed reminders
+    # already queued under this policy are independent of the model.
+    excluded = {"conversational_response", "model"}
     if config.pilot_recipients is None:
         excluded.add("pilot_recipients")
     if not config.whatsapp_ads_only:

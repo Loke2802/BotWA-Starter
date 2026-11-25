@@ -5,6 +5,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 type PilotRecipient = Annotated[str, Field(pattern=r"^[1-9][0-9]{7,14}$")]
+AIModel = Literal["gpt-6-luna", "gpt-6.1-terra"]
 
 
 class StrictModel(BaseModel):
@@ -26,6 +27,7 @@ class ResponseConfig(StrictModel):
 
 class AIConfig(StrictModel):
     enabled: bool = False
+    model: AIModel | None = None
     needs: list[NeedDefinition] = Field(default_factory=list, max_length=20)
     daily_jobs: int = Field(default=50, ge=1, le=500)
     conversational_response: ResponseConfig = Field(default_factory=ResponseConfig)

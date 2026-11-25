@@ -38,6 +38,7 @@ RUN apt-get update \
         libsmartcols1 \
         libssl3t64 \
         libuuid1 \
+        libzstd1 \
         login \
         mount \
         openssl \

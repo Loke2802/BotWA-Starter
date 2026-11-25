@@ -100,6 +100,11 @@ class ConversationManagementService:
             raise ConversationManagementConflictError(
                 "archived conversation cannot receive messages"
             )
+        metadata = dict(message.metadata)
+        username = metadata.pop("whatsapp_username", None)
+        extra_data: dict[str, object] = {}
+        if message.channel_type == "whatsapp" and isinstance(username, str):
+            extra_data["whatsapp_username_ciphertext"] = self._cipher.encrypt(username)
         record, _ = self._messages.create_once(
             MessageModel(
                 id=uuid4(),
@@ -116,7 +121,8 @@ class ConversationManagementService:
                 delivery_status="received",
                 occurred_at=message.timestamp,
                 inbound_receipt_id=receipt_id,
-                metadata_data=dict(message.metadata),
+                metadata_data=metadata,
+                extra_data=extra_data,
                 created_at=datetime.now(UTC),
             )
         )

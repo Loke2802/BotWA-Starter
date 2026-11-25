@@ -14,6 +14,7 @@ from app.domain.whatsapp_live.contracts import (
     WhatsAppParsedWebhook,
     WhatsAppProviderStatus,
     WhatsAppStatusEvent,
+    is_business_scoped_user_id,
 )
 
 _MESSAGE_TYPES = frozenset(
@@ -108,6 +109,7 @@ class WhatsAppWebhookParser:
                     continue
                 event_count += self._map_messages(
                     value.get("messages"),
+                    value.get("contacts"),
                     phone_number_id,
                     messages,
                 )
@@ -145,7 +147,9 @@ class WhatsAppWebhookParser:
                 echoes.append(
                     WhatsAppBusinessAppEcho(
                         external_message_id=raw["id"],
-                        external_recipient_id=raw["to"],
+                        external_recipient_id=_external_id(
+                            raw.get("to"), raw.get("to_user_id")
+                        ),
                         phone_number_id=phone_number_id,
                         timestamp=_timestamp(raw.get("timestamp")),
                         message_type=raw["type"],
@@ -159,6 +163,7 @@ class WhatsAppWebhookParser:
     @staticmethod
     def _map_messages(
         raw_messages: object,
+        raw_contacts: object,
         phone_number_id: str,
         messages: list[WhatsAppInboundCandidate],
     ) -> int:
@@ -166,12 +171,15 @@ class WhatsAppWebhookParser:
             return 0
         if not isinstance(raw_messages, list):
             return 1
+        usernames = _contact_usernames(raw_contacts)
         for raw_message in raw_messages:
             if not isinstance(raw_message, dict):
                 continue
             try:
                 message_id = raw_message["id"]
-                sender_id = raw_message["from"]
+                sender_id = _external_id(
+                    raw_message.get("from"), raw_message.get("from_user_id")
+                )
                 message_type = _message_type(raw_message.get("type"))
                 if not isinstance(message_id, str) or not isinstance(sender_id, str):
                     continue
@@ -193,6 +201,7 @@ class WhatsAppWebhookParser:
                         message_type=message_type,
                         text=text,
                         ad_source_id=_ad_source_id(raw_message.get("referral")),
+                        username=usernames.get(sender_id),
                     )
                 )
             except (KeyError, ValueError):
@@ -257,12 +266,47 @@ class WhatsAppInboundMessageMapper:
             metadata={
                 "message_type": candidate.message_type,
                 **(
+                    {"whatsapp_username": candidate.username}
+                    if candidate.username is not None
+                    else {}
+                ),
+                **(
                     {"whatsapp_ad_source_id": candidate.ad_source_id}
                     if candidate.ad_source_id is not None
                     else {}
                 ),
             },
         )
+
+
+def _external_id(phone: object, user_id: object) -> str:
+    if isinstance(phone, str) and phone.strip():
+        return phone
+    if isinstance(user_id, str) and is_business_scoped_user_id(user_id):
+        return user_id
+    raise ValueError("WhatsApp identity is missing")
+
+
+def _contact_usernames(contacts: object) -> dict[str, str]:
+    usernames: dict[str, str] = {}
+    if not isinstance(contacts, list):
+        return usernames
+    for contact in contacts:
+        if not isinstance(contact, dict) or not isinstance(
+            contact.get("profile"), dict
+        ):
+            continue
+        username = contact["profile"].get("username")
+        if (
+            not isinstance(username, str)
+            or re.fullmatch(r"[a-zA-Z0-9_.]{1,64}", username) is None
+        ):
+            continue
+        for field in ("wa_id", "user_id"):
+            identity = contact.get(field)
+            if isinstance(identity, str) and identity:
+                usernames[identity] = username
+    return usernames
 
 
 def _ad_source_id(referral: object) -> str | None:

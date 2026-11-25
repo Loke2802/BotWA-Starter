@@ -27,6 +27,7 @@ from app.domain.generative_ai.contracts import (
     ResponseConfig,
     Usage,
 )
+from app.domain.whatsapp_live.contracts import AdviserAlertConfig
 from app.infrastructure.database import Base
 from app.infrastructure.generative_ai.openai_provider import OpenAIProvider
 from app.infrastructure.models.ai_generation import AIJobModel, AIMemoryModel
@@ -41,7 +42,11 @@ from app.infrastructure.models.whatsapp_message_transport import (
 from app.infrastructure.settings import Settings
 from app.infrastructure.whatsapp.fake_client import FakeWhatsAppCloudApiClient
 from app.operations import ai_consumer
-from app.operations.ai_consumer import dispatch_one, dispatch_website_reminder
+from app.operations.ai_consumer import (
+    dispatch_adviser_alert,
+    dispatch_one,
+    dispatch_website_reminder,
+)
 from pydantic import BaseModel, SecretStr, ValidationError
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
@@ -217,6 +222,202 @@ def runtime(tmp_path: Any, monkeypatch: pytest.MonkeyPatch) -> Generator[Runtime
     Base.metadata.create_all(engine)
     yield Runtime(sessionmaker(bind=engine, autoflush=False), monkeypatch)
     engine.dispose()
+
+
+@pytest.mark.parametrize(
+    ("customer_id", "username", "expected_contact", "change_recipient"),
+    [
+        ("15550100100", "demo_phone", "+15550100100", False),
+        ("PE.AbCd123", "demo_lead", "@demo_lead", False),
+        ("PE.AbCd123", None, "Consulta el contacto en Luri.", False),
+        ("15550100100", None, "", True),
+    ],
+)
+async def test_private_whatsapp_adviser_alert(
+    runtime: Runtime,
+    monkeypatch: pytest.MonkeyPatch,
+    customer_id: str,
+    username: str | None,
+    expected_contact: str,
+    change_recipient: bool,
+) -> None:
+    from app.channels.whatsapp.live_mapper import WhatsAppWebhookParser
+    from app.infrastructure.models.business_configuration import (
+        BusinessConfigurationModel,
+    )
+    from app.infrastructure.models.human_handoff import HandoffSessionModel
+    from app.infrastructure.models.message import MessageModel
+    from app.infrastructure.whatsapp.meta_client import MetaWhatsAppCloudApiClient
+
+    from tests.plan_support import allow_all_plan_enforcement
+
+    monkeypatch.setattr(
+        "app.operations.ai_consumer.PlanEnforcementService",
+        lambda repository: allow_all_plan_enforcement(),
+    )
+    channel = runtime.channel
+    scope = f"{channel.organization_id}:{channel.bot_id}:{channel.id}"
+    alert_config = AdviserAlertConfig(
+        recipient="15550100101",
+        template_name="aviso_derivacion",
+        language="es",
+        portal_origin="https://luri.example.test",
+    )
+    runtime.settings.handoff_alert_scopes = {scope: alert_config}
+    with runtime.sessions() as session:
+        bot = session.get(BotModel, runtime.channel.bot_id)
+        assert bot
+        bot.settings = {
+            "generative_ai": CONFIG.model_copy(
+                update={"handoff_adviser_name": "Alex", "whatsapp_ads_only": True}
+            ).model_dump()
+        }
+        session.add(
+            BusinessConfigurationModel(
+                bot_id=bot.id,
+                business_name="Test",
+                description="Test",
+                service_instructions="Use published knowledge",
+                handoff_enabled=True,
+            )
+        )
+        session.commit()
+
+    identity_field = "from_user_id" if customer_id.startswith("PE.") else "from"
+    contact_field = "user_id" if identity_field == "from_user_id" else "wa_id"
+    payload = {
+        "entry": [
+            {
+                "changes": [
+                    {
+                        "field": "messages",
+                        "value": {
+                            "metadata": {
+                                "phone_number_id": runtime.channel.phone_number_id
+                            },
+                            "contacts": [
+                                {
+                                    contact_field: "15550100888",
+                                    "profile": {"username": "wrong_contact"},
+                                },
+                                {
+                                    contact_field: customer_id,
+                                    "profile": {"username": username},
+                                },
+                            ],
+                            "messages": [
+                                {
+                                    "id": "wamid.adviser-alert",
+                                    identity_field: customer_id,
+                                    "timestamp": str(
+                                        int(datetime.now(UTC).timestamp())
+                                    ),
+                                    "referral": {
+                                        "source_type": "ad",
+                                        "source_id": "123",
+                                    },
+                                    "type": "text",
+                                    "text": {
+                                        "body": "Necesito una web para mi taller. "
+                                        "Mi enlace es https://taller.example."
+                                    },
+                                }
+                            ],
+                        },
+                    }
+                ]
+            }
+        ],
+    }
+    parsed_payload = WhatsAppWebhookParser().parse(
+        json.dumps(payload).encode(), max_events=10
+    )
+    with runtime.sessions() as session:
+        processor = get_whatsapp_live_message_processor(
+            session, cipher(), FakeWhatsAppCloudApiClient(), runtime.settings
+        )
+        results = await processor.process(
+            parsed_payload,
+            public_webhook_id=runtime.channel.public_webhook_id,
+            correlation_id=uuid4(),
+        )
+        assert results[0].status == "processed"
+    with runtime.sessions() as session:
+        job = session.scalars(select(AIJobModel)).one()
+        job.status = "ready"
+        job.result_ciphertext = cipher().encrypt(
+            json.dumps({"reply": "unused", "handoff": True})
+        )
+        conversation_id = job.conversation_id
+        session.commit()
+
+    requests: list[dict[str, Any]] = []
+
+    def send(request: httpx.Request) -> httpx.Response:
+        requests.append(json.loads(request.content))
+        return httpx.Response(
+            200, json={"messages": [{"id": f"wamid.sent.{len(requests)}"}]}
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(send)) as http:
+        runtime.settings.whatsapp_live_client_mode = "meta"
+        runtime.settings.whatsapp_outbound_allowed_recipients = (
+            alert_config.recipient,
+        )
+        meta = MetaWhatsAppCloudApiClient(
+            api_version="v26.0", timeout_seconds=1, http_client=http
+        )
+        monkeypatch.setattr(
+            "app.operations.ai_consumer.get_whatsapp_cloud_api_client",
+            lambda settings: meta,
+        )
+        assert await dispatch_one(runtime.service)
+        if change_recipient:
+            runtime.settings.handoff_alert_scopes = {
+                scope: alert_config.model_copy(update={"recipient": "15550100102"})
+            }
+        assert await dispatch_adviser_alert(runtime.service)
+        assert not await dispatch_adviser_alert(runtime.service)
+
+    recipient_field = "to" if identity_field == "from" else "recipient"
+    assert requests[0][recipient_field] == customer_id
+    assert requests[0]["type"] == "text"
+    assert "Te dejo con Alex" in requests[0]["text"]["body"]
+    if change_recipient:
+        assert len(requests) == 1
+    else:
+        assert len(requests) == 2
+        assert requests[1]["to"] == alert_config.recipient
+        assert requests[1]["type"] == "template"
+        template = requests[1]["template"]
+        assert template["name"] == alert_config.template_name
+        assert template["language"] == {"code": "es"}
+        parameters = template["components"][0]["parameters"]
+        assert [part["text"] for part in parameters] == [
+            expected_contact,
+            "Necesito una web para mi taller. Mi enlace es [enlace omitido]",
+            f"https://luri.example.test/portal?org={runtime.channel.organization_id}"
+            f"&conversation={conversation_id}",
+        ]
+    with runtime.sessions() as session:
+        attempts = session.scalars(select(OutboundMessageAttemptModel)).all()
+        assert len(attempts) == 2
+        alert = next(attempt for attempt in attempts if attempt.notification)
+        if change_recipient:
+            assert alert.last_error_code == "ADVISER_ALERT_NOT_AUTHORIZED"
+        else:
+            assert alert.status == "sent" and alert.attempt_count == 1
+        assert "mi taller" not in cipher().decrypt(alert.message_ciphertext)
+        handoff = session.scalars(select(HandoffSessionModel)).one()
+        assert handoff.status == "waiting_human"
+        messages = session.scalars(select(MessageModel)).all()
+        assert all(message.outbound_attempt_id != alert.id for message in messages)
+        if username:
+            inbound = next(
+                message for message in messages if message.direction == "inbound"
+            )
+            assert username not in json.dumps(inbound.metadata_data)
+            assert username not in json.dumps(inbound.extra_data)
 
 
 APPROVED_WEBSITE_GREETING = (

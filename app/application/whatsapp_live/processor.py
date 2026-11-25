@@ -1,6 +1,6 @@
 import hashlib
 import time
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
@@ -24,6 +24,11 @@ from app.application.whatsapp_configuration.repository import (
 from app.application.whatsapp_configuration.resolver import (
     WhatsAppChannelResolver,
 )
+from app.application.whatsapp_live.adviser_alert import (
+    ALERT_PREFIX,
+    build_adviser_template,
+    configuration_digest,
+)
 from app.application.whatsapp_live.repository import (
     InboundMessageReceiptRepository,
     OutboundMessageAttemptRepository,
@@ -41,15 +46,18 @@ from app.application.whatsapp_live.website_reminders import (
 )
 from app.channels.whatsapp.live_mapper import WhatsAppInboundMessageMapper
 from app.domain.channel.contracts import (
+    ChannelDeliveryResult,
     MessageProcessingResult,
     OutboundChannelMessage,
     ResolvedChannelContext,
 )
 from app.domain.generative_ai.contracts import ProviderError
 from app.domain.whatsapp_live.contracts import (
+    AdviserAlertConfig,
     WhatsAppInboundCandidate,
     WhatsAppParsedWebhook,
     WhatsAppStatusEvent,
+    WhatsAppTemplateMessage,
 )
 from app.infrastructure.models.message import MessageModel
 from app.infrastructure.models.whatsapp_channel_configuration import (
@@ -97,6 +105,18 @@ class WhatsAppLiveMessageProcessor:
         notification_recipients_for: (
             Callable[[ResolvedChannelContext], tuple[str, ...]] | None
         ) = None,
+        adviser_alert_scopes: dict[str, AdviserAlertConfig] | None = None,
+        template_sender: (
+            Callable[
+                [
+                    OutboundChannelMessage,
+                    ResolvedChannelContext,
+                    WhatsAppTemplateMessage,
+                ],
+                Awaitable[ChannelDeliveryResult],
+            ]
+            | None
+        ) = None,
     ) -> None:
         self._configuration_repository = configuration_repository
         self._receipt_repository = receipt_repository
@@ -116,6 +136,8 @@ class WhatsAppLiveMessageProcessor:
         self._outbound_recipient_allowlist = outbound_recipient_allowlist
         self._scoped_recipient_allowed = scoped_recipient_allowed
         self._notification_recipients_for = notification_recipients_for
+        self._adviser_alert_scopes = adviser_alert_scopes or {}
+        self._template_sender = template_sender
         self._now = now or (lambda: datetime.now(UTC))
 
     async def process(
@@ -873,13 +895,31 @@ class WhatsAppLiveMessageProcessor:
                 raise WhatsAppChannelDeliveryError("OUTBOUND_DISABLED")
             if not self._recipient_is_allowed(message.external_recipient_id, context):
                 raise WhatsAppChannelDeliveryError("RECIPIENT_NOT_ALLOWED")
-            if message.metadata.get("lead_notification") and (
-                self._notification_recipients_for is None
-                or message.external_recipient_id
-                not in self._notification_recipients_for(context)
-            ):
-                raise WhatsAppChannelDeliveryError("NOTIFICATION_NOT_AUTHORIZED")
-            delivery = await self._sender.send(message, context)
+            if (attempt.idempotency_key or "").startswith(ALERT_PREFIX):
+                config = self._adviser_alert_scopes.get(
+                    f"{context.organization_id}:{context.bot_id}:{context.channel_configuration_id}"
+                )
+                if (
+                    config is None
+                    or self._template_sender is None
+                    or config.recipient != message.external_recipient_id
+                    or configuration_digest(config) != message.text
+                ):
+                    raise WhatsAppChannelDeliveryError("ADVISER_ALERT_NOT_AUTHORIZED")
+                template = build_adviser_template(
+                    self._session, self._secret_cipher, attempt, config
+                )
+                if template is None:
+                    raise WhatsAppChannelDeliveryError("ADVISER_HANDOFF_NOT_PENDING")
+                delivery = await self._template_sender(message, context, template)
+            else:
+                if message.metadata.get("lead_notification") and (
+                    self._notification_recipients_for is None
+                    or message.external_recipient_id
+                    not in self._notification_recipients_for(context)
+                ):
+                    raise WhatsAppChannelDeliveryError("NOTIFICATION_NOT_AUTHORIZED")
+                delivery = await self._sender.send(message, context)
         except WhatsAppChannelDeliveryError as exc:
             current = self._outbound_repository.get(attempt_id, for_update=True)
             if current is None or current.delivery_token != token:

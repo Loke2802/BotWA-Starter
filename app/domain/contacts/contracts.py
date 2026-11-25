@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from uuid import UUID
 
+from app.domain.whatsapp_live.contracts import is_business_scoped_user_id
+
 
 class ContactIdentityError(ValueError):
     pass
@@ -18,6 +20,8 @@ class ContactIdentityNormalizer:
     ) -> NormalizedContactIdentity:
         if channel_type != "whatsapp":
             raise ContactIdentityError("unsupported contact channel")
+        if is_business_scoped_user_id(external_identifier):
+            return NormalizedContactIdentity(channel_type, external_identifier)
         if not external_identifier.strip():
             raise ContactIdentityError("invalid WhatsApp contact identifier")
         allowed_formatting = {"+", "-", " ", "(", ")"}

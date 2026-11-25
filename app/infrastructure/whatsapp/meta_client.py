@@ -7,7 +7,11 @@ from app.application.whatsapp_live.client import (
     WhatsAppCloudApiClient,
     WhatsAppCloudApiError,
 )
-from app.domain.whatsapp_live.contracts import WhatsAppSendResponse
+from app.domain.whatsapp_live.contracts import (
+    WhatsAppSendResponse,
+    WhatsAppTemplateMessage,
+    is_business_scoped_user_id,
+)
 from app.observability.metrics import ProviderObservation
 
 _API_VERSION = re.compile(r"v\d+\.\d+")
@@ -40,19 +44,58 @@ class MetaWhatsAppCloudApiClient(WhatsAppCloudApiClient):
         text: str,
         reply_to_message_id: str | None = None,
     ) -> WhatsAppSendResponse:
-        observation = ProviderObservation("meta", "send_message")
-        if _PHONE_NUMBER_ID.fullmatch(phone_number_id) is None:
-            raise WhatsAppCloudApiError("INVALID_PHONE_NUMBER_ID", retryable=False)
-        if not access_token:
-            raise WhatsAppCloudApiError("ACCESS_TOKEN_MISSING", retryable=False)
         payload: dict[str, object] = {
-            "messaging_product": "whatsapp",
-            "to": recipient_id,
             "type": "text",
             "text": {"body": text},
         }
         if reply_to_message_id is not None:
             payload["context"] = {"message_id": reply_to_message_id}
+        return await self._send(phone_number_id, access_token, recipient_id, payload)
+
+    async def send_template_message(
+        self,
+        *,
+        phone_number_id: str,
+        access_token: str,
+        recipient_id: str,
+        template: WhatsAppTemplateMessage,
+    ) -> WhatsAppSendResponse:
+        payload: dict[str, object] = {
+            "type": "template",
+            "template": {
+                "name": template.name,
+                "language": {"code": template.language},
+                "components": [
+                    {
+                        "type": "body",
+                        "parameters": [
+                            {"type": "text", "text": value}
+                            for value in template.parameters
+                        ],
+                    }
+                ],
+            },
+        }
+        return await self._send(phone_number_id, access_token, recipient_id, payload)
+
+    async def _send(
+        self,
+        phone_number_id: str,
+        access_token: str,
+        recipient_id: str,
+        payload: dict[str, object],
+    ) -> WhatsAppSendResponse:
+        observation = ProviderObservation("meta", "send_message")
+        if _PHONE_NUMBER_ID.fullmatch(phone_number_id) is None:
+            raise WhatsAppCloudApiError("INVALID_PHONE_NUMBER_ID", retryable=False)
+        if not access_token:
+            raise WhatsAppCloudApiError("ACCESS_TOKEN_MISSING", retryable=False)
+        payload["messaging_product"] = "whatsapp"
+        if is_business_scoped_user_id(recipient_id):
+            payload["recipient_type"] = "individual"
+            payload["recipient"] = recipient_id
+        else:
+            payload["to"] = recipient_id
         url = _BASE_URL.format(
             api_version=self._api_version,
             phone_number_id=phone_number_id,

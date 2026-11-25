@@ -20,6 +20,10 @@ from app.application.generative_ai.response_validation import digest
 from app.application.generative_ai.service import AIService, utc
 from app.application.human_handoff.service import HumanHandoffService
 from app.application.plans.service import PlanEnforcementService
+from app.application.whatsapp_live.adviser_alert import (
+    ALERT_PREFIX,
+    enqueue_adviser_alert,
+)
 from app.application.whatsapp_live.website_reminders import (
     DELIVERY_LEASE,
     REMINDER_PREFIX,
@@ -47,7 +51,7 @@ from app.infrastructure.repositories.human_handoff_repository import (
 from app.infrastructure.repositories.plan_repository import SqlAlchemyPlanRepository
 from app.infrastructure.settings import get_settings
 from app.infrastructure.unit_of_work import atomic_transport
-from app.security.secret_cipher import EnvironmentSecretCipher
+from app.security.secret_cipher import EnvironmentSecretCipher, SecretCipherError
 
 logger = structlog.get_logger(__name__)
 
@@ -183,6 +187,23 @@ async def dispatch_one(service: AIService) -> bool:
                         "Puedes contactar al negocio por su canal de atención habitual."
                     )
                 else:
+                    scope = f"{job.organization_id}:{job.bot_id}:{job.configuration_id}"
+                    if alert_config := service.settings.handoff_alert_scopes.get(scope):
+                        try:
+                            with session.begin_nested():
+                                enqueue_adviser_alert(
+                                    session,
+                                    service.cipher,
+                                    job,
+                                    handoff_state.id,
+                                    handoff_state.version,
+                                    alert_config,
+                                )
+                        except SecretCipherError:
+                            logger.warning(
+                                "adviser_alert_enqueue_failed",
+                                error_code="PAYLOAD_UNAVAILABLE",
+                            )
                     if config.handoff_adviser_name is None:
                         job.status = "handoff"
                         job.result_ciphertext = None
@@ -260,6 +281,63 @@ async def dispatch_one(service: AIService) -> bool:
         return True
 
 
+async def dispatch_adviser_alert(service: AIService) -> bool:
+    if not service.settings.handoff_alert_scopes:
+        return False
+    with service.sessions() as session:
+        now = datetime.now(UTC)
+        attempt = session.scalar(
+            select(OutboundMessageAttemptModel)
+            .where(
+                OutboundMessageAttemptModel.idempotency_key.startswith(ALERT_PREFIX),
+                OutboundMessageAttemptModel.status == "pending",
+                or_(
+                    and_(
+                        OutboundMessageAttemptModel.delivery_token.is_(None),
+                        OutboundMessageAttemptModel.attempt_count
+                        < service.settings.whatsapp_outbound_max_attempts,
+                        or_(
+                            OutboundMessageAttemptModel.next_attempt_at.is_(None),
+                            OutboundMessageAttemptModel.next_attempt_at <= now,
+                        ),
+                    ),
+                    and_(
+                        OutboundMessageAttemptModel.delivery_token.is_not(None),
+                        OutboundMessageAttemptModel.delivery_started_at
+                        < now
+                        - timedelta(
+                            seconds=max(
+                                120, service.settings.whatsapp_meta_timeout_seconds + 30
+                            )
+                        ),
+                    ),
+                ),
+            )
+            .order_by(OutboundMessageAttemptModel.created_at)
+            .with_for_update(skip_locked=True)
+            .limit(1)
+        )
+        if attempt is None:
+            return False
+        if attempt.delivery_token is not None:
+            attempt.status = "failed"
+            attempt.last_error_code = "DELIVERY_UNKNOWN"
+            attempt.delivery_token = None
+            attempt.delivery_started_at = None
+            attempt.updated_at = now
+            session.commit()
+            return True
+        attempt_id = attempt.id
+        session.commit()
+        processor = get_whatsapp_live_message_processor(
+            session,
+            service.cipher,
+            get_whatsapp_cloud_api_client(service.settings),
+            service.settings,
+        )
+        return await processor.retry_attempt(attempt_id)
+
+
 async def dispatch_website_reminder(service: AIService) -> bool:
     with service.sessions() as session:
         now = datetime.now(UTC)
@@ -327,6 +405,7 @@ def run_ai_lane(stop_event: Event, *, once: bool = False) -> None:
         while not stop_event.is_set():
             try:
                 dispatched = await dispatch_one(service)
+                alert_dispatched = await dispatch_adviser_alert(service)
                 dispatched = await dispatch_website_reminder(service) or dispatched
                 worked = await service.run_once()
                 if monotonic() - last_report >= 30:
@@ -334,12 +413,13 @@ def run_ai_lane(stop_event: Event, *, once: bool = False) -> None:
                     last_report = monotonic()
             except Exception:
                 logger.error("ai_lane_error", error_code="ITERATION_FAILED")
-                dispatched = worked = False
+                dispatched = alert_dispatched = worked = False
             if once:
                 await dispatch_one(service)
+                await dispatch_adviser_alert(service)
                 await dispatch_website_reminder(service)
                 return
-            if not dispatched and not worked:
+            if not dispatched and not alert_dispatched and not worked:
                 await asyncio.to_thread(stop_event.wait, 1)
 
     asyncio.run(loop())

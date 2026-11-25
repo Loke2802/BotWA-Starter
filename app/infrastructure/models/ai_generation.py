@@ -68,6 +68,8 @@ class AIMemoryModel(Base):
     bot_id: Mapped[UUID] = mapped_column(ForeignKey("bot.id"))
     revision: Mapped[int] = mapped_column(Integer, default=0)
     ciphertext: Mapped[str] = mapped_column(Text)
+    # NULL means legacy memory with an unknown age; it must not be reused.
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class AIAttemptModel(Base):

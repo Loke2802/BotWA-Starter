@@ -62,6 +62,7 @@ from app.domain.access.contracts import (
     RoleListResponse,
 )
 from app.domain.bot.contracts import (
+    BotAIModelUpdate,
     BotCreate,
     BotListResponse,
     BotResponse,
@@ -600,6 +601,24 @@ def update_bot(
 ) -> BotResponse:
     try:
         bot = service.update(bot_id, request, actor=actor)
+    except ValueError as exc:
+        _raise_bot_error(exc)
+    return BotResponse(bot=bot)
+
+
+@router.patch(
+    "/bots/{bot_id}/ai-model",
+    response_model=BotResponse,
+    tags=["bots"],
+)
+def update_bot_ai_model(
+    bot_id: UUID,
+    request: BotAIModelUpdate,
+    service: Annotated[BotService, Depends(get_bot_service)],
+    actor: Annotated[User, Depends(require_permission("bots.update"))],
+) -> BotResponse:
+    try:
+        bot = service.update_ai_model(bot_id, request, actor)
     except ValueError as exc:
         _raise_bot_error(exc)
     return BotResponse(bot=bot)

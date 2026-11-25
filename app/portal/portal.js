@@ -8,6 +8,8 @@ const state = {
   permissions: [],
   token: sessionStorage.getItem(storageKey),
   view: "overview",
+  configurationBot: null,
+  configurationSourcesPage: 1,
 };
 
 const loginScreen = document.querySelector("#login-screen");
@@ -261,15 +263,154 @@ async function renderTeam() {
   }))}</article>`;
 }
 
-async function renderConfiguration() {
+const aiModelLabels = {
+  "": "Predeterminado de la plataforma",
+  "gpt-6-luna": "Luna",
+  "gpt-6.1-terra": "Terra",
+};
+const sourceStatusLabels = { draft: "Borrador", published: "Publicada", archived: "Archivada" };
+
+async function renderConfiguration(organizationId) {
   const botsResult = await loadSafe("/bots");
-  const organization = selectedOrganization();
-  const bot = (botsResult.bots || []).find((item) => item.organization_id === organization?.id);
-  if (!bot) return `${header("Configuración", "Datos base de tu empresa.")}<p class="empty">Aún no hay un bot configurado para esta empresa.</p>`;
-  const result = await loadSafe(`/bots/${bot.id}/business-configuration`);
-  const configuration = result.business_configuration;
-  if (!configuration) return `${header("Configuración", "Datos base de tu empresa.")}<p class="empty">Completa la configuración comercial del bot para habilitar esta vista.</p>`;
-  return `${header("Configuración", "Perfil y operación de tu empresa.")}<article class="panel"><div class="configuration-list"><div><span>Nombre comercial</span><strong>${escapeHtml(configuration.business_name)}</strong></div><div><span>Zona horaria</span><strong>${escapeHtml(configuration.timezone)}</strong></div><div><span>Servicios configurados</span><strong>${escapeHtml(configuration.services?.length ?? 0)}</strong></div><div><span>Métodos de pago</span><strong>${escapeHtml(configuration.payment_methods?.length ?? 0)}</strong></div></div></article>`;
+  const bots = (botsResult.bots || []).filter((bot) => bot.organization_id === organizationId);
+  const bot = bots.find((item) => item.id === state.configurationBot) || bots[0];
+  const heading = header("Configuración de IA", "Modelo, perfil y fuentes de cada asistente.");
+  if (!bot) return heading + '<p class="empty">' + (botsResult.error ? "No se pudo cargar la lista de asistentes." : "Esta empresa aún no tiene un asistente.") + "</p>";
+
+  const botPath = "/bots/" + encodeURIComponent(bot.id);
+  const sourcesPath = "/organizations/" + encodeURIComponent(organizationId) + botPath + "/knowledge";
+  const page = state.configurationBot === bot.id ? state.configurationSourcesPage : 1;
+  const [profileResult, sources] = await Promise.all([
+    loadSafe(botPath + "/business-configuration"),
+    loadSafe(sourcesPath + "?page=" + page + "&page_size=12"),
+  ]);
+  const profile = profileResult.business_configuration;
+  const ai = bot.settings?.generative_ai || {};
+  const selectedModel = ai.model || "";
+  const permissions = state.permissions;
+  const picker = bots.length > 1 ? '<label class="ai-bot-picker">Asistente<select id="ai-config-bot">' + bots.map((item) =>
+    '<option value="' + escapeHtml(item.id) + '"' + (item.id === bot.id ? " selected" : "") + ">" + escapeHtml(item.name) + "</option>"
+  ).join("") + "</select></label>" : "";
+
+  const model = permissions.includes("bots.update")
+    ? '<form id="ai-model-form"><label>Modelo<select name="model">' + Object.entries(aiModelLabels).map(([id, label]) =>
+        '<option value="' + escapeHtml(id) + '"' + (id === selectedModel ? " selected" : "") + ">" + escapeHtml(label) + "</option>"
+      ).join("") + '</select></label><p class="field-hint">Cambiar de modelo puede afectar el consumo de IA e interrumpir respuestas en curso.</p>' +
+      '<p class="form-error" role="alert"></p><button class="primary-button compact-button">Guardar modelo</button></form>'
+    : '<p class="ai-value">' + escapeHtml(aiModelLabels[selectedModel] || selectedModel) + "</p>";
+
+  const profileFields = profile ? '<form id="ai-profile-form">' +
+    '<label>Nombre comercial<input name="business_name" required maxlength="200" value="' + escapeHtml(profile.business_name) + '"></label>' +
+    '<label>Descripción<textarea name="description" required maxlength="1000" rows="3">' + escapeHtml(profile.description) + "</textarea></label>" +
+    '<label>Instrucciones de atención<textarea name="service_instructions" required maxlength="4000" rows="5">' + escapeHtml(profile.service_instructions) + "</textarea></label>" +
+    '<p class="form-error" role="alert"></p><button class="primary-button compact-button">Guardar perfil</button></form>' : "";
+  const profileMarkup = !profile
+    ? '<p class="empty">El perfil comercial todavía no está disponible.</p>'
+    : permissions.includes("business_configuration.update") ? profileFields
+      : '<p class="ai-value">' + escapeHtml(profile.business_name) + '</p><p class="ai-source-text">' + escapeHtml(profile.description) + "</p>";
+  const profileDetails = profile ? '<p class="field-hint">' + escapeHtml(profile.timezone) + ' · ' +
+    (profile.services?.length ?? 0) + ' servicios · ' + (profile.payment_methods?.length ?? 0) + ' métodos de pago</p>' : "";
+
+  const knowledgeItems = (sources.items || []).map((item) => {
+    const publish = item.status === "draft" && permissions.includes("knowledge.publish")
+      ? '<button type="button" class="secondary-button" data-ai-publish="' + escapeHtml(item.id) + '">Publicar fuente</button>' : "";
+    const edit = item.status !== "archived" && permissions.includes("knowledge.update")
+      ? '<details class="ai-source-edit"><summary>Editar fuente</summary><form data-ai-source-id="' + escapeHtml(item.id) + '">' +
+        '<label>Título<input name="title" required maxlength="200" value="' + escapeHtml(item.title) + '"></label>' +
+        '<label>Información para el asistente<textarea name="content" required maxlength="20000" rows="5">' +
+        escapeHtml(item.content) + '</textarea></label><p class="field-hint">' +
+        (item.status === "published" ? 'Al guardar, la información actualizada seguirá publicada.' : 'El borrador estará disponible para el asistente cuando lo publiques.') +
+        '</p><p class="form-error" role="alert"></p><button class="primary-button compact-button">Guardar cambios</button></form></details>' : "";
+    return '<details class="ai-source"><summary><span>' + escapeHtml(item.title) + '</span><span class="ai-source-status">' +
+      escapeHtml(sourceStatusLabels[item.status] || item.status) + '</span></summary><p class="ai-source-text">' +
+      escapeHtml(item.content) + "</p>" + publish + edit + "</details>";
+  }).join("");
+  const canAdd = !sources.error && permissions.includes("knowledge.create");
+  const pages = Math.max(1, Math.ceil((sources.total || 0) / 12));
+  const pagination = pages > 1 ? '<nav class="ai-pagination" aria-label="Páginas de fuentes">' +
+    '<button type="button" class="secondary-button" data-ai-page="' + (page - 1) + '"' + (page <= 1 ? " disabled" : "") + '>Anterior</button>' +
+    '<span>Página ' + page + ' de ' + pages + '</span><button type="button" class="secondary-button" data-ai-page="' +
+    (page + 1) + '"' + (page >= pages ? " disabled" : "") + '>Siguiente</button></nav>' : "";
+  const create = canAdd ? '<details class="ai-source-create"><summary>Añadir fuente</summary><form id="ai-source-form">' +
+    '<label>Título<input name="title" required maxlength="200" placeholder="Ej. Qué incluye la landing"></label>' +
+    '<label>Información para el asistente<textarea name="content" required maxlength="800" rows="5" placeholder="Incluye los datos y condiciones aprobados."></textarea></label>' +
+    '<p class="form-error" role="alert"></p><button class="primary-button compact-button">Guardar borrador</button></form></details>' : "";
+
+  return heading + '<div id="ai-settings" class="ai-settings" data-org="' + escapeHtml(organizationId) + '" data-bot="' + escapeHtml(bot.id) +
+    '" data-model="' + escapeHtml(selectedModel) + '">' + picker +
+    '<div class="ai-settings-grid"><section class="panel ai-panel" aria-label="Modelo"><h4>Modelo de IA</h4>' +
+    '<p class="field-hint">' + (ai.enabled ? "IA habilitada en este asistente." : "IA desactivada en este asistente.") +
+    '</p>' + model + '</section><section class="panel ai-panel" aria-label="Perfil"><h4>Perfil del negocio</h4>' + profileDetails + profileMarkup +
+    '</section></div><section class="panel ai-panel" aria-label="Conocimiento"><h4>Fuentes de conocimiento</h4>' +
+    '<p class="field-hint">Las fuentes publicadas pueden usarse en las respuestas del asistente.</p>' +
+    '<p class="form-error" id="ai-publish-error" role="alert"></p>' +
+    (sources.error ? '<p class="empty">Las fuentes no están disponibles.</p>' : knowledgeItems || '<p class="empty">Aún no hay fuentes en este asistente.</p>') +
+    pagination + create + '</section></div>';
+}
+
+function mountConfiguration() {
+  const root = content.querySelector("#ai-settings");
+  if (!root) return;
+  const { org, bot, model } = root.dataset;
+  const botPath = "/bots/" + encodeURIComponent(bot);
+  const sourcesPath = "/organizations/" + encodeURIComponent(org) + botPath + "/knowledge";
+  const isCurrent = () => root.isConnected && state.activeOrganization === org && state.view === "configuration";
+  const save = async (button, error, operation, confirmation) => {
+    if (!isCurrent()) return;
+    button.disabled = true;
+    error.textContent = "";
+    try {
+      await operation();
+      if (!isCurrent()) return;
+      await renderView();
+      if (state.activeOrganization === org && state.view === "configuration") showNotice(confirmation);
+    } catch (failure) {
+      if (isCurrent()) error.textContent = failure.message;
+    } finally {
+      if (isCurrent()) button.disabled = false;
+    }
+  };
+  const bind = (form, operation, confirmation) => {
+    form?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(form);
+      void save(form.querySelector("button"), form.querySelector(".form-error"), () => operation(data), confirmation);
+    });
+  };
+  const write = (path, method, data) => api(path, { method, body: JSON.stringify(data) });
+
+  root.querySelector("#ai-config-bot")?.addEventListener("change", (event) => {
+    state.configurationBot = event.target.value;
+    state.configurationSourcesPage = 1;
+    void renderView();
+  });
+  bind(root.querySelector("#ai-model-form"), (data) => write(botPath + "/ai-model", "PATCH", {
+    model: data.get("model") || null,
+    expected_model: model || null,
+  }), "Modelo guardado.");
+  bind(root.querySelector("#ai-profile-form"), (data) => write(botPath + "/business-configuration", "PATCH", {
+    business_name: data.get("business_name").trim(),
+    description: data.get("description").trim(),
+    service_instructions: data.get("service_instructions").trim(),
+  }), "Perfil guardado.");
+  const sourceFields = (data) => ({
+    title: data.get("title").trim(),
+    content: data.get("content").trim(),
+  });
+  bind(root.querySelector("#ai-source-form"), (data) => write(sourcesPath, "POST", sourceFields(data)), "Borrador de conocimiento guardado.");
+  root.querySelectorAll("[data-ai-source-id]").forEach((form) => {
+    const path = sourcesPath + "/" + encodeURIComponent(form.dataset.aiSourceId);
+    bind(form, (data) => write(path, "PATCH", sourceFields(data)), "Fuente actualizada.");
+  });
+  root.querySelectorAll("[data-ai-publish]").forEach((button) => button.addEventListener("click", () => {
+    const path = sourcesPath + "/" + encodeURIComponent(button.dataset.aiPublish) + "/publish";
+    void save(button, root.querySelector("#ai-publish-error"), () => api(path, { method: "POST" }), "Fuente publicada.");
+  }));
+  root.querySelectorAll("[data-ai-page]").forEach((button) => button.addEventListener("click", () => {
+    state.configurationBot = bot;
+    state.configurationSourcesPage = Number(button.dataset.aiPage);
+    void renderView();
+  }));
 }
 
 let renderGeneration = 0;
@@ -286,12 +427,13 @@ async function renderView(initialConversation = null) {
     conversations: () => renderConversations(organizationId),
     contacts: () => renderContacts(organizationId),
     team: () => renderTeam(),
-    configuration: () => renderConfiguration(),
+    configuration: () => renderConfiguration(organizationId),
   };
   try {
     const markup = await renderers[state.view]();
     if (ticket !== renderGeneration || !state.token || state.activeOrganization !== organizationId) return;
     content.innerHTML = markup;
+    if (state.view === "configuration") mountConfiguration();
     if (state.view === "contacts") window.LuriCRM.mount(content);
     if (state.view === "conversations") window.LuriConversations.mount(content, initialConversation);
   } catch (error) {

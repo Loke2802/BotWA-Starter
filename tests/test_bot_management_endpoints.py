@@ -320,6 +320,35 @@ def test_viewer_and_operator_are_read_only(runtime: Runtime) -> None:
     assert operator_create.status_code == 403
 
 
+def test_update_ai_model_is_scoped_and_preserves_settings(runtime: Runtime) -> None:
+    client = runtime.client
+    org_a = create_organization(client, "acme")
+    org_b = create_organization(client, "beta")
+    create_user(client, org_a, "owner-a@example.com")
+    create_user(client, org_b, "owner-b@example.com")
+    token_a = login(client, "owner-a@example.com")
+    token_b = login(client, "owner-b@example.com")
+    settings = {"generative_ai": {"enabled": True, "daily_jobs": 23}, "other": 7}
+    bot = create_bot(client, token_a, {"settings": settings})
+    path = f"/bots/{bot['id']}/ai-model"
+    request = {"model": "gpt-6.1-terra", "expected_model": None}
+
+    assert (
+        client.patch(path, json=request, headers=auth_header(token_b)).status_code
+        == 403
+    )
+    changed = client.patch(path, json=request, headers=auth_header(token_a))
+    assert changed.status_code == 200
+    assert changed.json()["bot"]["settings"] == {
+        "generative_ai": {"enabled": True, "daily_jobs": 23, "model": "gpt-6.1-terra"},
+        "other": 7,
+    }
+    assert (
+        client.patch(path, json=request, headers=auth_header(token_a)).status_code
+        == 409
+    )
+
+
 def test_update_rejects_organization_id_change(runtime: Runtime) -> None:
     client = runtime.client
     org = create_organization(client, "acme")

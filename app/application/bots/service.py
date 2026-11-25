@@ -9,7 +9,7 @@ from app.application.plans.service import PlanEnforcementService
 from app.domain.access.contracts import Permission
 from app.domain.audit.contracts import ChangedFieldsMetadata, StatusTransitionMetadata
 from app.domain.audit.ports import AuditWriter
-from app.domain.bot.contracts import Bot, BotCreate, BotUpdate
+from app.domain.bot.contracts import Bot, BotAIModelUpdate, BotCreate, BotUpdate
 from app.domain.user.contracts import User
 from app.infrastructure.models.bot import BotModel
 from app.infrastructure.repositories.bot_repository import BotRepository
@@ -227,6 +227,22 @@ class BotService:
         self._commit()
         self._session.refresh(model)
         return self._to_domain(model)
+
+    def update_ai_model(
+        self, bot_id: UUID, request: BotAIModelUpdate, actor: User
+    ) -> Bot:
+        model = self._get_visible_model(bot_id, actor, "bots.update")
+        self._session.refresh(model, with_for_update=True)
+        settings = dict(model.settings or {})
+        ai = settings.get("generative_ai", {})
+        if not isinstance(ai, dict):
+            raise BotConflictError("La configuración de IA requiere revisión.")
+        if ai.get("model") != request.expected_model:
+            raise BotConflictError("El modelo ya cambió. Actualiza la página.")
+        if ai.get("model") == request.model:
+            return self._to_domain(model)
+        settings["generative_ai"] = {**ai, "model": request.model}
+        return self.update(bot_id, BotUpdate(settings=settings), actor=actor)
 
     def activate(self, bot_id: UUID, actor: User) -> Bot:
         model = self._get_visible_model(bot_id, actor, "bots.activate")

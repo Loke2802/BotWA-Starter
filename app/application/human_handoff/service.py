@@ -2,15 +2,22 @@ from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID, uuid4
 
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.application.audit.writer import append_non_user_audit, append_user_audit
 from app.application.plans.service import PlanEnforcementService
+from app.application.whatsapp_live.adviser_alert import ALERT_PREFIX
 from app.domain.access.contracts import Permission
 from app.domain.audit.ports import AuditWriter
-from app.domain.human_handoff.contracts import HandoffSessionResponse
+from app.domain.human_handoff.contracts import (
+    AdviserAlertStatus,
+    HandoffDetailResponse,
+    HandoffSessionResponse,
+)
 from app.domain.user.contracts import User
+from app.infrastructure.models.ai_generation import AIJobModel
 from app.infrastructure.models.analytics import HandoffCycleModel
 from app.infrastructure.models.conversation import ConversationModel
 from app.infrastructure.models.human_handoff import (
@@ -18,6 +25,9 @@ from app.infrastructure.models.human_handoff import (
     HandoffSessionModel,
 )
 from app.infrastructure.models.user import UserModel
+from app.infrastructure.models.whatsapp_message_transport import (
+    OutboundMessageAttemptModel,
+)
 from app.infrastructure.repositories.human_handoff_repository import (
     HumanHandoffRepository,
 )
@@ -205,8 +215,6 @@ class HumanHandoffService:
         self, organization_id: UUID, bot_id: UUID, conversation_id: UUID
     ) -> HandoffSessionResponse:
         """System-only request; no user impersonation or expanded permissions."""
-        from sqlalchemy import select
-
         from app.infrastructure.models.business_configuration import (
             BusinessConfigurationModel,
         )
@@ -402,12 +410,55 @@ class HumanHandoffService:
 
     def get(
         self, organization_id: UUID, conversation_id: UUID, actor: User
-    ) -> HandoffSessionResponse:
+    ) -> HandoffDetailResponse:
         self._authorize(actor, "handoff.read", organization_id)
         row = self._repository.get(conversation_id, organization_id)
         if row is None:
             raise HandoffNotFoundError("handoff not found")
-        return _response(row)
+        return HandoffDetailResponse(
+            **_response(row).model_dump(),
+            adviser_alert_status=self._adviser_alert_status(row),
+        )
+
+    def _adviser_alert_status(
+        self, row: HandoffSessionModel
+    ) -> AdviserAlertStatus | None:
+        if (
+            row.status not in {"waiting_human", "human_active"}
+            or row.reason_code != "assistant_requested"
+            or row.requested_at is None
+        ):
+            return None
+        attempt = OutboundMessageAttemptModel
+        statement = (
+            select(attempt.status, attempt.last_error_code)
+            .join(AIJobModel, AIJobModel.receipt_id == attempt.inbound_receipt_id)
+            .where(
+                attempt.organization_id == row.organization_id,
+                attempt.bot_id == row.bot_id,
+                attempt.notification.is_(True),
+                attempt.idempotency_key.startswith(f"{ALERT_PREFIX}{row.id}:"),
+                attempt.created_at >= row.requested_at,
+                AIJobModel.organization_id == row.organization_id,
+                AIJobModel.bot_id == row.bot_id,
+                AIJobModel.conversation_id == row.conversation_id,
+                AIJobModel.configuration_id == attempt.channel_configuration_id,
+            )
+            .order_by(attempt.created_at.desc(), attempt.id.desc())
+            .limit(1)
+        )
+        result = self._session.execute(statement).tuples().one_or_none()
+        if result is None:
+            return None
+        state, error = result
+        match state:
+            case "failed" if error == "DELIVERY_UNKNOWN":
+                return "unknown"
+            case "failed" if error == "ADVISER_HANDOFF_NOT_PENDING":
+                return "cancelled"
+            case "pending" | "sent" | "delivered" | "read" | "failed":
+                return state
+        return None
 
     def list(
         self,

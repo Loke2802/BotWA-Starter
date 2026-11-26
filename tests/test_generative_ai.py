@@ -226,12 +226,14 @@ def runtime(tmp_path: Any, monkeypatch: pytest.MonkeyPatch) -> Generator[Runtime
 
 
 @pytest.mark.parametrize(
-    ("customer_id", "username", "expected_contact", "change_recipient"),
+    ("customer_id", "username", "expected_contact", "change_recipient", "outcome"),
     [
-        ("15550100100", "demo_phone", "+15550100100", False),
-        ("PE.AbCd123", "demo_lead", "@demo_lead", False),
-        ("PE.AbCd123", None, "Consulta el contacto en Luri.", False),
-        ("15550100100", None, "", True),
+        ("15550100100", "demo_phone", "+15550100100", False, "sent"),
+        ("PE.AbCd123", "demo_lead", "@demo_lead", False, "sent"),
+        ("PE.AbCd123", None, "Consulta el contacto en Luri.", False, "sent"),
+        ("15550100100", None, "", True, "failed"),
+        ("15550100100", None, "+15550100100", False, "failed"),
+        ("15550100100", None, "+15550100100", False, "unknown"),
     ],
 )
 async def test_private_whatsapp_adviser_alert(
@@ -241,13 +243,25 @@ async def test_private_whatsapp_adviser_alert(
     username: str | None,
     expected_contact: str,
     change_recipient: bool,
+    outcome: str,
 ) -> None:
+    from app.application.human_handoff.service import (
+        HandoffForbiddenError,
+        HumanHandoffService,
+    )
     from app.channels.whatsapp.live_mapper import WhatsAppWebhookParser
+    from app.domain.user.contracts import User
     from app.infrastructure.models.business_configuration import (
         BusinessConfigurationModel,
     )
     from app.infrastructure.models.human_handoff import HandoffSessionModel
     from app.infrastructure.models.message import MessageModel
+    from app.infrastructure.repositories.audit_repository import (
+        SqlAlchemyAuditRepository,
+    )
+    from app.infrastructure.repositories.human_handoff_repository import (
+        HumanHandoffRepository,
+    )
     from app.infrastructure.whatsapp.meta_client import MetaWhatsAppCloudApiClient
 
     from tests.plan_support import allow_all_plan_enforcement
@@ -356,6 +370,13 @@ async def test_private_whatsapp_adviser_alert(
 
     def send(request: httpx.Request) -> httpx.Response:
         requests.append(json.loads(request.content))
+        if requests[-1]["type"] == "template":
+            if outcome == "failed":
+                return httpx.Response(
+                    400, json={"error": {"message": "test rejection"}}
+                )
+            if outcome == "unknown":
+                raise httpx.ReadTimeout("test lost acknowledgement", request=request)
         return httpx.Response(
             200, json={"messages": [{"id": f"wamid.sent.{len(requests)}"}]}
         )
@@ -404,13 +425,58 @@ async def test_private_whatsapp_adviser_alert(
         attempts = session.scalars(select(OutboundMessageAttemptModel)).all()
         assert len(attempts) == 2
         alert = next(attempt for attempt in attempts if attempt.notification)
+        assert (
+            next(attempt for attempt in attempts if not attempt.notification).status
+            == "sent"
+        )
         if change_recipient:
             assert alert.last_error_code == "ADVISER_ALERT_NOT_AUTHORIZED"
+        elif outcome == "failed":
+            assert alert.last_error_code == "INVALID_REQUEST"
+        elif outcome == "unknown":
+            assert alert.last_error_code == "DELIVERY_UNKNOWN"
         else:
             assert alert.status == "sent" and alert.attempt_count == 1
         assert "mi taller" not in cipher().decrypt(alert.message_ciphertext)
         handoff = session.scalars(select(HandoffSessionModel)).one()
         assert handoff.status == "waiting_human"
+        reads = HumanHandoffService(
+            HumanHandoffRepository(session),
+            session,
+            SqlAlchemyAuditRepository(session),
+            allow_all_plan_enforcement(),
+        )
+        owner = User(
+            organization_id=channel.organization_id,
+            email="owner@example.test",
+            role="organization_owner",
+        )
+        assert (
+            reads.get(
+                channel.organization_id, conversation_id, owner
+            ).adviser_alert_status
+            == outcome
+        )
+        foreign = owner.model_copy(update={"organization_id": uuid4()})
+        with pytest.raises(HandoffForbiddenError):
+            reads.get(channel.organization_id, conversation_id, foreign)
+        handoff.status = "human_active"
+        handoff.version += 1
+        session.flush()
+        assert (
+            reads.get(
+                channel.organization_id, conversation_id, owner
+            ).adviser_alert_status
+            == outcome
+        )
+        handoff.requested_at = alert.created_at + timedelta(seconds=1)
+        session.flush()
+        assert (
+            reads.get(
+                channel.organization_id, conversation_id, owner
+            ).adviser_alert_status
+            is None
+        )
         messages = session.scalars(select(MessageModel)).all()
         assert all(message.outbound_attempt_id != alert.id for message in messages)
         if username:

@@ -5,6 +5,9 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 HandoffStatus = Literal["bot_active", "waiting_human", "human_active", "resolved"]
+AdviserAlertStatus = Literal[
+    "pending", "sent", "delivered", "read", "failed", "unknown", "cancelled"
+]
 
 
 class HandoffRequest(BaseModel):
@@ -37,6 +40,10 @@ class HandoffSessionResponse(BaseModel):
     reason_code: str | None
     last_activity_at: datetime
     version: int
+
+
+class HandoffDetailResponse(HandoffSessionResponse):
+    adviser_alert_status: AdviserAlertStatus | None = None
 
 
 class HandoffListResponse(BaseModel):

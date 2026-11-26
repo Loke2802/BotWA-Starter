@@ -9,6 +9,15 @@ window.LuriConversations = (() => {
   const can = (c, permission) => c.permissions.includes(permission);
   const button = (action, text, disabled = false) => `<button type="button" class="secondary-button" data-conversation-action="${action}" ${disabled ? "disabled" : ""}>${esc(text)}</button>`;
   const errorText = error => error.status === 403 ? "No tienes permiso para esta acción." : error.status === 409 ? "El estado cambió o la atención no está disponible. Actualiza la conversación." : error.status === 404 ? "El registro ya no está disponible." : "No se pudo completar la operación. Actualiza o intenta nuevamente.";
+  const adviserAlertLabels = {
+    pending: "Pendiente de envío",
+    sent: "Aceptado por WhatsApp",
+    delivered: "Entregado",
+    read: "Leído",
+    failed: "Falló el envío. Puedes tomar la conversación desde aquí.",
+    unknown: "Entrega sin confirmar. Puedes tomar la conversación desde aquí.",
+    cancelled: "Cancelado al cambiar la atención",
+  };
 
   function reset() { context = null; }
   function listPath(c) {
@@ -84,6 +93,8 @@ window.LuriConversations = (() => {
   }
   function detailMarkup(c) {
     const h = c.handoff;
+    const alertStatus = adviserAlertLabels[h?.adviser_alert_status];
+    const adviserAlert = alertStatus ? `<p><strong>Aviso al asesor</strong> · ${esc(alertStatus)}</p>` : "";
     const active = h && ["waiting_human", "human_active"].includes(h.status);
     const own = h?.assigned_user_id === c.user.id;
     const privileged = ["platform_admin", "organization_owner", "organization_admin"].includes(c.user.role);
@@ -97,7 +108,7 @@ window.LuriConversations = (() => {
     }
     return `${button("back", "← Conversaciones")}<div class="view-heading"><div><h3>Conversación ${esc(c.detail.masked_customer_identifier)}</h3><p>${esc(channelName(c, c.detail.channel_configuration_id))} · ${esc(label(c.detail.status))} · ${c.detail.message_count} mensajes</p></div>${button("refresh", "Actualizar")}</div>
       <p class="form-error" role="alert" id="conversation-error"></p><p role="status" id="conversation-feedback"></p>
-      <section class="panel"><h4>Atención</h4><p>${can(c, "handoff.read") ? esc(label(h?.status || "bot_active")) : "Sin permiso para consultar la atención."}${h?.assigned_user_id ? (own ? " · Asignada a ti" : " · Asignada a otro integrante") : ""}</p><div class="conversation-actions">${controls.join("")}</div></section>
+      <section class="panel"><h4>Atención</h4><p>${can(c, "handoff.read") ? esc(label(h?.status || "bot_active")) : "Sin permiso para consultar la atención."}${h?.assigned_user_id ? (own ? " · Asignada a ti" : " · Asignada a otro integrante") : ""}</p>${adviserAlert}<div class="conversation-actions">${controls.join("")}</div></section>
       <section class="panel conversation-history"><h4>Historial</h4>${c.messages ? `<ol class="conversation-messages">${c.messages.items.map(m => `<li class="conversation-message ${m.direction === "inbound" ? "inbound" : "outbound"}"><strong>${m.direction === "inbound" ? "Cliente" : "Luri / equipo"}</strong><p>${esc(m.text ?? `[${m.message_type}: contenido no disponible]`)}</p><small>${esc(date(m.occurred_at))} · ${esc(label(m.status))}</small></li>`).join("") || '<li class="empty">Sin mensajes registrados.</li>'}</ol><nav class="crm-pagination" aria-label="Páginas del historial">${button("older", "Página anterior", !c.messages.has_previous)}<span>Página ${c.messagePage}</span>${button("newer", "Página siguiente", !c.messages.has_next)}</nav>` : '<p>No tienes permiso para leer el contenido de los mensajes.</p>'}</section>
       ${reply ? `<form id="conversation-reply" class="panel"><label for="conversation-text">Respuesta humana</label><textarea id="conversation-text" rows="4" maxlength="4096" required>${esc(c.draft)}</textarea><p class="muted">Se enviará por WhatsApp al cliente de esta conversación.</p><button type="submit" class="primary-button">Enviar respuesta</button></form>` : '<p class="muted">Para responder necesitas una atención activa y los permisos correspondientes.</p>'}`;
   }
